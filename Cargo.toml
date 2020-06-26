@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "raiden-derive",
+    "raiden",
+]

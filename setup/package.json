@@ -1,0 +1,11 @@
+{
+  "name": "setup",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "devDependencies": {
+  },
+  "dependencies": {
+    "aws-sdk": "^2.679.0"
+  }
+}
