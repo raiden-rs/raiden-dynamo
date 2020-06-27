@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
-extern crate derive_builder;
-
 pub mod condition;
 pub mod errors;
 pub mod key_condition;
@@ -11,6 +8,7 @@ pub mod next_token;
 pub mod ops;
 pub mod types;
 pub mod value_id;
+pub mod update_expression;
 
 pub use condition::*;
 pub use errors::*;
