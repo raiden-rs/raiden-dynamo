@@ -89,7 +89,7 @@ pub(crate) fn expand_put_item(
             }
         }
 
-        #[derive(Debug, Clone, PartialEq, derive_builder::Builder)]
+        #[derive(Debug, Clone, PartialEq, ::raiden::Builder)]
         #[builder(setter(into))]
         pub struct #item_input_name {
             #(#input_fields)*

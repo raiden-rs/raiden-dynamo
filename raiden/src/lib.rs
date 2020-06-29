@@ -34,6 +34,8 @@ pub use rusoto_core_rustls::*;
 
 pub type Placeholder = String;
 
+pub use derive_builder::Builder;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum AttributeType {
     S,    // String
