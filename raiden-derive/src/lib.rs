@@ -26,9 +26,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let attrs = input.attrs;
 
     let table_name = if let Some(name) = finder::find_table_name(&attrs) {
-        format_ident!("{}", name)
+        name
     } else {
-        struct_name.clone()
+        struct_name.clone().to_string()
     };
 
     let rename_all = finder::find_rename_all(&attrs);
@@ -147,7 +147,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
             pub fn new(region: ::raiden::Region) -> Self {
                 let client = DynamoDbClient::new(region);
                 Self {
-                    table_name: stringify!(#table_name),
+                    table_name: #table_name,
                     table_prefix: "".to_owned(),
                     table_suffix: "".to_owned(),
                     client,
