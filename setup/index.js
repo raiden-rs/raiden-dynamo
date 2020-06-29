@@ -131,11 +131,11 @@ const put = (params) =>
   });
   await put({
     TableName: 'UpdateTestData0',
-    Item: { id: { S: 'id0' }, name: { S: 'john' } },
+    Item: { id: { S: 'id0' }, name: { S: 'john' }, age: { N: '12' }, num: { N: '1' } },
   });
   await put({
     TableName: 'UpdateTestData0',
-    Item: { id: { S: 'id1' }, name: { S: 'bob' } },
+    Item: { id: { S: 'id1' }, name: { S: 'bob' }, age: { N: '18' }, num: { N: '1' } },
   });
 
   await createTable({

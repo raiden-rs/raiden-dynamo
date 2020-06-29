@@ -5,19 +5,31 @@ pub(crate) fn expand_update_item(
     sort_key: &Option<proc_macro2::Ident>,
     attr_enum_name: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
-    // fields: &syn::FieldsNamed,
 ) -> proc_macro2::TokenStream {
     let item_output_name = format_ident!("{}UpdateItemOutput", struct_name);
     let trait_name = format_ident!("{}UpdateItem", struct_name);
+    let update_expression_name = format_ident!("{}UpdateExpression", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}UpdateItemBuilder", struct_name);
-
-    // let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
     quote! {
         #[derive(Debug, Clone, PartialEq)]
         pub struct #item_output_name {
             // #(#output_fields)*
+        }
+
+        struct #update_expression_name;
+
+        impl #struct_name {
+            fn update_expression() -> #update_expression_name {
+                #update_expression_name
+            }
+        }
+
+        impl #update_expression_name {
+            fn set(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Set<#attr_enum_name> {
+                ::raiden::update_expression::Set::new(attr)
+            }
         }
 
         pub trait #trait_name {
@@ -47,7 +59,7 @@ pub(crate) fn expand_update_item(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::UpdateItemInput,
             pub add_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
-            pub set_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
+            pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub remove_items: Vec<#attr_enum_name>,
             pub delete_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
         }
@@ -64,8 +76,8 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn set(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
-                self.set_items.push((attr, value.into_attr()));
+            pub fn set(mut self, set: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+                self.set_items.push(set.build());
                 self
             }
 
@@ -85,6 +97,18 @@ pub(crate) fn expand_update_item(
                 self
             }
 
+            // INFO: raiden supports only none, all_old and all_new to map response to struct.
+            pub fn return_all_old(mut self) -> Self {
+                self.input.return_values = Some("ALL_OLD".to_owned());
+                self
+            }
+
+            // INFO: raiden supports only none, all_old and all_new to map response to struct.
+            pub fn return_all_new(mut self) -> Self {
+                self.input.return_values = Some("ALL_NEW".to_owned());
+                self
+            }
+
             fn build_expression(&mut self) -> (String, ::raiden::AttributeNames , ::raiden::AttributeValues) {
                 let mut attr_names: ::raiden::AttributeNames = std::collections::HashMap::new();
                 let mut attr_values: ::raiden::AttributeValues = std::collections::HashMap::new();
@@ -94,13 +118,14 @@ pub(crate) fn expand_update_item(
                 let remove_items = std::mem::replace(&mut self.remove_items, vec![]);
                 let delete_items = std::mem::replace(&mut self.delete_items, vec![]);
 
-                let set_expression = set_items.into_iter().map(|(name, value)| {
-                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
-                    let attr_name = format!("#{}", name.into_attr_name());
-                    attr_names.insert(attr_name.clone(), name.into_attr_name());
-                    attr_values.insert(placeholder.clone(), value);
-                    format!("{} = {}", attr_name.clone(), placeholder)
-                }).collect::<Vec<_>>().join(", ");
+                let mut set_expressions = vec![];
+                for set_item in set_items {
+                    let (expression, names, values) = set_item;
+                    attr_names = ::raiden::merge_map(attr_names, names);
+                    attr_values = ::raiden::merge_map(attr_values, values);
+                    set_expressions.push(expression);
+                }
+                let set_expression = set_expressions.join(", ");
 
                 let add_expression = add_items.into_iter().map(|(name, value)| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
@@ -147,6 +172,8 @@ pub(crate) fn expand_update_item(
                 let (expression, names, values) = self.build_expression();
                 self.input.expression_attribute_names = Some(names);
                 self.input.expression_attribute_values = Some(values);
+                self.input.update_expression = Some(expression);
+                self.input.return_values = Some("ALL_NEW".to_owned());
                 let res = self.client.update_item(self.input).await;
                 dbg!(&res);
                 Ok(())

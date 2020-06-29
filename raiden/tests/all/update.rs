@@ -23,7 +23,11 @@ mod tests {
         reset_value_id();
         let (expression, _, _) = client
             .update("id0")
-            .set(UserAttrNames::Name, "updated")
+            .set(
+                User::update_expression()
+                    .set(UserAttrNames::Name)
+                    .value("updated"),
+            )
             .build_expression();
 
         assert_eq!(expression, "SET #name = :value0".to_owned());
