@@ -97,6 +97,18 @@ pub(crate) fn expand_update_item(
                 self
             }
 
+            // INFO: raiden supports only none, all_old and all_new to map response to struct.
+            pub fn return_all_old(mut self) -> Self {
+                self.input.return_values = Some("ALL_OLD".to_owned());
+                self
+            }
+
+            // INFO: raiden supports only none, all_old and all_new to map response to struct.
+            pub fn return_all_new(mut self) -> Self {
+                self.input.return_values = Some("ALL_NEW".to_owned());
+                self
+            }
+
             fn build_expression(&mut self) -> (String, ::raiden::AttributeNames , ::raiden::AttributeValues) {
                 let mut attr_names: ::raiden::AttributeNames = std::collections::HashMap::new();
                 let mut attr_values: ::raiden::AttributeValues = std::collections::HashMap::new();
