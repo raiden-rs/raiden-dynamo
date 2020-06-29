@@ -7,8 +7,8 @@ pub mod key_condition;
 pub mod next_token;
 pub mod ops;
 pub mod types;
-pub mod value_id;
 pub mod update_expression;
+pub mod value_id;
 
 pub use condition::*;
 pub use errors::*;
@@ -95,7 +95,7 @@ impl IntoAttribute for String {
 
 impl FromAttribute for String {
     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.s.ok_or(())
+        value.s.ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -122,7 +122,10 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.s.map(std::borrow::Cow::Owned).ok_or(())
+        value
+            .s
+            .map(std::borrow::Cow::Owned)
+            .ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -138,7 +141,10 @@ macro_rules! default_attr_for_num {
         }
         impl FromAttribute for $to {
             fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-                value.n.map(|v| v.parse().unwrap()).ok_or(())
+                value
+                    .n
+                    .map(|v| v.parse().unwrap())
+                    .ok_or((/* TODO: Add convert error handling */))
             }
         }
     };
@@ -167,12 +173,46 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
         }
     }
 }
+
 impl<T: FromAttribute> FromAttribute for Option<T> {
     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
         match value.null {
             Some(true) => Ok(None),
             _ => Ok(Some(FromAttribute::from_attr(value)?)),
         }
+    }
+}
+
+impl IntoAttribute for bool {
+    fn into_attr(self: Self) -> AttributeValue {
+        AttributeValue {
+            bool: Some(self),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+impl FromAttribute for bool {
+    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+        value.bool.ok_or((/* TODO: Add convert error handling */))
+    }
+}
+
+impl IntoAttribute for std::collections::HashSet<String> {
+    fn into_attr(mut self: Self) -> AttributeValue {
+        AttributeValue {
+            ss: Some(self.drain().collect()),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+impl FromAttribute for std::collections::HashSet<String> {
+    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+        value
+            .ss
+            .ok_or((/* TODO: Add convert error handling */))
+            .map(|mut value| value.drain(..).collect())
     }
 }
 
