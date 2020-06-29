@@ -101,11 +101,11 @@ pub(crate) fn expand_put_item(
         }
 
         pub trait #trait_name {
-            fn put(&self, item: &#item_input_name) -> #builder_name;
+            fn put(&self, item: #item_input_name) -> #builder_name;
         }
 
         impl #trait_name for #client_name {
-            fn put(&self, item: &#item_input_name) -> #builder_name{
+            fn put(&self, item: #item_input_name) -> #builder_name{
                 let mut input = ::raiden::PutItemInput::default();
                 // let key_attr = item.#partition_key.clone().into_attr();
                 // let mut input_item: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
