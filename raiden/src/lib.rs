@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate serde_derive;
 
+#[macro_use]
+extern crate derive_builder;
+
 pub mod condition;
 pub mod errors;
 pub mod key_condition;
