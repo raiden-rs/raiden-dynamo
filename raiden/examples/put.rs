@@ -1,7 +1,7 @@
 use raiden::*;
 
 #[derive(Debug, Clone, PartialEq)]
-struct CustomId(String);
+pub struct CustomId(String);
 
 impl Into<CustomId> for String {
     fn into(self) -> CustomId {

@@ -18,7 +18,7 @@ pub(crate) fn expand_query(
         let ident = &f.ident.clone().unwrap();
         let ty = &f.ty;
         quote! {
-          #ident: #ty,
+            pub #ident: #ty,
         }
     });
     quote! {
