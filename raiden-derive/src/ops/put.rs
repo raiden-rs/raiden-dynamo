@@ -25,30 +25,32 @@ pub(crate) fn expand_put_item(
             }
         });
 
-    // let output_fields = fields.named.iter().map(|f| {
-    //     let ident = &f.ident.clone().unwrap();
-    //     let ty = &f.ty;
-    //     quote! {
-    //       #ident: #ty,
-    //     }
-    // });
-
-    /*
-    let attribute_names = {
-        let insertion = fields.named.iter().map(|f| {
-            let ident = &f.ident.clone().unwrap();
-            let attr_name = format!("#{}", ident);
-            quote! {
-                attribute_names.insert(#attr_name.to_owned(), stringify!(#ident).to_owned());
-            }
-        });
-
+    let output_fields = fields.named.iter().map(|f| {
+        let ident = &f.ident.clone().unwrap();
+        let ty = &f.ty;
         quote! {
-            let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-            #(#insertion)*
+            #ident: #ty,
         }
-    };
-    */
+    });
+
+    let output_values = fields.named.iter().map(|f| {
+        let ident = &f.ident.clone().unwrap();
+        let renamed = crate::finder::find_rename_value(&f.attrs);
+        let attr_key = if renamed.is_none() {
+            ident.to_string()
+        } else {
+            renamed.unwrap()
+        };
+        if crate::finder::include_unary_attr(&f.attrs, "uuid") {
+            quote! {
+                #ident: uuid_map.get(#attr_key).cloned().unwrap(),
+            }
+        } else {
+            quote! {
+                #ident: item.#ident,
+            }
+        }
+    });
 
     let input_items = {
         let insertion = fields.named.iter().map(|f| {
@@ -61,9 +63,14 @@ pub(crate) fn expand_put_item(
             };
             if crate::finder::include_unary_attr(&f.attrs, "uuid") {
                 quote! {
+                    let id = uuid::Uuid::new_v4().to_string();
                     input_item.insert(
                         #attr_key.to_string(),
-                        uuid::Uuid::new_v4().to_string().into_attr(),
+                        id.clone().into_attr(),
+                    );
+                    uuid_map.insert(
+                        #attr_key.to_string(),
+                        id,
                     );
                 }
             } else {
@@ -97,7 +104,7 @@ pub(crate) fn expand_put_item(
 
         #[derive(Debug, Clone, PartialEq)]
         pub struct #item_output_name {
-            // #(#output_fields)*
+            #(#output_fields)*
         }
 
         pub trait #trait_name {
@@ -107,20 +114,15 @@ pub(crate) fn expand_put_item(
         impl #trait_name for #client_name {
             fn put(&self, item: #item_input_name) -> #builder_name{
                 let mut input = ::raiden::PutItemInput::default();
-                // let key_attr = item.#partition_key.clone().into_attr();
-                // let mut input_item: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
                 let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
                 let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
-
+                let mut uuid_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
                 #input_items
 
-
-                // input_item.insert(stringify!(#partition_key).to_owned(), key_attr);
-                // input_item.insert(
-                //     String::from("name"),
-                //     item.name.clone().into_attr(),
-                // );
+                let output_item = #item_output_name {
+                    #(#output_values)*
+                };
                 input.item = input_item;
                 // input.condition_expression = Some(":value0 = #name".to_owned());
                 // input.condition_expression = Some("attribute_not_exists(#name) AND (attribute_not_exists(id) OR NOT attribute_not_exists(id))".to_owned());
@@ -144,6 +146,7 @@ pub(crate) fn expand_put_item(
                 #builder_name {
                     client: &self.client,
                     input,
+                    item: output_item,
                 }
             }
         }
@@ -151,6 +154,7 @@ pub(crate) fn expand_put_item(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::PutItemInput,
+            pub item: #item_output_name,
         }
 
         impl<'a> #builder_name<'a> {
@@ -171,15 +175,15 @@ pub(crate) fn expand_put_item(
                 dbg!(&cond_str);
 
                 self.input.condition_expression = Some(cond_str);
-
-
                 self
             }
 
-            async fn run(self) -> Result<(), ::raiden::RaidenError> {
+            async fn run(self) -> Result<::raiden::put::PutOutput<#item_output_name>, ::raiden::RaidenError> {
                 let res = self.client.put_item(self.input).await?;
-                dbg!(res);
-                Ok(())
+                Ok(::raiden::put::PutOutput {
+                    item: self.item,
+                    consumed_capacity: res.consumed_capacity,
+                })
             }
         }
     }
