@@ -8,6 +8,8 @@
 
 ![Continuous Integration](https://github.com/bokuweb/raiden/workflows/Continuous%20Integration/badge.svg)
 
+## Examples
+
 ### get_item example
 
 ```Rust
@@ -36,7 +38,6 @@ fn main() {
 
 ### put_item example
 
-
 ```Rust
 fn main() {
     let mut rt = tokio::runtime::Runtime::new().unwrap();
@@ -54,4 +55,29 @@ fn main() {
     }
     rt.block_on(example());
 }
+```
+
+## Development
+
+### Requirements
+
+- Rust
+- Node.js
+- yarn
+- GNU Make
+- Docker Engine
+
+### Setup
+
+```
+cd setup
+yarn install
+cd ..
+make dynamo
+```
+
+### Test
+
+```
+make test
 ```
