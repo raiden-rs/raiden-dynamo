@@ -63,7 +63,7 @@ pub(crate) fn expand_put_item(
             };
             if crate::finder::include_unary_attr(&f.attrs, "uuid") {
                 quote! {
-                    let id = uuid::Uuid::new_v4().to_string();
+                    let id = #struct_name::gen();
                     input_item.insert(
                         #attr_key.to_string(),
                         id.clone().into_attr(),

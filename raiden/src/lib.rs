@@ -1,9 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-#[macro_use]
-extern crate derive_builder;
-
 pub mod condition;
 pub mod errors;
 pub mod key_condition;
@@ -11,6 +8,7 @@ pub mod next_token;
 pub mod ops;
 pub mod types;
 pub mod update_expression;
+pub mod id_generator;
 pub mod value_id;
 
 pub use condition::*;
@@ -22,6 +20,7 @@ pub use ops::*;
 pub use raiden_derive::*;
 pub use rusoto_credential::*;
 pub use value_id::*;
+pub use id_generator::*;
 
 #[cfg(feature = "default")]
 pub use rusoto_dynamodb_default::*;

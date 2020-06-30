@@ -174,6 +174,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
                 #client_name::new(region)
             }
         }
+
+        impl ::raiden::IdGenerator for #struct_name {}
     };
     // Hand the output tokens back to the compiler.
     proc_macro::TokenStream::from(expanded)
