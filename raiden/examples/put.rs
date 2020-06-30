@@ -1,12 +1,36 @@
 use raiden::*;
 
+#[derive(Debug, Clone, PartialEq)]
+struct CustomId(String);
+
+impl Into<CustomId> for String {
+    fn into(self) -> CustomId {
+        CustomId(self)
+    }
+}
+
+impl raiden::IntoAttribute for CustomId {
+    fn into_attr(self: Self) -> raiden::AttributeValue {
+        raiden::AttributeValue {
+            s: Some(self.0),
+            ..::raiden::AttributeValue::default()
+        }
+    }
+}
+
+impl raiden::FromAttribute for CustomId {
+    fn from_attr(value: raiden::AttributeValue) -> Result<Self, ()> {
+        Ok(CustomId(value.s.unwrap()))
+    }
+}
+
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
     id: String,
     #[raiden(uuid)]
-    uuid: String,
+    uuid: CustomId,
     name: String,
 }
 
