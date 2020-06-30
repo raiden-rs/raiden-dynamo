@@ -43,7 +43,7 @@ pub(crate) fn expand_put_item(
         };
         if crate::finder::include_unary_attr(&f.attrs, "uuid") {
             quote! {
-                #ident: uuid_map.get(#attr_key).cloned().unwrap(),
+                #ident: uuid_map.get(#attr_key).cloned().unwrap().into(),
             }
         } else {
             quote! {
