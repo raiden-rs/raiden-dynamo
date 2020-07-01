@@ -8,7 +8,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "RenameAllCamelCaseTestData0")]
     #[raiden(rename_all = "camelCase")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct RenameAllCamelCaseTest {
         #[raiden(partition_key)]
         partition_key: String,
@@ -29,7 +29,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: RenameAllCamelCaseTestGetItemOutput {
+                    item: RenameAllCamelCaseTest {
                         partition_key: "id0".to_owned(),
                         foo_bar: "john".to_owned(),
                         project_id: 1,
@@ -44,7 +44,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "RenameAllPascalCaseTestData0")]
     #[raiden(rename_all = "PascalCase")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct RenameAllPascalCaseTest {
         #[raiden(partition_key)]
         partition_key: String,
@@ -65,7 +65,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: RenameAllPascalCaseTestGetItemOutput {
+                    item: RenameAllPascalCaseTest {
                         partition_key: "id0".to_owned(),
                         foo_bar: "john".to_owned(),
                         project_id: 1,

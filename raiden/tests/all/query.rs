@@ -5,7 +5,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use raiden::*;
 
-    #[derive(Raiden)]
+    #[derive(Raiden, Debug, PartialEq)]
     pub struct QueryTestData0 {
         #[raiden(partition_key)]
         id: String,
@@ -31,13 +31,13 @@ mod tests {
                     consumed_capacity: None,
                     count: Some(2),
                     items: vec![
-                        QueryTestData0QueryOutput {
+                        QueryTestData0 {
                             id: "id0".to_owned(),
                             name: "john".to_owned(),
                             year: 1999,
                             num: 1000,
                         },
-                        QueryTestData0QueryOutput {
+                        QueryTestData0 {
                             id: "id0".to_owned(),
                             name: "john".to_owned(),
                             year: 2000,
@@ -70,7 +70,7 @@ mod tests {
                 query::QueryOutput {
                     consumed_capacity: None,
                     count: Some(1),
-                    items: vec![QueryTestData0QueryOutput {
+                    items: vec![QueryTestData0 {
                         id: "id0".to_owned(),
                         name: "john".to_owned(),
                         year: 1999,

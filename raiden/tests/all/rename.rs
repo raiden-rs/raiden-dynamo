@@ -7,7 +7,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "RenameTestData0")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct RenameTest {
         #[raiden(partition_key)]
         id: String,
@@ -18,7 +18,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "RenameTestData0")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct RenameKeyTest {
         #[raiden(partition_key)]
         #[raiden(rename = "id")]
@@ -41,7 +41,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: RenameTestGetItemOutput {
+                    item: RenameTest {
                         id: "id0".to_owned(),
                         name: "john".to_owned(),
                         before_rename: 1999,
@@ -70,7 +70,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: RenameKeyTestGetItemOutput {
+                    item: RenameKeyTest {
                         before_renamed_id: "id0".to_owned(),
                         name: "john".to_owned(),
                         before_rename: 1999,
@@ -99,7 +99,7 @@ mod tests {
                 query::QueryOutput {
                     consumed_capacity: None,
                     count: Some(1),
-                    items: vec![RenameTestQueryOutput {
+                    items: vec![RenameTest {
                         id: "id0".to_owned(),
                         name: "john".to_owned(),
                         before_rename: 1999,

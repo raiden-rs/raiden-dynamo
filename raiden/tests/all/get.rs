@@ -7,7 +7,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct User {
         #[raiden(partition_key)]
         id: String,
@@ -32,7 +32,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: UserGetItemOutput {
+                    item: User {
                         id: "user_primary_key".to_owned(),
                         name: "bokuweb".to_owned(),
                         num_usize: 42,
@@ -60,7 +60,7 @@ mod tests {
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
-                    item: UserGetItemOutput {
+                    item: User {
                         id: "user_primary_key".to_owned(),
                         name: "bokuweb".to_owned(),
                         num_usize: 42,
@@ -97,7 +97,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct UserWithUnStored {
         #[raiden(partition_key)]
         id: String,
