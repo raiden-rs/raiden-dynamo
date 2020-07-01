@@ -7,7 +7,6 @@ pub(crate) fn expand_get_item(
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
-    let item_output_name = format_ident!("{}GetItemOutput", struct_name);
     let trait_name = format_ident!("{}GetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}GetItemBuilder", struct_name);
@@ -35,11 +34,6 @@ pub(crate) fn expand_get_item(
     };
 
     quote! {
-        #[derive(Debug, Clone, PartialEq)]
-        pub struct #item_output_name {
-            #(#output_fields)*
-        }
-
         pub trait #trait_name {
             fn get(&self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> #builder_name;
         }
@@ -72,13 +66,13 @@ pub(crate) fn expand_get_item(
 
             #sort_key_setter
 
-            async fn run(self) -> Result<::raiden::get::GetOutput<#item_output_name>, ::raiden::RaidenError> {
+            async fn run(self) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
                  let res = self.client.get_item(self.input).await?;
                  if res.item.is_none() {
                      return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
                  };
                  let res_item = &res.item.unwrap();
-                 let item = #item_output_name {
+                 let item = #struct_name {
                     #(#from_item)*
                  };
                  Ok(::raiden::get::GetOutput {

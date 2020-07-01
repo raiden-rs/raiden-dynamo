@@ -1,6 +1,6 @@
 use raiden::*;
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug)]
 #[raiden(table_name = "QueryTestData0")]
 pub struct QueryTestData0 {
     #[raiden(partition_key)]

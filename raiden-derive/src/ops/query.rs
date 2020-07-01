@@ -5,7 +5,6 @@ pub(crate) fn expand_query(
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
-    let item_output_name = format_ident!("{}QueryOutput", struct_name);
     let trait_name = format_ident!("{}Query", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
@@ -14,19 +13,7 @@ pub(crate) fn expand_query(
 
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 
-    let output_fields = fields.named.iter().map(|f| {
-        let ident = &f.ident.clone().unwrap();
-        let ty = &f.ty;
-        quote! {
-            pub #ident: #ty,
-        }
-    });
     quote! {
-        #[derive(Debug, Clone, PartialEq)]
-        pub struct #item_output_name {
-            #(#output_fields)*
-        }
-
         pub trait #trait_name {
             fn query(&self) -> #builder_name;
         }
@@ -85,12 +72,12 @@ pub(crate) fn expand_query(
                 self
             }
 
-            async fn run(mut self) -> Result<::raiden::query::QueryOutput<#item_output_name>, ::raiden::RaidenError> {
+            async fn run(mut self) -> Result<::raiden::query::QueryOutput<#struct_name>, ::raiden::RaidenError> {
                 if let Some(token) = self.next_token {
                     self.input.exclusive_start_key = Some(token.into_attr_values()?);
                 }
 
-                let mut items: Vec<#item_output_name> = vec![];
+                let mut items: Vec<#struct_name> = vec![];
 
                 loop {
                     if let Some(limit) = self.limit {
@@ -100,7 +87,7 @@ pub(crate) fn expand_query(
                     let res = self.client.query(self.input.clone()).await?;
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
-                            items.push(#item_output_name {
+                            items.push(#struct_name {
                                 #(#from_item)*
                             })
                         }
