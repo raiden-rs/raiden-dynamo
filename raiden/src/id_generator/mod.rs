@@ -1,7 +1,10 @@
 pub trait IdGenerator {
     #[cfg(not(test))]
     fn gen() -> String {
-        uuid::Uuid::new_v4().to_string()
+        match std::env::var("RAIDEN_UUID_FIXED_BY") {
+            Ok(v) => v,
+            Err(_) => uuid::Uuid::new_v4().to_string(),
+        }
     }
 
     #[cfg(test)]
@@ -9,4 +12,3 @@ pub trait IdGenerator {
         "01234567-89ab-cdef-0123-456789abcdef".to_owned()
     }
 }
-
