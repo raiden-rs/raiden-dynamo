@@ -166,8 +166,6 @@ pub(crate) fn expand_put_item(
                 if !attr_values.is_empty() {
                     self.input.expression_attribute_values = Some(attr_values);
                 }
-                dbg!(&cond_str);
-
                 self.input.condition_expression = Some(cond_str);
                 self
             }
