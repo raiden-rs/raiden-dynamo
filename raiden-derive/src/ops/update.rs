@@ -5,6 +5,7 @@ pub(crate) fn expand_update_item(
     sort_key: &Option<proc_macro2::Ident>,
     attr_enum_name: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
+    rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
     let item_output_name = format_ident!("{}UpdateItemOutput", struct_name);
     let trait_name = format_ident!("{}UpdateItem", struct_name);
