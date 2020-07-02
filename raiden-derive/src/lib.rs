@@ -100,14 +100,19 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         rename_all_type,
     );
 
-    let put_item = ops::expand_put_item(&partition_key, &struct_name, &fields);
+    let put_item = ops::expand_put_item(&partition_key, &struct_name, &fields, rename_all_type);
 
-    let update_item =
-        ops::expand_update_item(&partition_key, &sort_key, &attr_enum_name, &struct_name);
+    let update_item = ops::expand_update_item(
+        &partition_key,
+        &sort_key,
+        &attr_enum_name,
+        &struct_name,
+        rename_all_type,
+    );
 
     let delete_item = ops::expand_delete_item(&partition_key, &sort_key, &struct_name);
 
-    let attr_names = attribute::expand_attr_names(&attr_enum_name, &fields);
+    let attr_names = attribute::expand_attr_names(&attr_enum_name, &fields, rename_all_type);
 
     let condition_builder =
         condition::expand_condition_builder(&attr_enum_name, &struct_name, &fields);

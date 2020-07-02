@@ -1,5 +1,7 @@
 use quote::*;
 
+use crate::rename::*;
+
 // TODO: Add map and list accessor
 //       e.g. MyMap.nestedField.deeplyNestedField
 //       Should we annotate map or list accessor with following derive?
@@ -7,6 +9,7 @@ use quote::*;
 pub fn expand_attr_names(
     attr_enum_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
     let names = fields.named.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
@@ -19,7 +22,7 @@ pub fn expand_attr_names(
         };
         let name = format_ident!("{}", name);
         quote! {
-          #name
+            #name
         }
     });
 
@@ -28,9 +31,13 @@ pub fn expand_attr_names(
         let renamed = crate::finder::find_rename_value(&f.attrs);
 
         let basename = if renamed.is_none() {
-            ident.to_string()
+            if rename_all_type != RenameAllType::None {
+                format!("{}", rename(rename_all_type, ident.to_string()))
+            } else {
+                ident.to_string()
+            }
         } else {
-            renamed.unwrap()
+            renamed.clone().unwrap()
         };
 
         let attr_name = format!("{}", basename);
@@ -62,17 +69,3 @@ pub fn expand_attr_names(
         }
     }
 }
-
-/*
-let input_fields = fields
-.named
-.iter()
-.filter(|f| !crate::finder::include_unary_attr(&f.attrs, "uuid"))
-.map(|f| {
-    let ident = &f.ident.clone().unwrap();
-    let ty = &f.ty;
-    quote! {
-        #ident: #ty,
-    }
-});
-*/

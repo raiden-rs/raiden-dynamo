@@ -13,14 +13,6 @@ pub(crate) fn expand_get_item(
 
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 
-    let output_fields = fields.named.iter().map(|f| {
-        let ident = &f.ident.clone().unwrap();
-        let ty = &f.ty;
-        quote! {
-            pub #ident: #ty,
-        }
-    });
-
     let sort_key_setter = if sort_key.is_none() {
         quote! {}
     } else {

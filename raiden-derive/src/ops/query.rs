@@ -79,6 +79,8 @@ pub(crate) fn expand_query(
 
                 let mut items: Vec<#struct_name> = vec![];
 
+                dbg!(&self.input);
+
                 loop {
                     if let Some(limit) = self.limit {
                         self.input.limit = Some(limit);
@@ -92,6 +94,7 @@ pub(crate) fn expand_query(
                             })
                         }
                     };
+
                     let scanned = &res.scanned_count.unwrap_or(0);
 
                     let mut has_next = true;

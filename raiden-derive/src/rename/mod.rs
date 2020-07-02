@@ -51,3 +51,19 @@ pub fn rename(t: RenameAllType, base: String) -> String {
         _ => panic!("{} is not supported rename type"),
     }
 }
+
+pub fn create_renamed(
+    basename: String,
+    renamed: Option<String>,
+    rename_all_type: RenameAllType,
+) -> String {
+    if renamed.is_none() {
+        if rename_all_type != RenameAllType::None {
+            format!("{}", rename(rename_all_type, basename))
+        } else {
+            basename
+        }
+    } else {
+        renamed.unwrap()
+    }
+}

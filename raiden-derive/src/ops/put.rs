@@ -1,9 +1,11 @@
+use crate::rename::*;
 use quote::*;
 
 pub(crate) fn expand_put_item(
     partition_key: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
     let item_input_name = format_ident!("{}PutItemInput", struct_name);
     let item_input_builder_name = format_ident!("{}PutItemInputBuilder", struct_name);
@@ -36,11 +38,7 @@ pub(crate) fn expand_put_item(
     let output_values = fields.named.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
-        let attr_key = if renamed.is_none() {
-            ident.to_string()
-        } else {
-            renamed.unwrap()
-        };
+        let attr_key = create_renamed(ident.to_string(), renamed, rename_all_type);
         if crate::finder::include_unary_attr(&f.attrs, "uuid") {
             quote! {
                 #ident: uuid_map.get(#attr_key).cloned().unwrap().into(),
@@ -56,11 +54,7 @@ pub(crate) fn expand_put_item(
         let insertion = fields.named.iter().map(|f| {
             let ident = &f.ident.clone().unwrap();
             let renamed = crate::finder::find_rename_value(&f.attrs);
-            let attr_key = if renamed.is_none() {
-                ident.to_string()
-            } else {
-                renamed.unwrap()
-            };
+            let attr_key = create_renamed(ident.to_string(), renamed, rename_all_type);
             if crate::finder::include_unary_attr(&f.attrs, "uuid") {
                 quote! {
                     let id = #struct_name::gen();
