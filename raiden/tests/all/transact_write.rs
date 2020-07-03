@@ -40,4 +40,28 @@ mod tests {
             true,
         )
     }
+
+    #[test]
+    fn test_transact_write_with_prefix_suffix() {
+        let tx = ::raiden::WriteTx::new(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let input = User::put_item_builder()
+            .id("testId".to_owned())
+            .name("bokuweb".to_owned())
+            .build()
+            .unwrap();
+        assert_eq(
+            tx.put(
+                User::put(input)
+                    .table_prefix("test")
+                    .table_suffix("staging"),
+            )
+            .run()
+            .await
+            .is_ok(),
+            true,
+        )
+    }
 }

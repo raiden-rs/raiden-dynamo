@@ -74,25 +74,43 @@ pub(crate) fn expand_transact_write(
                 //     #(#output_values)*
                 // };
                 input.item = input_item;
-                input.table_name = #table_name.to_owned();
                 #put_builder {
                     input,
+                    table_name: #table_name.to_owned(),
+                    table_prefix: "".to_owned(),
+                    table_suffix: "".to_owned(),
                     // item: output_item,
                 }
             }
         }
 
         pub struct #put_builder {
+            pub table_name: String,
+            pub table_prefix: String,
+            pub table_suffix: String,
             pub input: ::raiden::Put,
         }
 
         impl ::raiden::TransactWritePutBuilder for #put_builder {
             fn build(self) -> ::raiden::Put {
-                self.input
+                let mut input = self.input;
+                input.table_name = format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix);
+                input
             }
         }
 
         impl #put_builder {
+
+            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+                self.table_prefix = s.into();
+                self
+            }
+
+            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+                self.table_suffix = s.into();
+                self
+            }
+
             fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
