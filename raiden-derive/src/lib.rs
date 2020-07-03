@@ -120,6 +120,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let key_condition_builder =
         key_condition::expand_key_condition_builder(&attr_enum_name, &struct_name);
 
+    let transact_write =
+        ops::expand_transact_write(&struct_name, &fields, rename_all_type, &table_name);
+
     let expanded = quote! {
 
         pub struct #client_name {
@@ -147,6 +150,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         #update_item
 
         #delete_item
+
+        #transact_write
 
         impl #client_name {
             pub fn new(region: ::raiden::Region) -> Self {

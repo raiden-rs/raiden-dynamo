@@ -108,8 +108,8 @@ pub(crate) fn expand_put_item(
         impl #trait_name for #client_name {
             fn put(&self, item: #item_input_name) -> #builder_name{
                 let mut input = ::raiden::PutItemInput::default();
-                let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-                let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
+                // let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+                // let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
                 let mut uuid_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
                 #input_items
@@ -166,8 +166,6 @@ pub(crate) fn expand_put_item(
                 if !attr_values.is_empty() {
                     self.input.expression_attribute_values = Some(attr_values);
                 }
-                dbg!(&cond_str);
-
                 self.input.condition_expression = Some(cond_str);
                 self
             }

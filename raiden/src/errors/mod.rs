@@ -35,6 +35,12 @@ pub enum RaidenError {
     ParseError(String),
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
+    #[error("`{0}`")]
+    TransactionCanceled(String),
+    #[error("`{0}`")]
+    TransactionInProgress(String),
+    #[error("`{0}`")]
+    IdempotentParameterMismatch(String),
     #[error("blocking error")]
     Blocking,
     #[error("next_token decode error")]
@@ -104,6 +110,42 @@ impl From<RusotoError<PutItemError>> for RaidenError {
                     RaidenError::ItemCollectionSizeLimitExceeded(msg)
                 }
                 PutItemError::TransactionConflict(msg) => RaidenError::TransactionConflict(msg),
+            },
+            RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
+            RusotoError::Credentials(e) => RaidenError::Credentials(e),
+            RusotoError::Validation(msg) => RaidenError::Validation(msg),
+            RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
+            RusotoError::Unknown(res) => RaidenError::Unknown(res),
+            RusotoError::Blocking => RaidenError::Blocking,
+        }
+    }
+}
+
+impl From<RusotoError<TransactWriteItemsError>> for RaidenError {
+    fn from(error: RusotoError<TransactWriteItemsError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                TransactWriteItemsError::IdempotentParameterMismatch(msg) => {
+                    RaidenError::IdempotentParameterMismatch(msg)
+                }
+                TransactWriteItemsError::InternalServerError(msg) => {
+                    RaidenError::InternalServerError(msg)
+                }
+                TransactWriteItemsError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                TransactWriteItemsError::RequestLimitExceeded(msg) => {
+                    RaidenError::RequestLimitExceeded(msg)
+                }
+                TransactWriteItemsError::ResourceNotFound(msg) => {
+                    RaidenError::ResourceNotFound(msg)
+                }
+                TransactWriteItemsError::TransactionCanceled(msg) => {
+                    RaidenError::TransactionCanceled(msg)
+                }
+                TransactWriteItemsError::TransactionInProgress(msg) => {
+                    RaidenError::TransactionInProgress(msg)
+                }
             },
             RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
             RusotoError::Credentials(e) => RaidenError::Credentials(e),

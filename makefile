@@ -5,6 +5,7 @@ dynamo:
 	node setup
 
 test:
+	make dynamo
 	cargo test -- --test-threads=1
 
 lint:
