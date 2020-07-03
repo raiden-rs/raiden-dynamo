@@ -15,6 +15,7 @@ fn main() {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
+        let cond = User::condition().attr_not_exists(UserAttrNames::Id);
         let input = User::put_item_builder()
             .id("testId".to_owned())
             .name("bokuweb".to_owned())
@@ -22,10 +23,10 @@ fn main() {
             .unwrap();
         let input2 = User::put_item_builder()
             .id("testId2".to_owned())
-            .name("bokuweb".to_owned())
+            //            .name("bokuweb".to_owned())
             .build()
             .unwrap();
-        tx.put(User::put(input))
+        tx.put(User::put(input).condition(cond))
             .put(User::put(input2))
             .run()
             .await

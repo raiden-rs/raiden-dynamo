@@ -8,46 +8,24 @@ pub(crate) fn expand_transact_write(
     table_name: &str,
 ) -> proc_macro2::TokenStream {
     let item_input_name = format_ident!("{}PutItemInput", struct_name);
-    let item_output_name = format_ident!("{}PutItemOutput", struct_name);
-    // let trait_name = format_ident!("{}PutItem", struct_name);
-    // let client_name = format_ident!("{}Client", struct_name);
-    let builder_name = format_ident!("{}TransactPutItemBuilder", struct_name);
+    // let item_output_name = format_ident!("{}PutItemOutput", struct_name);
+    let put_builder = format_ident!("{}TransactPutItemBuilder", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
-    // let input_fields = fields
-    //     .named
-    //     .iter()
-    //     .filter(|f| !crate::finder::include_unary_attr(&f.attrs, "uuid"))
-    //     .map(|f| {
-    //         let ident = &f.ident.clone().unwrap();
-    //         let ty = &f.ty;
-    //         quote! {
-    //             #ident: #ty,
-    //         }
-    //     });
-
-    // let output_fields = fields.named.iter().map(|f| {
+    // let output_values = fields.named.iter().map(|f| {
     //     let ident = &f.ident.clone().unwrap();
-    //     let ty = &f.ty;
-    //     quote! {
-    //         pub #ident: #ty,
+    //     let renamed = crate::finder::find_rename_value(&f.attrs);
+    //     let attr_key = create_renamed(ident.to_string(), renamed, rename_all_type);
+    //     if crate::finder::include_unary_attr(&f.attrs, "uuid") {
+    //         quote! {
+    //             #ident: uuid_map.get(#attr_key).cloned().unwrap().into(),
+    //         }
+    //     } else {
+    //         quote! {
+    //             #ident: item.#ident,
+    //         }
     //     }
     // });
-
-    let output_values = fields.named.iter().map(|f| {
-        let ident = &f.ident.clone().unwrap();
-        let renamed = crate::finder::find_rename_value(&f.attrs);
-        let attr_key = create_renamed(ident.to_string(), renamed, rename_all_type);
-        if crate::finder::include_unary_attr(&f.attrs, "uuid") {
-            quote! {
-                #ident: uuid_map.get(#attr_key).cloned().unwrap().into(),
-            }
-        } else {
-            quote! {
-                #ident: item.#ident,
-            }
-        }
-    });
 
     let input_items = {
         let insertion = fields.named.iter().map(|f| {
@@ -83,29 +61,8 @@ pub(crate) fn expand_transact_write(
     };
 
     quote! {
-        // impl #struct_name {
-        //     pub fn put_item_builder() -> #item_input_builder_name {
-        //         #item_input_builder_name::default()
-        //     }
-        // }
-
-        // #[derive(Debug, Clone, PartialEq, Builder)]
-        // #[builder(setter(into))]
-        // pub struct #item_input_name {
-        //     #(#input_fields)*
-        // }
-
-        // #[derive(Debug, Clone, PartialEq)]
-        // pub struct #item_output_name {
-        //     #(#output_fields)*
-        // }
-
-        // pub trait #trait_name {
-        //     fn put(&self, item: #item_input_name) -> #builder_name;
-        // }
-
         impl #struct_name {
-            pub fn put(item: #item_input_name) -> #builder_name {
+            pub fn put(item: #item_input_name) -> #put_builder {
                 let mut input = ::raiden::Put::default();
                 let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
                 let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
@@ -118,34 +75,33 @@ pub(crate) fn expand_transact_write(
                 // };
                 input.item = input_item;
                 input.table_name = #table_name.to_owned();
-                #builder_name {
+                #put_builder {
                     input,
                     // item: output_item,
                 }
             }
         }
 
-        pub struct #builder_name {
+        pub struct #put_builder {
             pub input: ::raiden::Put,
         }
 
-        impl ::raiden::TransactWritePutBuilder for #builder_name {
+        impl ::raiden::TransactWritePutBuilder for #put_builder {
             fn build(self) -> ::raiden::Put {
                 self.input
             }
         }
 
-        impl #builder_name {
+        impl #put_builder {
             fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
-                // TODO: Implement later
-                // let (cond_str, attr_names, attr_values) = cond.build();
-                // if !attr_names.is_empty() {
-                //     self.input.expression_attribute_names = Some(attr_names);
-                // }
-                // if !attr_values.is_empty() {
-                //     self.input.expression_attribute_values = Some(attr_values);
-                // }
-                // self.input.condition_expression = Some(cond_str);
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                }
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.condition_expression = Some(cond_str);
                 self
             }
         }
