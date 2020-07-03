@@ -23,7 +23,7 @@ fn main() {
             .unwrap();
         let input2 = User::put_item_builder()
             .id("testId2".to_owned())
-            //            .name("bokuweb".to_owned())
+            .name("bokuweb".to_owned())
             .build()
             .unwrap();
         tx.put(User::put(input).condition(cond))

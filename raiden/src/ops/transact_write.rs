@@ -23,8 +23,8 @@ impl WriteTx {
         self
     }
 
-    pub async fn run(self) -> Result<(), ()> {
-        let res = self
+    pub async fn run(self) -> Result<(), crate::RaidenError> {
+        let _res = self
             .client
             .transact_write_items(crate::TransactWriteItemsInput {
                 client_request_token: None,
@@ -32,8 +32,8 @@ impl WriteTx {
                 return_item_collection_metrics: None,
                 transact_items: self.items,
             })
-            .await;
-        dbg!(res);
+            .await?;
+        // TODO: ADD Response later
         Ok(())
     }
 }
