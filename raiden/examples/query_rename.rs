@@ -17,7 +17,7 @@ fn main() {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
-        let cond = Project::key_condition(ProjectAttrNames::OrgId).eq("myOrg");
+        let cond = Project::key_condition(Project::org_id()).eq("myOrg");
         let res = client
             .query()
             .index("orgIndex")

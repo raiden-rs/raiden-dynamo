@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn test_attribute_exists_condition() {
-        let cond = User::condition().attr_exists(UserAttrNames::Name);
+        let cond = User::condition().attr_exists(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -28,7 +28,7 @@ mod tests {
 
     #[test]
     fn test_not_attribute_exists_condition() {
-        let cond = User::condition().not().attr_exists(UserAttrNames::Name);
+        let cond = User::condition().not().attr_exists(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -42,7 +42,7 @@ mod tests {
 
     #[test]
     fn test_attribute_not_exists_condition() {
-        let cond = User::condition().attr_not_exists(UserAttrNames::Name);
+        let cond = User::condition().attr_not_exists(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -57,8 +57,8 @@ mod tests {
     #[test]
     fn test_attribute_not_exists_condition_and_conjunction() {
         let cond = User::condition()
-            .attr_not_exists(UserAttrNames::Name)
-            .and(User::condition().attr_not_exists(UserAttrNames::Id));
+            .attr_not_exists(User::name())
+            .and(User::condition().attr_not_exists(User::id()));
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -73,7 +73,7 @@ mod tests {
 
     #[test]
     fn test_attribute_type_condition() {
-        let cond = User::condition().attr_type(UserAttrNames::Id, raiden::AttributeType::S);
+        let cond = User::condition().attr_type(User::id(), raiden::AttributeType::S);
         let (condition_expression, attribute_names, attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -97,7 +97,7 @@ mod tests {
 
     #[test]
     fn test_begins_with_condition() {
-        let cond = User::condition().begins_with(UserAttrNames::Name, "boku");
+        let cond = User::condition().begins_with(User::name(), "boku");
         let (condition_expression, attribute_names, attribute_values) = cond.build();
         let mut expected_names: raiden::AttributeNames = std::collections::HashMap::new();
         expected_names.insert("#name".to_owned(), "name".to_owned());
@@ -121,8 +121,8 @@ mod tests {
     #[test]
     fn test_and_condition() {
         let cond = User::condition()
-            .attr_exists(UserAttrNames::Name)
-            .and(User::condition().attr_exists(UserAttrNames::Id));
+            .attr_exists(User::name())
+            .and(User::condition().attr_exists(User::id()));
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -137,11 +137,11 @@ mod tests {
 
     #[test]
     fn test_three_and_condition() {
-        let cond = User::condition().attr_exists(UserAttrNames::Name).and(
-            User::condition().attr_exists(UserAttrNames::Id).and(
+        let cond = User::condition().attr_exists(User::name()).and(
+            User::condition().attr_exists(User::id()).and(
                 User::condition()
-                    .attr_exists(UserAttrNames::Id)
-                    .and(User::condition().attr_exists(UserAttrNames::Id)),
+                    .attr_exists(User::id())
+                    .and(User::condition().attr_exists(User::id())),
             ),
         );
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
@@ -159,8 +159,8 @@ mod tests {
     #[test]
     fn test_cmp_eq_attr_attr_condition() {
         let cond = User::condition()
-            .attr(UserAttrNames::Name)
-            .eq_attr(UserAttrNames::Name);
+            .attr(User::name())
+            .eq_attr(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -174,7 +174,7 @@ mod tests {
         reset_value_id();
         let cond = User::condition()
             .value("bokuweb")
-            .eq_attr(UserAttrNames::Name);
+            .eq_attr(User::name());
         let (condition_expression, attribute_names, attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();

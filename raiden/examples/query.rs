@@ -17,14 +17,14 @@ fn main() {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
-        let cond = QueryTestData0::key_condition(QueryTestData0AttrNames::Id)
+        let cond = QueryTestData0::key_condition(QueryTestData0::id())
             .eq("id0")
-            .and(QueryTestData0::key_condition(QueryTestData0AttrNames::Year).eq(1999));
+            .and(QueryTestData0::key_condition(QueryTestData0::year()).eq(1999));
         let res = client.query().key_condition(cond).run().await;
         dbg!(&res);
-        let cond = QueryTestData0::key_condition(QueryTestData0AttrNames::Id)
+        let cond = QueryTestData0::key_condition(QueryTestData0::id())
             .eq("id0")
-            .and(QueryTestData0::key_condition(QueryTestData0AttrNames::Year).eq(1999));
+            .and(QueryTestData0::key_condition(QueryTestData0::year()).eq(1999));
         let res = client.query().key_condition(cond).run().await;
         dbg!(&res);
     }

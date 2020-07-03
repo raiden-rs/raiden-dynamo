@@ -11,11 +11,11 @@ pub struct User {
 fn main() {
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
-        let mut tx = ::raiden::WriteTx::new(Region::Custom {
+        let tx = ::raiden::WriteTx::new(Region::Custom {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
-        let cond = User::condition().attr_not_exists(UserAttrNames::Id);
+        let cond = User::condition().attr_not_exists(User::id());
         let input = User::put_item_builder()
             .id("testId".to_owned())
             .name("bokuweb".to_owned())

@@ -17,7 +17,7 @@ fn main() {
             name: "ap-northeast-1".into(),
         });
         let set_expression = Example::update_expression()
-            .set(ExampleAttrNames::Name)
+            .set(Example::name())
             .value("updated!!");
         let res = client.update("id0").set(set_expression).run().await;
         dbg!(res);

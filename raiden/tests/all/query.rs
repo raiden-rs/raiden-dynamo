@@ -22,7 +22,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = QueryTestData0::key_condition(QueryTestData0AttrNames::Id).eq("id0");
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id0");
             let res = client.query().key_condition(cond).run().await;
 
             assert_eq!(
@@ -60,9 +60,9 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = QueryTestData0::key_condition(QueryTestData0AttrNames::Id)
+            let cond = QueryTestData0::key_condition(QueryTestData0::id())
                 .eq("id0")
-                .and(QueryTestData0::key_condition(QueryTestData0AttrNames::Year).eq(1999));
+                .and(QueryTestData0::key_condition(QueryTestData0::year()).eq(1999));
             let res = client.query().key_condition(cond).run().await;
 
             assert_eq!(
@@ -101,7 +101,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = Test::key_condition(TestAttrNames::RefId).eq("id0");
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
                 .index("testGSI")
@@ -122,7 +122,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = Test::key_condition(TestAttrNames::RefId).eq("id0");
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
                 .index("testGSI")
@@ -143,7 +143,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = Test::key_condition(TestAttrNames::RefId).eq("id0");
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
                 .index("testGSI")
@@ -163,7 +163,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = Test::key_condition(TestAttrNames::RefId).eq("id0");
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
                 .index("testGSI")
@@ -194,7 +194,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let cond = Project::key_condition(ProjectAttrNames::OrgId).eq("myOrg");
+            let cond = Project::key_condition(Project::org_id()).eq("myOrg");
             let res = client
                 .query()
                 .index("orgIndex")

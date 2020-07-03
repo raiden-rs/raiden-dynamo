@@ -23,11 +23,11 @@ fn main() {
         //    // uuid: "aa".to_owned(),
         //};
         //let cond = User::condition()
-        //    .attr(UserAttrNames::Name)
-        //    .eq_attr(UserAttrNames::Name);
+        //    .attr(User::name())
+        //    .eq_attr(User::name());
         //
-        //// let cond = User::condition().not().attr_type(UserAttrNames::Name, AttributeType::N);
-        //// .and(User::condition().not().attribute_exists(UserAttrNames::Id));
+        //// let cond = User::condition().not().attr_type(User::name(), AttributeType::N);
+        //// .and(User::condition().not().attribute_exists(User::id()));
         let res = client
             .batch_get()
             .add_key("user_primary_key") /*.condition(cond)*/

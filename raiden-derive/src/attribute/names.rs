@@ -1,6 +1,7 @@
 use quote::*;
 
 use crate::rename::*;
+use convert_case::{Case, Casing};
 
 // TODO: Add map and list accessor
 //       e.g. MyMap.nestedField.deeplyNestedField
@@ -17,9 +18,9 @@ pub fn expand_attr_names(
         let renamed = crate::finder::find_rename_value(&f.attrs);
 
         let name = if renamed.is_none() {
-            ident_case::RenameRule::PascalCase.apply_to_field(ident.to_string())
+            ident.to_string().to_case(Case::Pascal)
         } else {
-            ident_case::RenameRule::PascalCase.apply_to_field(renamed.unwrap())
+            renamed.unwrap().to_case(Case::Pascal)
         };
         let name = format_ident!("{}", name);
         quote! {
@@ -32,7 +33,7 @@ pub fn expand_attr_names(
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
         let attr_name = format!("{}", basename);
-        let name = ident_case::RenameRule::PascalCase.apply_to_field(basename);
+        let name = basename.to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {
             #attr_enum_name::#name => #attr_name.to_owned()
@@ -43,11 +44,8 @@ pub fn expand_attr_names(
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
-        let func_name = format_ident!(
-            "{}",
-            ident_case::RenameRule::SnakeCase.apply_to_field(basename.clone())
-        );
-        let name = ident_case::RenameRule::PascalCase.apply_to_field(basename);
+        let func_name = format_ident!("{}", basename.to_case(Case::Snake));
+        let name = basename.to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {
             pub fn #func_name() -> #attr_enum_name {

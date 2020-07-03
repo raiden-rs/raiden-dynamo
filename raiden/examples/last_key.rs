@@ -16,7 +16,7 @@ fn main() {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
-        let cond = Test::key_condition(TestAttrNames::RefId).eq("id0");
+        let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
             .index("testGSI")

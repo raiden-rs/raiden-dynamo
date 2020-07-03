@@ -34,7 +34,7 @@ mod tests {
             id: "mock_id".to_owned(),
             name: "bokuweb".to_owned(),
         };
-        let cond = User::condition().attr_not_exists(UserAttrNames::Name);
+        let cond = User::condition().attr_not_exists(User::name());
         let input = client.put(user).condition(cond).input;
         let mut attribute_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -128,25 +128,7 @@ mod tests {
             };
             let cond = User::condition()
                 .value("bokuweb")
-                .eq_attr(UserAttrNames::Name);
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
-    }
-
-    fn test_put_user_condition_with_attr_name_getter() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().value("bokuweb").eq_attr(User::name());
+                .eq_attr(User::name());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -167,7 +149,7 @@ mod tests {
             };
             let cond = User::condition()
                 .value("bokuweb_")
-                .eq_attr(UserAttrNames::Name);
+                .eq_attr(User::name());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(
                 Err(::raiden::RaidenError::ConditionalCheckFailed(
@@ -191,7 +173,7 @@ mod tests {
                 id: "id0".to_owned(),
                 name: "bokuweb".to_owned(),
             };
-            let cond = User::condition().attr_not_exists(UserAttrNames::Id);
+            let cond = User::condition().attr_not_exists(User::id());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(
                 Err(::raiden::RaidenError::ConditionalCheckFailed(
@@ -215,7 +197,7 @@ mod tests {
                 id: "id0".to_owned(),
                 name: "bokuweb".to_owned(),
             };
-            let cond = User::condition().attr_exists(UserAttrNames::Id);
+            let cond = User::condition().attr_exists(User::id());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(res.is_ok(), true);
         }
