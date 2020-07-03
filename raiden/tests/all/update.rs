@@ -25,7 +25,7 @@ mod tests {
             .update("id0")
             .set(
                 User::update_expression()
-                    .set(UserAttrNames::Name)
+                    .set(User::name())
                     .value("updated"),
             )
             .build_expression();

@@ -1,6 +1,7 @@
 use quote::*;
 
 use crate::rename::*;
+use convert_case::{Case, Casing};
 
 // TODO: Add map and list accessor
 //       e.g. MyMap.nestedField.deeplyNestedField
@@ -10,15 +11,16 @@ pub fn expand_attr_names(
     attr_enum_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
+    struct_name: &proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
     let names = fields.named.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
 
         let name = if renamed.is_none() {
-            ident_case::RenameRule::PascalCase.apply_to_field(ident.to_string())
+            ident.to_string().to_case(Case::Pascal)
         } else {
-            ident_case::RenameRule::PascalCase.apply_to_field(renamed.unwrap())
+            renamed.unwrap().to_case(Case::Pascal)
         };
         let name = format_ident!("{}", name);
         quote! {
@@ -29,24 +31,26 @@ pub fn expand_attr_names(
     let arms = fields.named.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
-
-        let basename = if renamed.is_none() {
-            if rename_all_type != RenameAllType::None {
-                format!("{}", rename(rename_all_type, ident.to_string()))
-            } else {
-                ident.to_string()
-            }
-        } else {
-            renamed.clone().unwrap()
-        };
-
+        let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
         let attr_name = format!("{}", basename);
-        let name = ident_case::RenameRule::PascalCase.apply_to_field(basename);
-
+        let name = basename.to_case(Case::Pascal);
         let name = format_ident!("{}", name);
-
         quote! {
             #attr_enum_name::#name => #attr_name.to_owned()
+        }
+    });
+
+    let getters = fields.named.iter().map(|f| {
+        let ident = &f.ident.clone().unwrap();
+        let renamed = crate::finder::find_rename_value(&f.attrs);
+        let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
+        let func_name = format_ident!("{}", basename.to_case(Case::Snake));
+        let name = basename.to_case(Case::Pascal);
+        let name = format_ident!("{}", name);
+        quote! {
+            pub fn #func_name() -> #attr_enum_name {
+                #attr_enum_name::#name
+            }
         }
     });
 
@@ -67,5 +71,13 @@ pub fn expand_attr_names(
                 }
             }
         }
+
+        // attr name getter
+        impl #struct_name {
+            #(
+                #getters
+            )*
+        }
+
     }
 }

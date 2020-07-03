@@ -57,7 +57,7 @@ mod tests {
         rt.block_on(example());
     }
 
-    #[test]
+     #[test]
     fn test_rename_key_get_item() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -91,7 +91,7 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
 
-            let cond = RenameTest::key_condition(RenameTestAttrNames::Id).eq("id0");
+            let cond = RenameTest::key_condition(RenameTest::id()).eq("id0");
             let res = client.query().key_condition(cond).run().await;
 
             assert_eq!(

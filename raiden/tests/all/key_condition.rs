@@ -21,7 +21,7 @@ mod tests {
     #[test]
     fn test_eq_key_condition() {
         reset_value_id();
-        let cond = User::key_condition(UserAttrNames::Name).eq("bokuweb");
+        let cond = User::key_condition(User::name()).eq("bokuweb");
         let (key_condition, attribute_names, attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -38,10 +38,10 @@ mod tests {
     fn test_two_and_key_condition() {
         reset_value_id();
 
-        let cond = User::key_condition(UserAttrNames::Name).eq("bokuweb").and(
-            User::key_condition(UserAttrNames::Year)
+        let cond = User::key_condition(User::name()).eq("bokuweb").and(
+            User::key_condition(User::year())
                 .eq(1999)
-                .and(User::key_condition(UserAttrNames::Num).eq(100)),
+                .and(User::key_condition(User::num()).eq(100)),
         );
         let (key_condition, attribute_names, attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
