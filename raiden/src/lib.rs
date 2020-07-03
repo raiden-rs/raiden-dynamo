@@ -3,12 +3,12 @@ extern crate serde_derive;
 
 pub mod condition;
 pub mod errors;
+pub mod id_generator;
 pub mod key_condition;
 pub mod next_token;
 pub mod ops;
 pub mod types;
 pub mod update_expression;
-pub mod id_generator;
 pub mod value_id;
 
 pub use condition::*;
@@ -17,10 +17,10 @@ pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
 
+pub use id_generator::*;
 pub use raiden_derive::*;
 pub use rusoto_credential::*;
 pub use value_id::*;
-pub use id_generator::*;
 
 #[cfg(feature = "default")]
 pub use rusoto_dynamodb_default::*;
@@ -202,21 +202,61 @@ impl FromAttribute for bool {
     }
 }
 
-impl IntoAttribute for std::collections::HashSet<String> {
+// impl IntoAttribute for std::collections::HashSet<String> {
+//     fn into_attr(mut self: Self) -> AttributeValue {
+//         AttributeValue {
+//             ss: Some(self.drain().collect()),
+//             ..AttributeValue::default()
+//         }
+//     }
+// }
+//
+// impl FromAttribute for std::collections::HashSet<String> {
+//     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+//         value
+//             .ss
+//             .ok_or((/* TODO: Add convert error handling */))
+//             .map(|mut value| value.drain(..).collect())
+//     }
+// }
+
+impl<A: IntoAttribute> IntoAttribute for Vec<A> {
     fn into_attr(mut self: Self) -> AttributeValue {
         AttributeValue {
-            ss: Some(self.drain().collect()),
+            l: Some(self.drain(..).map(|s| s.into_attr()).collect()),
             ..AttributeValue::default()
         }
     }
 }
 
-impl FromAttribute for std::collections::HashSet<String> {
+impl<A: FromAttribute> FromAttribute for Vec<A> {
     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
         value
-            .ss
-            .ok_or((/* TODO: Add convert error handling */))
-            .map(|mut value| value.drain(..).collect())
+            .l
+            .ok_or((/* TODO: Add convert error handling */))?
+            .into_iter()
+            .map(A::from_attr)
+            .collect()
+    }
+}
+
+impl<A: IntoAttribute + std::hash::Hash> IntoAttribute for std::collections::HashSet<A> {
+    fn into_attr(mut self: Self) -> AttributeValue {
+        AttributeValue {
+            l: Some(self.into_iter().map(|s| s.into_attr()).collect()),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+impl<A: FromAttribute + std::hash::Hash + std::cmp::Eq> FromAttribute for std::collections::HashSet<A> {
+    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+        value
+            .l
+            .ok_or((/* TODO: Add convert error handling */))?
+            .into_iter()
+            .map(A::from_attr)
+            .collect()
     }
 }
 

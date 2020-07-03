@@ -221,4 +221,118 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    pub struct UserVecTest {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        name: String,
+        nums: Vec<usize>,
+    }
+
+    #[test]
+    fn test_put_user_with_number_vec() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserVecTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let item = UserVecTest::put_item_builder()
+                .name("bokuweb")
+                .nums(vec![0, 1, 2])
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    pub struct UserSetTest {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        name: String,
+        nums: std::collections::HashSet<usize>,
+    }
+
+    #[test]
+    fn test_put_user_with_number_set() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserSetTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+            nums.insert(1);
+
+            let item = UserSetTest::put_item_builder()
+                .name("bokuweb")
+                .nums(nums)
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Debug, Clone, Hash, PartialEq, Eq)]
+    pub struct Custom {}
+
+    impl IntoAttribute for Custom {
+        fn into_attr(self: Self) -> raiden::AttributeValue {
+            raiden::AttributeValue {
+                s: Some("test".to_owned()),
+                ..::raiden::AttributeValue::default()
+            }
+        }
+    }
+
+    impl raiden::FromAttribute for Custom {
+        fn from_attr(value: raiden::AttributeValue) -> Result<Self, ()> {
+            Ok(Custom {})
+        }
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    pub struct UserDefinedSetTest {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        name: String,
+        nums: std::collections::HashSet<Custom>,
+    }
+
+    #[test]
+    fn test_put_user_with_user_defined_set() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserSetTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+            nums.insert(1);
+
+            let item = UserSetTest::put_item_builder()
+                .name("bokuweb")
+                .nums(nums)
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
 }
