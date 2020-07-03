@@ -135,6 +135,24 @@ mod tests {
         rt.block_on(example());
     }
 
+    fn test_put_user_condition_with_attr_name_getter() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let user = UserPutItemInput {
+                id: "id0".to_owned(),
+                name: "bokuweb".to_owned(),
+            };
+            let cond = User::condition().value("bokuweb").eq_attr(User::name());
+            let res = client.put(user).condition(cond).run().await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
+
     #[test]
     fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();

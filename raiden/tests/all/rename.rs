@@ -57,6 +57,31 @@ mod tests {
         rt.block_on(example());
     }
 
+    fn test_rename_get_item_with_name_getter() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = RenameTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: RenameTest {
+                        id: "id0".to_owned(),
+                        name: "john".to_owned(),
+                        before_rename: 1999,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+            assert_eq!(RenameTest::renamed().into_attr_name(), "renamed".to_owned());
+        }
+        rt.block_on(example());
+    }
+
     #[test]
     fn test_rename_key_get_item() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
