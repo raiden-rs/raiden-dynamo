@@ -64,16 +64,23 @@ pub(crate) fn expand_batch_get(
         }
     });
 
-    let trait_def_and_impl = if let Some(sort_key) = sort_key {
-        quote! {}
+    let builder_keys_type = if sort_key.is_none() {
+        quote! { std::vec::Vec<::raiden::AttributeValue> }
     } else {
+        quote! { std::vec::Vec<(::raiden::AttributeValue, ::raiden::AttributeValue)> }
+    };
+
+    let client_trait = if sort_key.is_none() {
         quote! {
             pub trait #trait_name {
-                fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name;
+                fn batch_get<K>(&self, keys: std::vec::Vec<K>) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send;
             }
 
             impl #trait_name for #client_name {
-                fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name {
+                fn batch_get<K>(&self, keys: std::vec::Vec<K>) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send
+                {
                     let mut key_attrs = vec![];
                     for key in keys.into_iter() {
                         key_attrs.push(key.into_attr());
@@ -88,6 +95,52 @@ pub(crate) fn expand_batch_get(
                 }
             }
         }
+    } else {
+        quote! {
+            pub trait #trait_name {
+                fn batch_get<PK, SK>(&self, keys: std::vec::Vec<(PK, SK)>) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn batch_get<PK, SK>(&self, keys: std::vec::Vec<(PK, SK)>) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut key_attrs = vec![];
+                    for (pk, sk) in keys.into_iter() {
+                        key_attrs.push((pk.into_attr(), sk.into_attr()));
+                    }
+
+                    #builder_name {
+                        client: &self.client,
+                        input: ::raiden::BatchGetItemInput::default(),
+                        table_name: self.table_name.to_string(),
+                        keys: key_attrs,
+                    }
+                }
+            }
+        }
+    };
+
+    let convert_to_external_proc = if let Some(sort_key) = sort_key {
+        quote! {
+            for (pk_attr, sk_attr) in self.keys.into_iter() {
+                let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
+                key_val.insert(stringify!(#partition_key).to_owned(), pk_attr);
+                key_val.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                req_item.keys.push(key_val);
+            }
+        }
+    } else {
+        quote! {
+            for key_attr in self.keys.into_iter() {
+                let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
+                key_val.insert(stringify!(#partition_key).to_owned(), key_attr);
+                req_item.keys.push(key_val);
+            }
+        }
     };
 
     quote! {
@@ -96,13 +149,13 @@ pub(crate) fn expand_batch_get(
             #(#output_fields)*
         }
 
-        #trait_def_and_impl
+        #client_trait
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::BatchGetItemInput,
             pub table_name: String,
-            pub keys: std::vec::Vec<::raiden::AttributeValue>,
+            pub keys: #builder_keys_type,
         }
 
         impl<'a> #builder_name<'a> {
@@ -112,11 +165,7 @@ pub(crate) fn expand_batch_get(
                 let mut req_item = ::raiden::KeysAndAttributes::default();
                 req_item.keys = Default::default();
 
-                for key_attr in self.keys.into_iter() {
-                    let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
-                    key_val.insert(stringify!(#partition_key).to_owned(), key_attr);
-                    req_item.keys.push(key_val);
-                }
+                #convert_to_external_proc
 
                 self.input
                     .request_items
