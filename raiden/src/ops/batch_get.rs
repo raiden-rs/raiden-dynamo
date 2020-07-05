@@ -5,5 +5,5 @@ use serde::{Deserialize, Serialize};
 pub struct BatchGetOutput<T> {
     pub consumed_capacity: Option<Vec<crate::ConsumedCapacity>>,
     pub items: Vec<T>,
-    pub unprocessed_keys: ::std::collections::HashMap<String, crate::KeysAndAttributes>,
+    pub unprocessed_keys: Option<crate::KeysAndAttributes>,
 }

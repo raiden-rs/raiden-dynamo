@@ -21,7 +21,6 @@ pub(crate) fn expand_batch_get(
     let builder_init = quote! {
         #builder_name {
             client: &self.client,
-            input: ::raiden::BatchGetItemInput::default(),
             table_name: self.table_name.to_string(),
             keys: key_attrs,
         }
@@ -73,19 +72,19 @@ pub(crate) fn expand_batch_get(
 
     let convert_to_external_proc = if let Some(sort_key) = sort_key {
         quote! {
-            for (pk_attr, sk_attr) in self.keys.into_iter() {
+            for (pk_attr, sk_attr) in keys.into_iter() {
                 let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
                 key_val.insert(stringify!(#partition_key).to_owned(), pk_attr);
                 key_val.insert(stringify!(#sort_key).to_owned(), sk_attr);
-                req_item.keys.push(key_val);
+                item.keys.push(key_val);
             }
         }
     } else {
         quote! {
-            for key_attr in self.keys.into_iter() {
+            for key_attr in keys.into_iter() {
                 let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
                 key_val.insert(stringify!(#partition_key).to_owned(), key_attr);
-                req_item.keys.push(key_val);
+                item.keys.push(key_val);
             }
         }
     };
@@ -95,55 +94,59 @@ pub(crate) fn expand_batch_get(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
-            pub input: ::raiden::BatchGetItemInput,
             pub table_name: String,
             pub keys: #builder_keys_type,
         }
 
         impl<'a> #builder_name<'a> {
             async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
-                self.input.request_items = Default::default();
-
-                let mut req_item = ::raiden::KeysAndAttributes::default();
-                req_item.keys = Default::default();
-
-                #convert_to_external_proc
-
-                self.input
-                    .request_items
-                    .insert(self.table_name.to_string(), req_item);
-
                 let mut items: std::vec::Vec<#struct_name> = vec![];
+                let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
 
-                // TODO: wrap with loop to get more than original limit
-                let res = self.client.batch_get_item(self.input).await?;
-                if let Some(res_responses) = &res.responses {
-                    if let Some(res_items) = res_responses.get(&self.table_name) {
-                        for res_item in res_items.into_iter() {
-                            items.push(#struct_name {
-                                #(#from_item)*
-                            })
+                loop {
+                    let mut input = ::raiden::BatchGetItemInput::default();
+
+                    let mut item = ::raiden::KeysAndAttributes::default();
+                    item.keys = Default::default();
+
+                    let keys = self.keys.drain(0..std::cmp::min(100, self.keys.len()));
+                    #convert_to_external_proc
+
+                    input.request_items = Default::default();
+                    input
+                        .request_items
+                        .insert(self.table_name.to_string(), item);
+
+                    let res = self.client.batch_get_item(input).await?;
+                    if let Some(res_responses) = &res.responses {
+                        if let Some(res_items) = res_responses.get(&self.table_name) {
+                            for res_item in res_items.into_iter() {
+                                items.push(#struct_name {
+                                    #(#from_item)*
+                                })
+                            }
+                        } else {
+                            return Err(::raiden::RaidenError::ResourceNotFound(format!("'{}' table not found or not active", &self.table_name)));
                         }
                     } else {
-                        return Err(::raiden::RaidenError::ResourceNotFound(format!("'{}' table not found or not active", &self.table_name)));
+                        return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
                     }
-                } else {
-                    return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
+
+                    if let Some(mut keys_by_table) = res.unprocessed_keys {
+                        if let Some(mut keys_attrs) = keys_by_table.get_mut(&self.table_name) {
+                            unprocessed_keys.keys.append(&mut keys_attrs.keys);
+                        }
+                    }
+
+                    // TODO: required somehing to prevent infinite-loop
+                    if self.keys.is_empty() {
+                        return Ok(::raiden::batch_get::BatchGetOutput {
+                            consumed_capacity: res.consumed_capacity,
+                            items,
+                            unprocessed_keys: Some(unprocessed_keys),
+                        })
+                    }
                 }
-
-                dbg!(&res);
-
-                let unprocessed_keys = if let Some(keys) = res.unprocessed_keys {
-                    keys
-                } else {
-                    Default::default()
-                };
-
-                Ok(::raiden::batch_get::BatchGetOutput {
-                    consumed_capacity: res.consumed_capacity,
-                    items,
-                    unprocessed_keys,
-                })
             }
         }
     }
