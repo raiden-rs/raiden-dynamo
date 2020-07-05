@@ -64,17 +64,31 @@ pub(crate) fn expand_batch_get(
         }
     });
 
-    // let sort_key_setter = if sort_key.is_none() {
-    //     quote! {}
-    // } else {
-    //     quote! {
-    //         pub fn sort_key(mut self, key: impl IntoAttribute + std::marker::Send) -> Self {
-    //             let key_attr: AttributeValue = key.into_attr();
-    //             self.input.key.insert(stringify!(#sort_key).to_owned(), key_attr);
-    //             self
-    //         }
-    //     }
-    // };
+    let trait_def_and_impl = if let Some(sort_key) = sort_key {
+        quote! {}
+    } else {
+        quote! {
+            pub trait #trait_name {
+                fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name;
+            }
+
+            impl #trait_name for #client_name {
+                fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name {
+                    let mut key_attrs = vec![];
+                    for key in keys.into_iter() {
+                        key_attrs.push(key.into_attr());
+                    }
+
+                    #builder_name {
+                        client: &self.client,
+                        input: ::raiden::BatchGetItemInput::default(),
+                        table_name: self.table_name.to_string(),
+                        keys: key_attrs,
+                    }
+                }
+            }
+        }
+    };
 
     quote! {
         #[derive(Debug, Clone, PartialEq)]
@@ -82,25 +96,7 @@ pub(crate) fn expand_batch_get(
             #(#output_fields)*
         }
 
-        pub trait #trait_name {
-            fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name;
-        }
-
-        impl #trait_name for #client_name {
-            fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name {
-                let mut key_attrs = vec![];
-                for key in keys.into_iter() {
-                    key_attrs.push(key.into_attr());
-                }
-
-                #builder_name {
-                    client: &self.client,
-                    input: ::raiden::BatchGetItemInput::default(),
-                    table_name: self.table_name.to_string(),
-                    keys: key_attrs,
-                }
-            }
-        }
+        #trait_def_and_impl
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
@@ -128,19 +124,19 @@ pub(crate) fn expand_batch_get(
 
                 let res = self.client.batch_get_item(self.input).await.unwrap();
 
-                 // if res.item.is_none() {
-                 //     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
-                 // };
-                 // let res_item = &res.item.unwrap();
-                 // let item = #item_output_name {
-                 //    #(#from_item)*
-                 // };
-                 dbg!(&res);
-                 Ok(())
-                 // Ok(::raiden::get::GetOutput {
-                 //     item,
-                 //     consumed_capacity: res.consumed_capacity,
-                 // })
+                // if res.item.is_none() {
+                //     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
+                // };
+                // let res_item = &res.item.unwrap();
+                // let item = #item_output_name {
+                //    #(#from_item)*
+                // };
+                dbg!(&res);
+                Ok(())
+                // Ok(::raiden::get::GetOutput {
+                //     item,
+                //     consumed_capacity: res.consumed_capacity,
+                // })
             }
         }
     }
