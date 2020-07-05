@@ -83,22 +83,21 @@ pub(crate) fn expand_batch_get(
         }
 
         pub trait #trait_name {
-            fn batch_get(&self) -> #builder_name;
+            fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name;
         }
 
         impl #trait_name for #client_name {
-            fn batch_get(&self) -> #builder_name {
-                let mut input = ::raiden::BatchGetItemInput::default();
-                // let key_attr: AttributeValue = key.into_attr();
-                // let mut key: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                // key.insert(stringify!(#partition_key).to_owned(), key_attr);
-                // input.key = key;
-                // input.table_name = self.table_name.to_string();
+            fn batch_get(&self, keys: std::vec::Vec<impl ::raiden::IntoAttribute + std::marker::Send>) -> #builder_name {
+                let mut key_attrs = vec![];
+                for key in keys.into_iter() {
+                    key_attrs.push(key.into_attr());
+                }
+
                 #builder_name {
                     client: &self.client,
-                    input,
+                    input: ::raiden::BatchGetItemInput::default(),
                     table_name: self.table_name.to_string(),
-                    partition_keys: vec![],
+                    keys: key_attrs,
                 }
             }
         }
@@ -107,32 +106,25 @@ pub(crate) fn expand_batch_get(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::BatchGetItemInput,
             pub table_name: String,
-            pub partition_keys: Vec<::raiden::AttributeValue>,
+            pub keys: std::vec::Vec<::raiden::AttributeValue>,
         }
 
         impl<'a> #builder_name<'a> {
-            pub fn add_key(mut self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> Self {
-                self.partition_keys.push(key.into_attr());
-                self
-            }
-
             async fn run(mut self) -> Result<() /*::raiden::get::GetOutput<#item_output_name>*/, ::raiden::RaidenError> {
-                let mut items: std::collections::HashMap<String, ::raiden::KeysAndAttributes> = std::collections::HashMap::new();
-                let mut keys: Vec<std::collections::HashMap<String, AttributeValue>> = vec![];
+                self.input.request_items = Default::default();
 
-                for k in self.partition_keys.into_iter() {
-                    let mut key: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                    key.insert(stringify!(#partition_key).to_owned(), k.clone());
-                    keys.push(key);
+                let mut req_item = ::raiden::KeysAndAttributes::default();
+                req_item.keys = Default::default();
+
+                for key_attr in self.keys.into_iter() {
+                    let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
+                    key_val.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    req_item.keys.push(key_val);
                 }
 
-                let key_and_attr = ::raiden::KeysAndAttributes {
-                    keys,
-                    ..::raiden::KeysAndAttributes::default()
-                };
-
-                items.insert(self.table_name.clone(), key_and_attr);
-                self.input.request_items = items;
+                self.input
+                    .request_items
+                    .insert(self.table_name.to_string(), req_item);
 
                 let res = self.client.batch_get_item(self.input).await.unwrap();
 
