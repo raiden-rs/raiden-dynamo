@@ -136,10 +136,16 @@ pub(crate) fn expand_batch_get(
 
                 dbg!(&res);
 
+                let unprocessed_keys = if let Some(keys) = res.unprocessed_keys {
+                    keys
+                } else {
+                    Default::default()
+                };
+
                 Ok(::raiden::batch_get::BatchGetOutput {
                     consumed_capacity: res.consumed_capacity,
                     items,
-                    unprocessed_keys: res.unprocessed_keys,
+                    unprocessed_keys,
                 })
             }
         }
