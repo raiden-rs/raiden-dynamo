@@ -119,16 +119,14 @@ pub(crate) fn expand_batch_get(
                 // TODO: wrap with loop to get more than original limit
                 let res = self.client.batch_get_item(self.input).await?;
                 if let Some(res_responses) = &res.responses {
-                    let res_items = res_responses.get(&self.table_name);
-                    if res_items.is_none() {
+                    if let Some(res_items) = res_responses.get(&self.table_name) {
+                        for res_item in res_items.into_iter() {
+                            items.push(#struct_name {
+                                #(#from_item)*
+                            })
+                        }
+                    } else {
                         return Err(::raiden::RaidenError::ResourceNotFound(format!("'{}' table not found or not active", &self.table_name)));
-                    }
-                    let res_items = res_items.unwrap();
-
-                    for res_item in res_items.into_iter() {
-                        items.push(#struct_name {
-                            #(#from_item)*
-                        })
                     }
                 } else {
                     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
