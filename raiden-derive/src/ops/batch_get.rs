@@ -18,6 +18,15 @@ pub(crate) fn expand_batch_get(
         quote! { std::vec::Vec<(::raiden::AttributeValue, ::raiden::AttributeValue)> }
     };
 
+    let builder_init = quote! {
+        #builder_name {
+            client: &self.client,
+            input: ::raiden::BatchGetItemInput::default(),
+            table_name: self.table_name.to_string(),
+            keys: key_attrs,
+        }
+    };
+
     let client_trait = if sort_key.is_none() {
         quote! {
             pub trait #trait_name {
@@ -34,12 +43,7 @@ pub(crate) fn expand_batch_get(
                         key_attrs.push(key.into_attr());
                     }
 
-                    #builder_name {
-                        client: &self.client,
-                        input: ::raiden::BatchGetItemInput::default(),
-                        table_name: self.table_name.to_string(),
-                        keys: key_attrs,
-                    }
+                    #builder_init
                 }
             }
         }
@@ -61,12 +65,7 @@ pub(crate) fn expand_batch_get(
                         key_attrs.push((pk.into_attr(), sk.into_attr()));
                     }
 
-                    #builder_name {
-                        client: &self.client,
-                        input: ::raiden::BatchGetItemInput::default(),
-                        table_name: self.table_name.to_string(),
-                        keys: key_attrs,
-                    }
+                    #builder_init
                 }
             }
         }
