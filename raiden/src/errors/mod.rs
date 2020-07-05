@@ -51,6 +51,31 @@ pub enum RaidenError {
     AttributeValueNotFoundError { attr_name: String },
 }
 
+impl From<RusotoError<BatchGetItemError>> for RaidenError {
+    fn from(error: RusotoError<BatchGetItemError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                BatchGetItemError::InternalServerError(msg) => {
+                    RaidenError::InternalServerError(msg)
+                }
+                BatchGetItemError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                BatchGetItemError::RequestLimitExceeded(msg) => {
+                    RaidenError::RequestLimitExceeded(msg)
+                }
+                BatchGetItemError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
+            },
+            RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
+            RusotoError::Credentials(e) => RaidenError::Credentials(e),
+            RusotoError::Validation(msg) => RaidenError::Validation(msg),
+            RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
+            RusotoError::Unknown(res) => RaidenError::Unknown(res),
+            RusotoError::Blocking => RaidenError::Blocking,
+        }
+    }
+}
+
 impl From<RusotoError<GetItemError>> for RaidenError {
     fn from(error: RusotoError<GetItemError>) -> Self {
         match error {
