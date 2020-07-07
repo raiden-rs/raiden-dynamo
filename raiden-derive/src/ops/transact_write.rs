@@ -46,10 +46,13 @@ pub(crate) fn expand_transact_write(
                 }
             } else {
                 quote! {
-                    input_item.insert(
-                        #attr_key.to_string(),
-                        item.#ident.clone().into_attr(),
-                    );
+                    let value = item.#ident.into_attr();
+                    if !::raiden::is_attr_value_empty(&value) {
+                        input_item.insert(
+                            #attr_key.to_string(),
+                            value,
+                        );
+                    }
                 }
             }
         });

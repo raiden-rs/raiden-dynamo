@@ -268,6 +268,9 @@ impl FromStringSetItem for String {
 
 impl<A: IntoAttribute> IntoAttribute for Vec<A> {
     fn into_attr(mut self: Self) -> AttributeValue {
+        if self.is_empty() {
+            return AttributeValue::default();
+        }
         AttributeValue {
             l: Some(self.drain(..).map(|s| s.into_attr()).collect()),
             ..AttributeValue::default()
@@ -292,6 +295,9 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
 
 impl IntoAttribute for std::collections::HashSet<usize> {
     fn into_attr(self: Self) -> AttributeValue {
+        if self.is_empty() {
+            return AttributeValue::default();
+        }
         AttributeValue {
             ns: Some(self.into_iter().map(|s| s.to_string()).collect()),
             ..AttributeValue::default()
@@ -315,6 +321,9 @@ impl FromAttribute for std::collections::HashSet<usize> {
 
 impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections::HashSet<A> {
     fn into_attr(self: Self) -> AttributeValue {
+        if self.is_empty() {
+            return AttributeValue::default();
+        }
         AttributeValue {
             ss: Some(self.into_iter().map(|s| s.into_ss_item()).collect()),
             ..AttributeValue::default()
@@ -344,4 +353,8 @@ pub fn merge_map<T>(
     map2: std::collections::HashMap<String, T>,
 ) -> std::collections::HashMap<String, T> {
     map1.into_iter().chain(map2).collect()
+}
+
+pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
+    a == &AttributeValue::default()
 }

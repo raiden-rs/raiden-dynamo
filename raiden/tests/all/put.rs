@@ -328,4 +328,35 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    pub struct UserEmptySetTest {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        set: std::collections::HashSet<String>,
+    }
+
+    #[test]
+    fn test_put_user_with_empty_set() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserEmptySetTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+
+            let item = UserEmptySetTest::put_item_builder()
+                .set(set)
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            dbg!(&res);
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
 }
