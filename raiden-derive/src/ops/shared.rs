@@ -22,7 +22,7 @@ pub(crate) fn expand_attr_to_item(
                 if item.is_none() {
                     None
                 } else {
-                    let converted = ::raiden::FromAttribute::from_attr(item.unwrap().clone());
+                    let converted = ::raiden::FromAttribute::from_attr(item.cloned());
                     if converted.is_err() {
                         return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
                     }
@@ -34,11 +34,9 @@ pub(crate) fn expand_attr_to_item(
             quote! {
               #ident: {
                 let item = #item_ident.get(#attr_key);
-                if item.is_none() {
-                    return Err(::raiden::RaidenError::AttributeValueNotFoundError{ attr_name: #attr_key.to_string() });
-                }
-                let converted = ::raiden::FromAttribute::from_attr(item.unwrap().clone());
+                let converted = ::raiden::FromAttribute::from_attr(item.cloned());
                 if converted.is_err() {
+                  // TODO: improve error handling.
                     return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
                 }
                 converted.unwrap()

@@ -85,7 +85,7 @@ pub trait IntoAttribute: Sized {
 }
 
 pub trait FromAttribute: Sized {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()>;
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()>;
 }
 
 impl IntoAttribute for String {
@@ -98,8 +98,14 @@ impl IntoAttribute for String {
 }
 
 impl FromAttribute for String {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.s.ok_or((/* TODO: Add convert error handling */))
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        value
+            .unwrap()
+            .s
+            .ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -125,8 +131,12 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 }
 
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
         value
+            .unwrap()
             .s
             .map(std::borrow::Cow::Owned)
             .ok_or((/* TODO: Add convert error handling */))
@@ -144,8 +154,12 @@ macro_rules! default_attr_for_num {
             }
         }
         impl FromAttribute for $to {
-            fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+            fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+                if value.is_none() {
+                    return Err((/* TODO: */));
+                }
                 value
+                    .unwrap()
                     .n
                     .map(|v| v.parse().unwrap())
                     .ok_or((/* TODO: Add convert error handling */))
@@ -179,12 +193,17 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
 }
 
 impl<T: FromAttribute> FromAttribute for Option<T> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        let value = value.unwrap();
         match value.null {
             Some(true) => Ok(None),
-            _ => Ok(Some(FromAttribute::from_attr(value)?)),
+            _ => Ok(Some(FromAttribute::from_attr(Some(value))?)),
         }
     }
+    
 }
 
 impl IntoAttribute for bool {
@@ -197,8 +216,14 @@ impl IntoAttribute for bool {
 }
 
 impl FromAttribute for bool {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.bool.ok_or((/* TODO: Add convert error handling */))
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        value
+            .unwrap()
+            .bool
+            .ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -230,18 +255,22 @@ impl<A: IntoAttribute> IntoAttribute for Vec<A> {
 }
 
 impl<A: FromAttribute> FromAttribute for Vec<A> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(vec![]);
+        }
         value
+            .unwrap()
             .l
             .ok_or((/* TODO: Add convert error handling */))?
             .into_iter()
-            .map(A::from_attr)
+            .map(|item| A::from_attr(Some(item)))
             .collect()
     }
 }
 
 impl<A: IntoAttribute + std::hash::Hash> IntoAttribute for std::collections::HashSet<A> {
-    fn into_attr(mut self: Self) -> AttributeValue {
+    fn into_attr(self: Self) -> AttributeValue {
         AttributeValue {
             l: Some(self.into_iter().map(|s| s.into_attr()).collect()),
             ..AttributeValue::default()
@@ -249,13 +278,19 @@ impl<A: IntoAttribute + std::hash::Hash> IntoAttribute for std::collections::Has
     }
 }
 
-impl<A: FromAttribute + std::hash::Hash + std::cmp::Eq> FromAttribute for std::collections::HashSet<A> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+impl<A: FromAttribute + std::hash::Hash + std::cmp::Eq> FromAttribute
+    for std::collections::HashSet<A>
+{
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(std::collections::HashSet::new());
+        }
         value
+            .unwrap()
             .l
             .ok_or((/* TODO: Add convert error handling */))?
             .into_iter()
-            .map(A::from_attr)
+            .map(|item| A::from_attr(Some(item)))
             .collect()
     }
 }
