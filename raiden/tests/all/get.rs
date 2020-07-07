@@ -116,9 +116,80 @@ mod tests {
             let res = client.get("user_primary_key").consistent().run().await;
             assert_eq!(
                 res,
-                Err(RaidenError::AttributeValueNotFoundError {
+                // Err(RaidenError::AttributeValueNotFoundError {
+                //     attr_name: "unstored".to_owned(),
+                // }),
+                Err(RaidenError::AttributeConvertError {
                     attr_name: "unstored".to_owned(),
                 }),
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UserWithEmptyHashSet {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        empty_set: std::collections::HashSet<usize>,
+    }
+
+    #[test]
+    fn test_get_empty_hashset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithEmptyHashSet::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("user_primary_key").consistent().run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithEmptyHashSet {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        empty_set: std::collections::HashSet::new(),
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UserWithEmptyVec {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        empty_vec: Vec<usize>,
+    }
+
+    #[test]
+    fn test_get_empty_vec() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithEmptyVec::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("user_primary_key").consistent().run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithEmptyVec {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        empty_vec: vec![],
+                    },
+                    consumed_capacity: None,
+                }
             );
         }
         rt.block_on(example());
