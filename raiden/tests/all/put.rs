@@ -126,9 +126,7 @@ mod tests {
                 id: "id0".to_owned(),
                 name: "bokuweb".to_owned(),
             };
-            let cond = User::condition()
-                .value("bokuweb")
-                .eq_attr(User::name());
+            let cond = User::condition().value("bokuweb").eq_attr(User::name());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -147,9 +145,7 @@ mod tests {
                 id: "id0".to_owned(),
                 name: "bokuweb".to_owned(),
             };
-            let cond = User::condition()
-                .value("bokuweb_")
-                .eq_attr(User::name());
+            let cond = User::condition().value("bokuweb_").eq_attr(User::name());
             let res = client.put(user).condition(cond).run().await;
             assert_eq!(
                 Err(::raiden::RaidenError::ConditionalCheckFailed(
@@ -288,17 +284,14 @@ mod tests {
     #[derive(Debug, Clone, Hash, PartialEq, Eq)]
     pub struct Custom {}
 
-    impl IntoAttribute for Custom {
-        fn into_attr(self: Self) -> raiden::AttributeValue {
-            raiden::AttributeValue {
-                s: Some("test".to_owned()),
-                ..::raiden::AttributeValue::default()
-            }
+    impl raiden::IntoStringSetItem for Custom {
+        fn into_ss_item(self: Self) -> String {
+            "test".to_owned()
         }
     }
 
-    impl raiden::FromAttribute for Custom {
-        fn from_attr(value: raiden::AttributeValue) -> Result<Self, ()> {
+    impl raiden::FromStringSetItem for Custom {
+        fn from_ss_item(value: String) -> Result<Self, ()> {
             Ok(Custom {})
         }
     }

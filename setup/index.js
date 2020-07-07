@@ -45,6 +45,8 @@ const put = (params) =>
       num_u8: { N: '255' },
       num_i8: { N: '-127' },
       option_i16: { N: '-1' },
+      string_set: { SS: ['Hello'] },
+      number_set: { NS: ['1'] },
     },
   });
 
