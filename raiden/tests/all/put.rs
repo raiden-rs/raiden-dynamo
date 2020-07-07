@@ -284,17 +284,14 @@ mod tests {
     #[derive(Debug, Clone, Hash, PartialEq, Eq)]
     pub struct Custom {}
 
-    impl IntoAttribute for Custom {
-        fn into_attr(self: Self) -> raiden::AttributeValue {
-            raiden::AttributeValue {
-                s: Some("test".to_owned()),
-                ..::raiden::AttributeValue::default()
-            }
+    impl raiden::IntoStringSetItem for Custom {
+        fn into_ss_item(self: Self) -> String {
+            "test".to_owned()
         }
     }
 
-    impl raiden::FromAttribute for Custom {
-        fn from_attr(value: Option<raiden::AttributeValue>) -> Result<Self, ()> {
+    impl raiden::FromStringSetItem for Custom {
+        fn from_ss_item(value: String) -> Result<Self, ()> {
             Ok(Custom {})
         }
     }

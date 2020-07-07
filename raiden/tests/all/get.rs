@@ -194,4 +194,91 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UserWithStringSet {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        string_set: std::collections::HashSet<String>,
+    }
+
+    #[test]
+    fn test_get_stringset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithStringSet::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("user_primary_key").consistent().run().await;
+            let mut set = std::collections::HashSet::new();
+            set.insert("Hello".to_owned());
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithStringSet {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        string_set: set,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub struct CustomSSItem(String);
+
+    impl raiden::IntoStringSetItem for CustomSSItem {
+        fn into_ss_item(self: Self) -> String {
+            "test".to_owned()
+        }
+    }
+
+    impl raiden::FromStringSetItem for CustomSSItem {
+        fn from_ss_item(value: String) -> Result<Self, ()> {
+            Ok(CustomSSItem(value))
+        }
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UserWithCustomStringSet {
+        #[raiden(partition_key)]
+        pub id: String,
+        pub name: String,
+        pub string_set: std::collections::HashSet<CustomSSItem>,
+    }
+
+    #[test]
+    fn test_get_custom_stringset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithCustomStringSet::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("user_primary_key").consistent().run().await;
+            let mut set = std::collections::HashSet::new();
+            set.insert(CustomSSItem("Hello".to_owned()));
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithCustomStringSet {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        string_set: set,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }

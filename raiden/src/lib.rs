@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
 
+use std::str::FromStr;
+
 pub mod condition;
 pub mod errors;
 pub mod id_generator;
@@ -76,6 +78,10 @@ pub trait IntoAttrValues: Sized {
     fn into_attr_values(self) -> AttributeValues;
 }
 
+pub trait IntoStringSetItem: Sized {
+    fn into_ss_item(self) -> String;
+}
+
 pub trait ToAttrMaps: Sized {
     fn to_attr_maps(&self) -> (AttributeNames, AttributeValues);
 }
@@ -86,6 +92,10 @@ pub trait IntoAttribute: Sized {
 
 pub trait FromAttribute: Sized {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()>;
+}
+
+pub trait FromStringSetItem: Sized {
+    fn from_ss_item(value: String) -> Result<Self, ()>;
 }
 
 impl IntoAttribute for String {
@@ -203,7 +213,6 @@ impl<T: FromAttribute> FromAttribute for Option<T> {
             _ => Ok(Some(FromAttribute::from_attr(Some(value))?)),
         }
     }
-    
 }
 
 impl IntoAttribute for bool {
@@ -224,6 +233,18 @@ impl FromAttribute for bool {
             .unwrap()
             .bool
             .ok_or((/* TODO: Add convert error handling */))
+    }
+}
+
+impl IntoStringSetItem for String {
+    fn into_ss_item(self: Self) -> String {
+        self
+    }
+}
+
+impl FromStringSetItem for String {
+    fn from_ss_item(value: String) -> Result<Self, ()> {
+        Ok(value)
     }
 }
 
@@ -269,29 +290,47 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
     }
 }
 
-impl<A: IntoAttribute + std::hash::Hash> IntoAttribute for std::collections::HashSet<A> {
+impl IntoAttribute for std::collections::HashSet<usize> {
     fn into_attr(self: Self) -> AttributeValue {
         AttributeValue {
-            l: Some(self.into_iter().map(|s| s.into_attr()).collect()),
+            ns: Some(self.into_iter().map(|s| s.to_string()).collect()),
             ..AttributeValue::default()
         }
     }
 }
 
-impl<A: FromAttribute + std::hash::Hash + std::cmp::Eq> FromAttribute
+impl FromAttribute for std::collections::HashSet<usize> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(std::collections::HashSet::new());
+        }
+        let mut nums = value.unwrap().ns.ok_or(())?;
+        let mut results: Vec<Result<usize, ()>> = nums
+            .drain(..)
+            .map(|ns| ns.parse().map_err(|_| ()))
+            .collect();
+        results.drain(..).collect()
+    }
+}
+
+impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections::HashSet<A> {
+    fn into_attr(self: Self) -> AttributeValue {
+        AttributeValue {
+            ss: Some(self.into_iter().map(|s| s.into_ss_item()).collect()),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
     for std::collections::HashSet<A>
 {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
         if value.is_none() {
             return Ok(std::collections::HashSet::new());
         }
-        value
-            .unwrap()
-            .l
-            .ok_or((/* TODO: Add convert error handling */))?
-            .into_iter()
-            .map(|item| A::from_attr(Some(item)))
-            .collect()
+        let mut ss = value.unwrap().ss.ok_or(())?;
+        ss.drain(..).map(A::from_ss_item).collect()
     }
 }
 
