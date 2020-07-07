@@ -91,7 +91,7 @@ pub trait IntoAttribute: Sized {
 }
 
 pub trait FromAttribute: Sized {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()>;
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()>;
 }
 
 pub trait FromStringSetItem: Sized {
@@ -108,8 +108,14 @@ impl IntoAttribute for String {
 }
 
 impl FromAttribute for String {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.s.ok_or((/* TODO: Add convert error handling */))
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        value
+            .unwrap()
+            .s
+            .ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -135,8 +141,12 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 }
 
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
         value
+            .unwrap()
             .s
             .map(std::borrow::Cow::Owned)
             .ok_or((/* TODO: Add convert error handling */))
@@ -154,8 +164,12 @@ macro_rules! default_attr_for_num {
             }
         }
         impl FromAttribute for $to {
-            fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+            fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+                if value.is_none() {
+                    return Err((/* TODO: */));
+                }
                 value
+                    .unwrap()
                     .n
                     .map(|v| v.parse().unwrap())
                     .ok_or((/* TODO: Add convert error handling */))
@@ -189,10 +203,14 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
 }
 
 impl<T: FromAttribute> FromAttribute for Option<T> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        let value = value.unwrap();
         match value.null {
             Some(true) => Ok(None),
-            _ => Ok(Some(FromAttribute::from_attr(value)?)),
+            _ => Ok(Some(FromAttribute::from_attr(Some(value))?)),
         }
     }
 }
@@ -207,8 +225,14 @@ impl IntoAttribute for bool {
 }
 
 impl FromAttribute for bool {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        value.bool.ok_or((/* TODO: Add convert error handling */))
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Err(());
+        }
+        value
+            .unwrap()
+            .bool
+            .ok_or((/* TODO: Add convert error handling */))
     }
 }
 
@@ -252,12 +276,16 @@ impl<A: IntoAttribute> IntoAttribute for Vec<A> {
 }
 
 impl<A: FromAttribute> FromAttribute for Vec<A> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(vec![]);
+        }
         value
+            .unwrap()
             .l
             .ok_or((/* TODO: Add convert error handling */))?
             .into_iter()
-            .map(A::from_attr)
+            .map(|item| A::from_attr(Some(item)))
             .collect()
     }
 }
@@ -272,8 +300,11 @@ impl IntoAttribute for std::collections::HashSet<usize> {
 }
 
 impl FromAttribute for std::collections::HashSet<usize> {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        let mut nums = value.ns.ok_or(())?;
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(std::collections::HashSet::new());
+        }
+        let mut nums = value.unwrap().ns.ok_or(())?;
         let mut results: Vec<Result<usize, ()>> = nums
             .drain(..)
             .map(|ns| ns.parse().map_err(|_| ()))
@@ -294,8 +325,11 @@ impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections:
 impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
     for std::collections::HashSet<A>
 {
-    fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-        let mut ss = value.ss.ok_or(())?;
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+        if value.is_none() {
+            return Ok(std::collections::HashSet::new());
+        }
+        let mut ss = value.unwrap().ss.ok_or(())?;
         ss.drain(..).map(A::from_ss_item).collect()
     }
 }
