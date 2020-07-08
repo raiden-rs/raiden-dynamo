@@ -107,7 +107,7 @@ mod tests {
     // NOTE: Same behavior with original SDK, but we're planning to improve this.
     // ref. https://github.com/raiden-rs/raiden/issues/44
     #[test]
-    fn test_batch_get_item_missings() {
+    fn test_batch_get_item_partial_missing() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest0::client(Region::Custom {
@@ -189,6 +189,38 @@ mod tests {
                 sort_by_id_1(res),
                 batch_get::BatchGetOutput {
                     items: expected_items,
+                    consumed_capacity: None,
+                    unprocessed_keys: Some(KeysAndAttributes {
+                        attributes_to_get: None,
+                        consistent_read: None,
+                        expression_attribute_names: None,
+                        keys: vec![],
+                        projection_expression: None,
+                    }),
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_batch_get_item_missing_all() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = BatchTest1::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res: batch_get::BatchGetOutput<BatchTest1> = client
+                .batch_get(vec![("id300", 2300), ("id301", 2301), ("id302", 2302)])
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(
+                sort_by_id_1(res),
+                batch_get::BatchGetOutput {
+                    items: vec![],
                     consumed_capacity: None,
                     unprocessed_keys: Some(KeysAndAttributes {
                         attributes_to_get: None,
