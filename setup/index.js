@@ -232,7 +232,7 @@ const put = (params) =>
     TableName: 'BatchTest0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
-    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
   });
 
   for (let i = 0; i < 101; i++) {
@@ -252,7 +252,7 @@ const put = (params) =>
       { AttributeName: 'id', AttributeType: 'S' },
       { AttributeName: 'year', AttributeType: 'N' },
     ],
-    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
   });
 
   for (let i = 0; i < 250; i++) {
