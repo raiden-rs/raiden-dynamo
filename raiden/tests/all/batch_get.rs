@@ -12,13 +12,13 @@ mod tests {
         name: String,
     }
 
-    fn sort(
+    fn sort_by_id(
         mut output: batch_get::BatchGetOutput<BatchTest0>,
     ) -> batch_get::BatchGetOutput<BatchTest0> {
         output.items.sort_by_key(|i| {
             let mut id = i.id.to_string();
             id.replace_range(0..2, "");
-            id.parse::<usize>().unwrap()
+            id.parse::<i32>().unwrap()
         });
         batch_get::BatchGetOutput { ..output }
     }
@@ -35,7 +35,7 @@ mod tests {
             let res = client.batch_get(vec!["id0", "id1", "id2"]).run().await;
             let res: batch_get::BatchGetOutput<BatchTest0> = res.unwrap();
             assert_eq!(
-                sort(res),
+                sort_by_id(res),
                 batch_get::BatchGetOutput {
                     items: vec![
                         BatchTest0 {
