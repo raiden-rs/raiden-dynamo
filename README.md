@@ -81,3 +81,12 @@ make dynamo
 ```
 make test
 ```
+
+## Known limitations
+
+Here is a list of unsupported features/behaviors in the actual implementation.
+We have a plan to resolve these issues in a future release.
+
+- [ ] Automatic retrying: https://github.com/raiden-rs/raiden/issues/44
+- [ ] Strict type checking of keys: https://github.com/raiden-rs/raiden/issues/26
+- [ ] Exponential backoff handling
