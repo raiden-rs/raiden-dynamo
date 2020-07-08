@@ -255,10 +255,10 @@ const put = (params) =>
     ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
   });
 
-  for (let i = 0; i < 101; i++) {
+  for (let i = 0; i < 250; i++) {
     await put({
       TableName: 'BatchTest1',
-      Item: { id: { S: `id${i}` }, name: { S: 'bob' }, year: { N: `${200 + i}` }, num: { N: `${i}` } },
+      Item: { id: { S: `id${i}` }, name: { S: 'bob' }, year: { N: `${2000 + i}` }, num: { N: `${i}` } },
     });
   }
 
