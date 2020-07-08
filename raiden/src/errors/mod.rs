@@ -121,6 +121,36 @@ impl From<RusotoError<PutItemError>> for RaidenError {
     }
 }
 
+impl From<RusotoError<UpdateItemError>> for RaidenError {
+    fn from(error: RusotoError<UpdateItemError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                UpdateItemError::InternalServerError(msg) => RaidenError::InternalServerError(msg),
+                UpdateItemError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                UpdateItemError::RequestLimitExceeded(msg) => {
+                    RaidenError::RequestLimitExceeded(msg)
+                }
+                UpdateItemError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
+                UpdateItemError::ConditionalCheckFailed(msg) => {
+                    RaidenError::ConditionalCheckFailed(msg)
+                }
+                UpdateItemError::ItemCollectionSizeLimitExceeded(msg) => {
+                    RaidenError::ItemCollectionSizeLimitExceeded(msg)
+                }
+                UpdateItemError::TransactionConflict(msg) => RaidenError::TransactionConflict(msg),
+            },
+            RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
+            RusotoError::Credentials(e) => RaidenError::Credentials(e),
+            RusotoError::Validation(msg) => RaidenError::Validation(msg),
+            RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
+            RusotoError::Unknown(res) => RaidenError::Unknown(res),
+            RusotoError::Blocking => RaidenError::Blocking,
+        }
+    }
+}
+
 impl From<RusotoError<TransactWriteItemsError>> for RaidenError {
     fn from(error: RusotoError<TransactWriteItemsError>) -> Self {
         match error {

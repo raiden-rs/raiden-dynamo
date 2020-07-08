@@ -1,6 +1,6 @@
 use raiden::*;
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug)]
 #[raiden(table_name = "UpdateTestData0")]
 pub struct Example {
     #[raiden(partition_key)]
@@ -19,8 +19,8 @@ fn main() {
         let set_expression = Example::update_expression()
             .set(Example::name())
             .value("updated!!");
-        let res = client.update("id0").set(set_expression).run().await;
-        dbg!(res);
+        let res = client.update("id0").set(set_expression).run().await.unwrap();
+        dbg!(res.item);
     }
     rt.block_on(example());
 }

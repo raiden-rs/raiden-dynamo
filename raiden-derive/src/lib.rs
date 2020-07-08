@@ -105,6 +105,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let update_item = ops::expand_update_item(
         &partition_key,
         &sort_key,
+        &fields,
         &attr_enum_name,
         &struct_name,
         rename_all_type,
