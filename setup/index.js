@@ -273,4 +273,13 @@ const put = (params) =>
       number_set: { NS: ['1'] },
     },
   });
+
+  await put({
+    TableName: 'DeleteTest0',
+    Item: {
+      id: { S: 'id1' },
+      name: { S: 'bokuweb' },
+      removable: { BOOL: true },
+    },
+  });
 })();
