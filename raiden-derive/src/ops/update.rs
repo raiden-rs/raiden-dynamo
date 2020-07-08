@@ -14,6 +14,7 @@ pub(crate) fn expand_update_item(
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}UpdateItemBuilder", struct_name);
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
     quote! {
         #[derive(Debug, Clone, PartialEq)]
@@ -47,7 +48,6 @@ pub(crate) fn expand_update_item(
                 key.insert(stringify!(#partition_key).to_owned(), key_attr);
                 input.key = key;
                 input.table_name = self.table_name();
-                input.return_values = Some("ALL_NEW".to_owned());
                 #builder_name {
                     client: &self.client,
                     input,
@@ -104,6 +104,24 @@ pub(crate) fn expand_update_item(
             // INFO: raiden supports only none, all_old and all_new to map response to struct.
             pub fn return_all_old(mut self) -> Self {
                 self.input.return_values = Some("ALL_OLD".to_owned());
+                self
+            }
+
+            // INFO: raiden supports only none, all_old and all_new to map response to struct.
+            pub fn return_all_new(mut self) -> Self {
+                self.input.return_values = Some("ALL_NEW".to_owned());
+                self
+            }
+
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                }
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.condition_expression = Some(cond_str);
                 self
             }
 
@@ -168,15 +186,27 @@ pub(crate) fn expand_update_item(
 
             pub async fn run(mut self) -> Result<::raiden::update::UpdateOutput<#struct_name>, ::raiden::RaidenError> {
                 let (expression, names, values) = self.build_expression();
-                self.input.expression_attribute_names = Some(names);
-                self.input.expression_attribute_values = Some(values);
+                if self.input.expression_attribute_names.is_none() {
+                    self.input.expression_attribute_names = Some(names);
+                } else {
+                    self.input.expression_attribute_names = Some(::raiden::merge_map(self.input.expression_attribute_names.unwrap(), names));
+                }
+                if self.input.expression_attribute_values.is_none() {
+                    self.input.expression_attribute_values = Some(values);
+                } else {
+                    self.input.expression_attribute_values = Some(::raiden::merge_map(self.input.expression_attribute_values.unwrap(), values));
+                }
                 self.input.update_expression = Some(expression);
+                let has_return_values = self.input.return_values.is_some();
                 let res = self.client.update_item(self.input).await?;
 
-                let res_item = &res.attributes.unwrap();
-                let item = #struct_name {
-                    #(#from_item)*
-                };
+                let mut item: Option<#struct_name> = None;
+                if has_return_values {
+                    let res_item = &res.attributes.unwrap();
+                    item = Some(#struct_name {
+                        #(#from_item)*
+                    });
+                }
 
                 Ok(::raiden::update::UpdateOutput {
                     item,
