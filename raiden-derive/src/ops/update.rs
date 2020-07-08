@@ -200,13 +200,14 @@ pub(crate) fn expand_update_item(
                 let has_return_values = self.input.return_values.is_some();
                 let res = self.client.update_item(self.input).await?;
 
-                let mut item: Option<#struct_name> = None;
-                if has_return_values {
+                let item = if has_return_values {
                     let res_item = &res.attributes.unwrap();
-                    item = Some(#struct_name {
+                    Some(#struct_name {
                         #(#from_item)*
-                    });
-                }
+                    })
+                } else {
+                    None
+                };
 
                 Ok(::raiden::update::UpdateOutput {
                     item,
