@@ -4,6 +4,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Default, Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub struct UpdateOutput<T> {
     pub consumed_capacity: Option<crate::ConsumedCapacity>,
-    pub item: T,
+    pub item: Option<T>,
     pub item_collection_metrics: Option<crate::ItemCollectionMetrics>,
 }
