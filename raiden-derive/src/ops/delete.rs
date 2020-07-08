@@ -46,9 +46,8 @@ pub(crate) fn expand_delete_item(
                 self
             }
 
-            async fn run(self) -> Result<(), ()> {
-                let res = self.client.delete_item(self.input).await.unwrap();
-                dbg!(res);
+            async fn run(self) -> Result<(), ::raiden::RaidenError> {
+                let res = self.client.delete_item(self.input).await?;
                 Ok(())
             }
         }

@@ -257,4 +257,20 @@ const put = (params) =>
       },
     ],
   });
+
+  await createTable({
+    TableName: 'DeleteTest0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'DeleteTest0',
+    Item: {
+      id: { S: 'id0' },
+      name: { S: 'bokuweb' },
+      number_set: { NS: ['1'] },
+    },
+  });
 })();
