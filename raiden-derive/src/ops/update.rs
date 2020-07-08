@@ -3,6 +3,7 @@ use quote::*;
 pub(crate) fn expand_update_item(
     partition_key: &proc_macro2::Ident,
     sort_key: &Option<proc_macro2::Ident>,
+    fields: &syn::FieldsNamed,
     attr_enum_name: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
     rename_all_type: crate::rename::RenameAllType,
@@ -12,6 +13,7 @@ pub(crate) fn expand_update_item(
     let update_expression_name = format_ident!("{}UpdateExpression", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}UpdateItemBuilder", struct_name);
+    let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 
     quote! {
         #[derive(Debug, Clone, PartialEq)]
@@ -45,6 +47,7 @@ pub(crate) fn expand_update_item(
                 key.insert(stringify!(#partition_key).to_owned(), key_attr);
                 input.key = key;
                 input.table_name = self.table_name();
+                input.return_values = Some("ALL_NEW".to_owned());
                 #builder_name {
                     client: &self.client,
                     input,
@@ -101,12 +104,6 @@ pub(crate) fn expand_update_item(
             // INFO: raiden supports only none, all_old and all_new to map response to struct.
             pub fn return_all_old(mut self) -> Self {
                 self.input.return_values = Some("ALL_OLD".to_owned());
-                self
-            }
-
-            // INFO: raiden supports only none, all_old and all_new to map response to struct.
-            pub fn return_all_new(mut self) -> Self {
-                self.input.return_values = Some("ALL_NEW".to_owned());
                 self
             }
 
@@ -169,18 +166,24 @@ pub(crate) fn expand_update_item(
             }
 
 
-            pub async fn run(mut self) -> Result<(), ()> {
+            pub async fn run(mut self) -> Result<::raiden::update::UpdateOutput<#struct_name>, ::raiden::RaidenError> {
                 let (expression, names, values) = self.build_expression();
                 self.input.expression_attribute_names = Some(names);
                 self.input.expression_attribute_values = Some(values);
                 self.input.update_expression = Some(expression);
-                self.input.return_values = Some("ALL_NEW".to_owned());
-                let res = self.client.update_item(self.input).await;
-                dbg!(&res);
-                Ok(())
+                let res = self.client.update_item(self.input).await?;
+
+                let res_item = &res.attributes.unwrap();
+                let item = #struct_name {
+                    #(#from_item)*
+                };
+
+                Ok(::raiden::update::UpdateOutput {
+                    item,
+                    consumed_capacity: res.consumed_capacity,
+                    item_collection_metrics: res.item_collection_metrics,
+                })
             }
         }
     }
 }
-
-// updateExpression := " ADD ids :ids SET updatedAt = :date, #version = #version + :inc"
