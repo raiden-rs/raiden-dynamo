@@ -8,6 +8,7 @@ pub(crate) fn expand_delete_item(
     let trait_name = format_ident!("{}DeleteItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}DeleteItemBuilder", struct_name);
+    let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
     quote! {
         pub trait #trait_name {
@@ -43,6 +44,18 @@ pub(crate) fn expand_delete_item(
             pub fn sort_key(mut self, key: impl IntoAttribute + std::marker::Send) -> Self {
                 let key_attr: AttributeValue = key.into_attr();
                 self.input.key.insert(stringify!(#sort_key).to_owned(), key_attr);
+                self
+            }
+
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                }
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.condition_expression = Some(cond_str);
                 self
             }
 

@@ -23,20 +23,22 @@ pub enum ConditionComparisonExpression {
     ),
 }
 
-pub struct ConditionFilledOrWaitConjunction<T> {
+#[derive(Clone, PartialEq)]
+pub struct ConditionFilledOrWaitConjunction<T: Clone> {
     pub not: bool,
     pub cond: Cond,
     pub _token: std::marker::PhantomData<T>,
 }
 
-pub struct ConditionFilled<T> {
+#[derive(Clone, PartialEq)]
+pub struct ConditionFilled<T: Clone> {
     pub not: bool,
     pub cond: Cond,
     pub conjunction: Conjunction,
     pub _token: std::marker::PhantomData<T>,
 }
 
-impl<T> ConditionFilledOrWaitConjunction<T> {
+impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
     pub fn and(self, cond: impl ConditionBuilder<T>) -> ConditionFilled<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         ConditionFilled {
@@ -47,7 +49,7 @@ impl<T> ConditionFilledOrWaitConjunction<T> {
         }
     }
 }
-impl<T> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
+impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         if self.not {
             (
@@ -64,7 +66,7 @@ impl<T> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
         }
     }
 }
-impl<T> ConditionBuilder<T> for ConditionFilled<T> {
+impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let (right_str, right_names, right_values) = match self.conjunction {
             super::condition::Conjunction::And(s, m, v) => (format!("AND ({})", s), m, v),
@@ -239,6 +241,7 @@ impl std::string::ToString for AttrOrPlaceholder {
 
 pub type ConditionString = String;
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Conjunction {
     And(
         ConditionString,

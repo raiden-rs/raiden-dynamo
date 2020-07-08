@@ -11,6 +11,7 @@ pub fn expand_condition_builder(
 
     quote! {
 
+        #[derive(Debug, Clone)]
         pub struct #condition_token_name;
 
 
