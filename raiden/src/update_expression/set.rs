@@ -1,7 +1,7 @@
 pub struct Set<T: super::IntoAttrName> {
     target: T,
     index: Option<usize>,
-    value: Option<SetValue<T>>,
+    _value: Option<SetValue<T>>,
 }
 
 pub struct SetExpressionFilledWithoutOperation<T: super::IntoAttrName> {
@@ -13,23 +13,23 @@ pub struct SetExpressionFilledWithoutOperation<T: super::IntoAttrName> {
 
 pub struct SetExpressionFilled<T: super::IntoAttrName> {
     target: T,
-    index: Option<usize>,
+    _index: Option<usize>,
     value: SetValue<T>,
-    if_not_exists: bool,
+    _if_not_exists: bool,
     operation: SetOperation,
     operand: Operand<T>,
 }
 
 enum SetOperation {
     Add,
-    Sub,
+    _Sub,
 }
 
 impl std::fmt::Display for SetOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             SetOperation::Add => write!(f, "+"),
-            SetOperation::Sub => write!(f, "-"),
+            SetOperation::_Sub => write!(f, "-"),
         }
     }
 }
@@ -41,7 +41,7 @@ enum SetValue<T: super::IntoAttrName> {
 }
 
 enum Operand<T: super::IntoAttrName> {
-    Attr(T),
+    _Attr(T),
     Value(super::Placeholder, super::AttributeValue),
 }
 
@@ -50,7 +50,7 @@ impl<T: super::IntoAttrName> Set<T> {
         Self {
             target,
             index: None,
-            value: None,
+            _value: None,
         }
     }
 
@@ -105,9 +105,9 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
         } = self;
         SetExpressionFilled::<T> {
             target,
-            index,
+            _index: index,
             value,
-            if_not_exists,
+            _if_not_exists: if_not_exists,
             operation: SetOperation::Add,
             operand,
         }
@@ -150,7 +150,7 @@ impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilled<T> {
 
         let op = format!("{}", self.operation);
         let op_expression = match self.operand {
-            Operand::Attr(a) => {
+            Operand::_Attr(a) => {
                 let operand_attr = a.into_attr_name();
                 let operand_attr_name = format!("#{}", operand_attr);
                 let val = format!("{} {}", op, operand_attr_name);

@@ -1,6 +1,3 @@
-use quote::*;
-use syn::*;
-
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
     let mut tokens = match attr.tokens.clone().into_iter().next() {
         Some(proc_macro2::TokenTree::Group(g)) => g.stream().into_iter(),

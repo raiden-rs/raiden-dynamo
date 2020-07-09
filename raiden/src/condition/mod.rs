@@ -71,7 +71,6 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
         let (right_str, right_names, right_values) = match self.conjunction {
             super::condition::Conjunction::And(s, m, v) => (format!("AND ({})", s), m, v),
             super::condition::Conjunction::Or(s, m, v) => (format!("OR ({})", s), m, v),
-            _ => unimplemented!(),
         };
         let left_str = self.cond.to_string();
         let left_names = self.cond.to_attr_names();

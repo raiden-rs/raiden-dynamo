@@ -2,7 +2,7 @@ use crate::rename::*;
 use quote::*;
 
 pub(crate) fn expand_put_item(
-    partition_key: &proc_macro2::Ident,
+    _partition_key: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,

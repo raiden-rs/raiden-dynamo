@@ -3,7 +3,7 @@ use quote::*;
 pub fn expand_condition_builder(
     attr_enum_name: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
-    fields: &syn::FieldsNamed,
+    _fields: &syn::FieldsNamed,
 ) -> proc_macro2::TokenStream {
     let condition_name = format_ident!("{}Condition", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
