@@ -141,6 +141,23 @@ const put = (params) =>
   });
 
   await createTable({
+    TableName: 'UpdateTestData1',
+    KeySchema: [
+      { AttributeName: 'id', KeyType: 'HASH' },
+      { AttributeName: 'age', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'age', AttributeType: 'N' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+  await put({
+    TableName: 'UpdateTestData1',
+    Item: { id: { S: 'id0' }, name: { S: 'john' }, age: { N: '36' } },
+  });
+
+  await createTable({
     TableName: 'PutItemConditionData0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
