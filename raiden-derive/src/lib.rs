@@ -28,7 +28,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let table_name = if let Some(name) = finder::find_table_name(&attrs) {
         name
     } else {
-        struct_name.clone().to_string()
+        struct_name.to_string()
     };
 
     let rename_all = finder::find_rename_all(&attrs);
