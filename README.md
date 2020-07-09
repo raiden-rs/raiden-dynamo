@@ -113,6 +113,16 @@ make test
 
 NOTE: Don't recommend to use `cargo test` because our test suite doesn't support running tests in parallel. Use `cargo test -- --test-threads=1` instead of it.
 
+### Utility
+
+[dynamodb-admin](https://github.com/aaronshaf/dynamodb-admin) is useful to check data in DynamoDB Local.
+
+```
+npx dynamodb-admin
+```
+
+Then open `http://localhost:8001` in browser.
+
 ## Known limitations
 
 Here is a list of unsupported features/behaviors in the actual implementation.
