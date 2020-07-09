@@ -135,8 +135,7 @@ mod tests {
                 .set(UpdateTestData1::name())
                 .value("bob");
             let res = client
-                .update("id0")
-                .sort_key(36)
+                .update("id0", 36)
                 .set(set_expression)
                 .return_all_new()
                 .run()
