@@ -1,9 +1,10 @@
+mod batch_get;
 mod condition;
+mod delete;
 mod get;
-mod query;
 mod key_condition;
 mod put;
+mod query;
 mod rename;
 mod rename_all;
-mod delete;
 mod update;

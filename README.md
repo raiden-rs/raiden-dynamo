@@ -57,6 +57,35 @@ fn main() {
 }
 ```
 
+### batch_get_item example
+
+```Rust
+use raiden::*;
+
+#[derive(Raiden, Debug, PartialEq)]
+pub struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+    #[raiden(sort_key)]
+    year: usize,
+    num: usize,
+}
+
+fn main() {
+    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    async fn hello() {
+        let client = User::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let keys: Vec<(&str, usize)> = vec![("Alice", 1992), ("Bob", 1976), ("Charlie", 2002)];
+        let res = client.batch_get(keys).run().await;
+    }
+    rt.block_on(hello());
+}
+```
+
 ## Development
 
 ### Requirements
@@ -81,3 +110,12 @@ make dynamo
 ```
 make test
 ```
+
+## Known limitations
+
+Here is a list of unsupported features/behaviors in the actual implementation.
+We have a plan to resolve these issues in a future release.
+
+- [ ] Automatic retrying: https://github.com/raiden-rs/raiden/issues/44
+- [ ] Strict type checking of keys: https://github.com/raiden-rs/raiden/issues/26
+- [ ] Exponential backoff handling

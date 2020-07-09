@@ -5,6 +5,8 @@ use raiden::*;
 pub struct User {
     #[raiden(partition_key)]
     id: String,
+    #[raiden(sort_key)]
+    year: usize,
     #[raiden(uuid)]
     uuid: String,
     name: String,
@@ -28,11 +30,8 @@ fn main() {
         //
         //// let cond = User::condition().not().attr_type(User::name(), AttributeType::N);
         //// .and(User::condition().not().attribute_exists(User::id()));
-        let res = client
-            .batch_get()
-            .add_key("user_primary_key") /*.condition(cond)*/
-            .run()
-            .await;
+        let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
+        let _ = client.batch_get(keys).run().await;
     }
     rt.block_on(example());
 }
