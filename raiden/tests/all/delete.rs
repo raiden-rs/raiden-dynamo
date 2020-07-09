@@ -80,7 +80,7 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
 
-            let res = client.delete("id0").sort_key(1999).run().await;
+            let res = client.delete("id0", 1999).run().await;
             assert_eq!(res.is_ok(), true);
         }
         rt.block_on(example());

@@ -10,25 +10,62 @@ pub(crate) fn expand_delete_item(
     let builder_name = format_ident!("{}DeleteItemBuilder", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
-    quote! {
-        pub trait #trait_name {
-            fn delete(&self, key: impl IntoAttribute + std::marker::Send) -> #builder_name;
-        }
+    let client_trait = if let Some(sort_key) = sort_key {
+        quote! {
+            pub trait #trait_name {
+                fn delete<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send;
+            }
 
-        impl #trait_name for #client_name {
-            fn delete(&self, key: impl IntoAttribute + std::marker::Send) -> #builder_name {
-                let mut input = ::raiden::DeleteItemInput::default();
-                let key_attr: AttributeValue = key.into_attr();
-                let mut key: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key.insert(stringify!(#partition_key).to_owned(), key_attr);
-                input.key = key;
-                input.table_name = self.table_name();
-                #builder_name {
-                    client: &self.client,
-                    input,
+            impl #trait_name for #client_name {
+                fn delete<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::DeleteItemInput::default();
+                    let pk_attr: AttributeValue = pk.into_attr();
+                    let sk_attr: AttributeValue = sk.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
+                    key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                    }
                 }
             }
         }
+    } else {
+        quote! {
+            pub trait #trait_name {
+                fn delete<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn delete<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::DeleteItemInput::default();
+                    let key_attr: AttributeValue = key.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                    }
+                }
+            }
+        }
+    };
+
+    quote! {
+        #client_trait
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
@@ -38,12 +75,6 @@ pub(crate) fn expand_delete_item(
         impl<'a> #builder_name<'a> {
             pub fn raw_input(mut self, input: ::raiden::DeleteItemInput) -> Self {
                 self.input = input;
-                self
-            }
-
-            pub fn sort_key(mut self, key: impl IntoAttribute + std::marker::Send) -> Self {
-                let key_attr: AttributeValue = key.into_attr();
-                self.input.key.insert(stringify!(#sort_key).to_owned(), key_attr);
                 self
             }
 

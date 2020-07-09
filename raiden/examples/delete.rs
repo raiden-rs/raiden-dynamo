@@ -19,7 +19,7 @@ fn main() {
             name: "ap-northeast-1".into(),
         });
 
-        let res = client.delete("id1").sort_key(2003).run().await;
+        let res = client.delete("id1", 2003).run().await;
         dbg!(&res);
     }
     rt.block_on(example());
