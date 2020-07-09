@@ -10,40 +10,64 @@ pub(crate) fn expand_get_item(
     let trait_name = format_ident!("{}GetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}GetItemBuilder", struct_name);
-
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 
-    let sort_key_setter = if sort_key.is_none() {
-        quote! {}
+    let client_trait = if let Some(sort_key) = sort_key {
+        quote! {
+            pub trait #trait_name {
+                fn get<PK, SK>(&self, key: (PK, SK)) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn get<PK, SK>(&self, key: (PK, SK)) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::GetItemInput::default();
+                    let pk_attr: AttributeValue = key.0.into_attr();
+                    let sk_attr: AttributeValue = key.1.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
+                    key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                    }
+                }
+            }
+        }
     } else {
         quote! {
-            pub fn sort_key(mut self, key: impl IntoAttribute + std::marker::Send) -> Self {
-                let key_attr: AttributeValue = key.into_attr();
-                self.input.key.insert(stringify!(#sort_key).to_owned(), key_attr);
-                self
+            pub trait #trait_name {
+                fn get<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn get<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::GetItemInput::default();
+                    let key_attr: AttributeValue = key.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                    }
+                }
             }
         }
     };
 
     quote! {
-        pub trait #trait_name {
-            fn get(&self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> #builder_name;
-        }
-
-        impl #trait_name for #client_name {
-            fn get(&self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> #builder_name {
-                let mut input = ::raiden::GetItemInput::default();
-                let key_attr: AttributeValue = key.into_attr();
-                let mut key: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key.insert(stringify!(#partition_key).to_owned(), key_attr);
-                input.key = key;
-                input.table_name = self.table_name();
-                #builder_name {
-                    client: &self.client,
-                    input,
-                }
-            }
-        }
+        #client_trait
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
@@ -55,8 +79,6 @@ pub(crate) fn expand_get_item(
                 self.input.consistent_read = Some(true);
                 self
             }
-
-            #sort_key_setter
 
             async fn run(self) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
                  let res = self.client.get_item(self.input).await?;
@@ -89,4 +111,3 @@ pub struct GetItemInput {
     pub table_name: String,
 }
 */
-
