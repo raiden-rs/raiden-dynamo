@@ -1,7 +1,7 @@
 pub struct Set<T: super::IntoAttrName> {
     target: T,
     index: Option<usize>,
-    _value: Option<SetValue<T>>,
+    value: Option<SetValue<T>>,
 }
 
 pub struct SetExpressionFilledWithoutOperation<T: super::IntoAttrName> {
@@ -50,7 +50,7 @@ impl<T: super::IntoAttrName> Set<T> {
         Self {
             target,
             index: None,
-            _value: None,
+            value: None,
         }
     }
 
