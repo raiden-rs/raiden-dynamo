@@ -95,28 +95,6 @@ mod tests {
         rt.block_on(example());
     }
 
-    /*
-    #[test]
-    fn test_user_get_item_with_unmatched_key_type() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserClient::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get(2020).consistent().run().await;
-            assert_eq!(
-                res,
-                Err(RaidenError::ResourceNotFound(
-                    "resource not found".to_owned()
-                )),
-            );
-        }
-        rt.block_on(example());
-    }
-
-    */
-
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone, PartialEq)]
@@ -324,7 +302,7 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
 
-            let res = client.get(("id1", 2003)).run().await;
+            let res = client.get("id1", 2003).run().await;
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {

@@ -15,19 +15,19 @@ pub(crate) fn expand_get_item(
     let client_trait = if let Some(sort_key) = sort_key {
         quote! {
             pub trait #trait_name {
-                fn get<PK, SK>(&self, key: (PK, SK)) -> #builder_name
+                fn get<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
                     where PK: ::raiden::IntoAttribute + std::marker::Send,
                           SK: ::raiden::IntoAttribute + std::marker::Send;
             }
 
             impl #trait_name for #client_name {
-                fn get<PK, SK>(&self, key: (PK, SK)) -> #builder_name
+                fn get<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
                     where PK: ::raiden::IntoAttribute + std::marker::Send,
                           SK: ::raiden::IntoAttribute + std::marker::Send
                 {
                     let mut input = ::raiden::GetItemInput::default();
-                    let pk_attr: AttributeValue = key.0.into_attr();
-                    let sk_attr: AttributeValue = key.1.into_attr();
+                    let pk_attr: AttributeValue = pk.into_attr();
+                    let sk_attr: AttributeValue = sk.into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
                     key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
