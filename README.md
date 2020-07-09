@@ -111,6 +111,8 @@ make dynamo
 make test
 ```
 
+NOTE: Don't recommend to use `cargo test` because our test suite doesn't support running tests in parallel. Use `cargo test -- --test-threads=1` instead of it.
+
 ## Known limitations
 
 Here is a list of unsupported features/behaviors in the actual implementation.
