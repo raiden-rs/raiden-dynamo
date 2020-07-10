@@ -1,6 +1,3 @@
-use quote::*;
-use syn::*;
-
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
     let mut tokens = match attr.tokens.clone().into_iter().next() {
         Some(proc_macro2::TokenTree::Group(g)) => g.stream().into_iter(),
@@ -45,9 +42,9 @@ pub(crate) fn find_eq_string_from(attr: &syn::Attribute, name: &str) -> Option<S
             if value.trim().is_empty() {
                 panic!()
             };
-            return Some(value);
+            Some(value)
         }
-        _ => return None,
+        _ => None,
     }
 }
 
@@ -79,10 +76,10 @@ pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
 }
 
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
-    return attrs.len() > 0
+    !attrs.is_empty()
         && attrs.iter().any(|attr| {
             attr.path.segments[0].ident == "raiden" && find_unary_attr(&attr, name).is_some()
-        });
+        })
 }
 
 // TODO: Add validation

@@ -8,7 +8,7 @@ pub fn fetch_sort_key(
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = crate::finder::find_rename_value(&key.attrs);
-            if !renamed.is_none() {
+            if renamed.is_some() {
                 Some(format_ident!("{}", renamed.unwrap()))
             } else if rename_all_type != crate::rename::RenameAllType::None {
                 Some(format_ident!(

@@ -6,12 +6,20 @@ impl NextToken {
         Self(token.into())
     }
     pub fn into_attr_values(self) -> Result<super::AttributeValues, super::RaidenError> {
-        let decoded =
-            &base64::decode(&self.0).unwrap_or(Err(super::RaidenError::NextTokenDecodeError)?)[..];
-        let s =
-            &std::str::from_utf8(decoded).unwrap_or(Err(super::RaidenError::NextTokenDecodeError)?);
+        let decoded = match base64::decode(&self.0) {
+            Ok(decoded) => decoded,
+            Err(_) => return Err(super::RaidenError::NextTokenDecodeError)
+        };
+        let s = match std::str::from_utf8(&decoded[..]) {
+            Ok(s) => s,
+            Err(_) => return Err(super::RaidenError::NextTokenDecodeError)
+        };
+
         let deserialized: std::collections::HashMap<String, super::AttributeValue> =
-            serde_json::from_str(s).unwrap_or(Err(super::RaidenError::NextTokenDecodeError)?);
+        match serde_json::from_str(s) {
+            Ok(deserialized) => deserialized,
+            Err(_) => return Err(super::RaidenError::NextTokenDecodeError)
+        };
         Ok(deserialized)
     }
 
