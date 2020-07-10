@@ -254,6 +254,7 @@ pub enum Conjunction {
     ),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Cond {
     Func(ConditionFunctionExpression),

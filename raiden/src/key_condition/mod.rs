@@ -8,6 +8,7 @@ pub enum KeyConditionConjunction {
     ),
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, PartialEq)]
 pub enum KeyConditionTypes {
     Eq(super::Placeholder, super::AttributeValue),

@@ -34,12 +34,14 @@ impl std::fmt::Display for SetOperation {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 enum SetValue<T: super::IntoAttrName> {
     Attr(T),
     Value(super::Placeholder, super::AttributeValue),
     // ListAppend(T, List)
 }
 
+#[allow(clippy::large_enum_variant)]
 enum Operand<T: super::IntoAttrName> {
     _Attr(T),
     Value(super::Placeholder, super::AttributeValue),
