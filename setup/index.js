@@ -141,6 +141,23 @@ const put = (params) =>
   });
 
   await createTable({
+    TableName: 'UpdateTestData1',
+    KeySchema: [
+      { AttributeName: 'id', KeyType: 'HASH' },
+      { AttributeName: 'age', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'age', AttributeType: 'N' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+  await put({
+    TableName: 'UpdateTestData1',
+    Item: { id: { S: 'id0' }, name: { S: 'john' }, age: { N: '36' } },
+  });
+
+  await createTable({
     TableName: 'PutItemConditionData0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
@@ -232,7 +249,7 @@ const put = (params) =>
     TableName: 'BatchTest0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
-    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
   });
 
   for (let i = 0; i < 101; i++) {
@@ -314,6 +331,28 @@ const put = (params) =>
       id: { S: 'id1' },
       name: { S: 'bokuweb' },
       removable: { BOOL: true },
+    },
+  });
+
+  await createTable({
+    TableName: 'DeleteTest1',
+    KeySchema: [
+      { AttributeName: 'id', KeyType: 'HASH' },
+      { AttributeName: 'year', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'year', AttributeType: 'N' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'DeleteTest1',
+    Item: {
+      id: { S: 'id0' },
+      name: { S: 'alice' },
+      year: { N: '1999' },
     },
   });
 })();

@@ -281,4 +281,41 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "QueryTestData0")]
+    pub struct UserWithSortKey {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        #[raiden(sort_key)]
+        year: usize,
+        num: usize,
+    }
+
+    #[test]
+    fn test_user_get_item_with_sort_key() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithSortKey::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client.get("id1", 2003).run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithSortKey {
+                        id: "id1".to_owned(),
+                        name: "bob".to_owned(),
+                        year: 2003,
+                        num: 300,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }

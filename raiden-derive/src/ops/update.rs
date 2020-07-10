@@ -16,6 +16,68 @@ pub(crate) fn expand_update_item(
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
+    let client_trait = if let Some(sort_key) = sort_key {
+        quote! {
+            pub trait #trait_name {
+                fn update<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn update<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
+                    where PK: ::raiden::IntoAttribute + std::marker::Send,
+                          SK: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::UpdateItemInput::default();
+                    let pk_attr: AttributeValue = pk.into_attr();
+                    let sk_attr: AttributeValue = sk.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
+                    key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                        set_items: vec![],
+                        add_items: vec![],
+                        remove_items: vec![],
+                        delete_items: vec![],
+                    }
+                }
+            }
+        }
+    } else {
+        quote! {
+            pub trait #trait_name {
+                fn update<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send;
+            }
+
+            impl #trait_name for #client_name {
+                fn update<K>(&self, key: K) -> #builder_name
+                    where K: ::raiden::IntoAttribute + std::marker::Send
+                {
+                    let mut input = ::raiden::UpdateItemInput::default();
+                    let key_attr: AttributeValue = key.into_attr();
+                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    input.key = key_set;
+                    input.table_name = self.table_name();
+                    #builder_name {
+                        client: &self.client,
+                        input,
+                        set_items: vec![],
+                        add_items: vec![],
+                        remove_items: vec![],
+                        delete_items: vec![],
+                    }
+                }
+            }
+        }
+    };
+
     quote! {
         #[derive(Debug, Clone, PartialEq)]
         pub struct #item_output_name {
@@ -36,28 +98,7 @@ pub(crate) fn expand_update_item(
             }
         }
 
-        pub trait #trait_name {
-            fn update(&self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> #builder_name;
-        }
-
-        impl #trait_name for #client_name {
-            fn update(&self, key: impl ::raiden::IntoAttribute + std::marker::Send) -> #builder_name{
-                let mut input = ::raiden::UpdateItemInput::default();
-                let key_attr: AttributeValue = key.into_attr();
-                let mut key: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key.insert(stringify!(#partition_key).to_owned(), key_attr);
-                input.key = key;
-                input.table_name = self.table_name();
-                #builder_name {
-                    client: &self.client,
-                    input,
-                    set_items: vec![],
-                    add_items: vec![],
-                    remove_items: vec![],
-                    delete_items: vec![],
-                }
-            }
-        }
+        #client_trait
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
@@ -69,7 +110,6 @@ pub(crate) fn expand_update_item(
         }
 
         impl<'a> #builder_name<'a> {
-
             pub fn raw_input(mut self, input: ::raiden::UpdateItemInput) -> Self {
                 self.input = input;
                 self
@@ -92,12 +132,6 @@ pub(crate) fn expand_update_item(
 
             pub fn delete(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
                 self.delete_items.push((attr, value.into_attr()));
-                self
-            }
-
-            pub fn sort_key(mut self, key: impl IntoAttribute + std::marker::Send) -> Self {
-                let key_attr: AttributeValue = key.into_attr();
-                self.input.key.insert(stringify!(#sort_key).to_owned(), key_attr);
                 self
             }
 

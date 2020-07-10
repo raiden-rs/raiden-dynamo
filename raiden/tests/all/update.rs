@@ -109,9 +109,45 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
+            assert_eq!(res.item, None,);
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct UpdateTestData1 {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        #[raiden(sort_key)]
+        age: usize,
+    }
+
+    #[test]
+    fn test_update_with_sort_key() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateTestData1::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let set_expression = UpdateTestData1::update_expression()
+                .set(UpdateTestData1::name())
+                .value("bob");
+            let res = client
+                .update("id0", 36)
+                .set(set_expression)
+                .return_all_new()
+                .run()
+                .await
+                .unwrap();
             assert_eq!(
                 res.item,
-                None,
+                Some(UpdateTestData1 {
+                    id: "id0".to_owned(),
+                    name: "bob".to_owned(),
+                    age: 36
+                })
             );
         }
         rt.block_on(example());
