@@ -73,44 +73,44 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilledOrWaitConjunction<T> {
         attr_names.insert(format!("#{}", attr_name), attr_name.clone());
         match self.cond {
             super::key_condition::KeyConditionTypes::Eq(placeholder, value) => {
-                attr_values.insert(format!("{}", placeholder.clone()), value);
-                return (
+                attr_values.insert(placeholder.to_string(), value);
+                (
                     format!("#{} = {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
-                );
+                )
             }
             super::key_condition::KeyConditionTypes::Gt(placeholder, value) => {
-                attr_values.insert(format!("{}", placeholder.clone()), value);
-                return (
+                attr_values.insert(placeholder.to_string(), value);
+                (
                     format!("#{} > {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
-                );
+                )
             }
             super::key_condition::KeyConditionTypes::Ge(placeholder, value) => {
-                attr_values.insert(format!("{}", placeholder.clone()), value);
-                return (
+                attr_values.insert(placeholder.to_string(), value);
+                (
                     format!("#{} >= {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
-                );
+                )
             }
             super::key_condition::KeyConditionTypes::Le(placeholder, value) => {
-                attr_values.insert(format!("{}", placeholder.clone()), value);
-                return (
+                attr_values.insert(placeholder.to_string(), value);
+                (
                     format!("#{} <= {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
-                );
+                )
             }
             super::key_condition::KeyConditionTypes::Lt(placeholder, value) => {
-                attr_values.insert(format!("{}", placeholder.clone()), value);
-                return (
+                attr_values.insert(placeholder.to_string(), value);
+                (
                     format!("#{} < {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
-                );
+                )
             }
             super::key_condition::KeyConditionTypes::Between(
                 placeholder1,
@@ -118,16 +118,16 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilledOrWaitConjunction<T> {
                 placeholder2,
                 value2,
             ) => {
-                attr_values.insert(format!("{}", placeholder1.clone()), value1);
-                attr_values.insert(format!("{}", placeholder2.clone()), value2);
-                return (
+                attr_values.insert(placeholder1.to_string(), value1);
+                attr_values.insert(placeholder2.to_string(), value2);
+                (
                     format!(
                         "#{} BETWEEN {} AND {}",
                         attr_name, placeholder1, placeholder2
                     ),
                     attr_names,
                     attr_values,
-                );
+                )
             }
         }
     }

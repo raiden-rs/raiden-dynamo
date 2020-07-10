@@ -1,7 +1,7 @@
 pub struct Set<T: super::IntoAttrName> {
     target: T,
     index: Option<usize>,
-    value: Option<SetValue<T>>,
+    _value: Option<SetValue<T>>,
 }
 
 pub struct SetExpressionFilledWithoutOperation<T: super::IntoAttrName> {
@@ -13,23 +13,23 @@ pub struct SetExpressionFilledWithoutOperation<T: super::IntoAttrName> {
 
 pub struct SetExpressionFilled<T: super::IntoAttrName> {
     target: T,
-    index: Option<usize>,
+    _index: Option<usize>,
     value: SetValue<T>,
-    if_not_exists: bool,
+    _if_not_exists: bool,
     operation: SetOperation,
     operand: Operand<T>,
 }
 
 enum SetOperation {
     Add,
-    Sub,
+    _Sub,
 }
 
 impl std::fmt::Display for SetOperation {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match *self {
             SetOperation::Add => write!(f, "+"),
-            SetOperation::Sub => write!(f, "-"),
+            SetOperation::_Sub => write!(f, "-"),
         }
     }
 }
@@ -41,7 +41,7 @@ enum SetValue<T: super::IntoAttrName> {
 }
 
 enum Operand<T: super::IntoAttrName> {
-    Attr(T),
+    _Attr(T),
     Value(super::Placeholder, super::AttributeValue),
 }
 
@@ -50,7 +50,7 @@ impl<T: super::IntoAttrName> Set<T> {
         Self {
             target,
             index: None,
-            value: None,
+            _value: None,
         }
     }
 
@@ -105,9 +105,9 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
         } = self;
         SetExpressionFilled::<T> {
             target,
-            index,
+            _index: index,
             value,
-            if_not_exists,
+            _if_not_exists: if_not_exists,
             operation: SetOperation::Add,
             operand,
         }
@@ -117,23 +117,23 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
 impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
-        let attr_name = format!("#{}", attr.clone());
+        let attr_name = format!("#{}", attr);
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
-        names.insert(attr_name.clone(), attr.clone());
+        names.insert(attr_name.clone(), attr);
         let mut values: super::AttributeValues = std::collections::HashMap::new();
         match self.value {
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
-                let set_attr_name = format!("#{}", set_attr.clone());
-                names.insert(set_attr_name.clone(), set_attr.clone());
-                let expression = format!("{} = {}", attr_name.clone(), set_attr_name.clone());
-                return (expression, names, values);
+                let set_attr_name = format!("#{}", set_attr);
+                let expression = format!("{} = {}", attr_name, set_attr_name);
+                names.insert(set_attr_name, set_attr);
+                (expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
-                let expression = format!("{} = {}", attr_name.clone(), placeholder);
-                values.insert(placeholder.clone(), value);
-                return (expression, names, values);
+                let expression = format!("{} = {}", attr_name, placeholder);
+                values.insert(placeholder, value);
+                (expression, names, values)
             }
         }
     }
@@ -142,44 +142,46 @@ impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilledWithout
 impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
-        let attr_name = format!("#{}", attr.clone());
+        let attr_name = format!("#{}", attr);
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
-        names.insert(attr_name.clone(), attr.clone());
+        names.insert(attr_name.clone(), attr);
         let mut values: super::AttributeValues = std::collections::HashMap::new();
 
         let op = format!("{}", self.operation);
         let op_expression = match self.operand {
-            Operand::Attr(a) => {
+            Operand::_Attr(a) => {
                 let operand_attr = a.into_attr_name();
-                let operand_attr_name = format!("#{}", operand_attr.clone());
-                names.insert(operand_attr_name.clone(), operand_attr.clone());
-                format!("{} {}", op, operand_attr_name.clone())
+                let operand_attr_name = format!("#{}", operand_attr);
+                let val = format!("{} {}", op, operand_attr_name);
+                names.insert(operand_attr_name, operand_attr);
+                val
             }
             Operand::Value(placeholder, value) => {
-                values.insert(placeholder.clone(), value);
-                format!("{} {}", op, placeholder)
+                let val = format!("{} {}", op, placeholder);
+                values.insert(placeholder, value);
+                val
             }
         };
 
         match self.value {
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
-                let set_attr_name = format!("#{}", set_attr.clone());
-                names.insert(set_attr_name.clone(), set_attr.clone());
+                let set_attr_name = format!("#{}", set_attr);
                 let expression = format!(
-                    "{} = {} {}",
-                    attr_name.clone(),
-                    set_attr_name.clone(),
-                    op_expression
+                  "{} = {} {}",
+                  attr_name,
+                  set_attr_name,
+                  op_expression
                 );
-                return (expression, names, values);
+                names.insert(set_attr_name, set_attr);
+                (expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
                 let expression =
-                    format!("{} = {} {}", attr_name.clone(), placeholder, op_expression);
-                values.insert(placeholder.clone(), value);
-                return (expression, names, values);
+                    format!("{} = {} {}", attr_name, placeholder, op_expression);
+                values.insert(placeholder, value);
+                (expression, names, values)
             }
         }
     }

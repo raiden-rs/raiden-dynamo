@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate serde_derive;
 
-use std::str::FromStr;
-
 pub mod condition;
 pub mod errors;
 pub mod id_generator;

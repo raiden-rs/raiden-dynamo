@@ -71,7 +71,6 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
         let (right_str, right_names, right_values) = match self.conjunction {
             super::condition::Conjunction::And(s, m, v) => (format!("AND ({})", s), m, v),
             super::condition::Conjunction::Or(s, m, v) => (format!("OR ({})", s), m, v),
-            _ => unimplemented!(),
         };
         let left_str = self.cond.to_string();
         let left_names = self.cond.to_attr_names();
@@ -159,7 +158,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 m.insert(
                     format!(":begins_with_{}", md5.result_str()),
                     super::AttributeValue {
-                        s: Some(s.to_string()),
+                        s: Some(s),
                         ..super::AttributeValue::default()
                     },
                 );
@@ -170,7 +169,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 m.insert(
                     format!(":contains_{}", md5.result_str()),
                     super::AttributeValue {
-                        s: Some(s.to_string()),
+                        s: Some(s),
                         ..super::AttributeValue::default()
                     },
                 );
@@ -195,10 +194,10 @@ impl super::ToAttrNames for ConditionComparisonExpression {
         match self {
             Self::Eq(left, _, right, _) => {
                 if let AttrOrPlaceholder::Attr(l) = left {
-                    m.insert(format!("{}", left.to_string()), l.clone());
+                    m.insert(left.to_string(), l.clone());
                 }
                 if let AttrOrPlaceholder::Attr(r) = right {
-                    m.insert(format!("{}", right.to_string()), r.clone());
+                    m.insert(right.to_string(), r.clone());
                 }
             }
         }

@@ -8,8 +8,8 @@ pub(crate) fn expand_attr_to_item(
     fields.named.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
-        let attr_key  = if !renamed.is_none() {
-            renamed.unwrap()
+        let attr_key  = if let Some(renamed) = renamed {
+            renamed
         }  else if rename_all_type != crate::rename::RenameAllType::None {
             crate::rename::rename(rename_all_type, ident.to_string())
         } else {

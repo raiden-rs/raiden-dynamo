@@ -48,7 +48,7 @@ pub fn rename(t: RenameAllType, base: String) -> String {
         crate::rename::RenameAllType::KebabCase => {
             ident_case::RenameRule::KebabCase.apply_to_field(base)
         }
-        _ => panic!("{} is not supported rename type"),
+        _ => panic!("{} is not supported rename type", base),
     }
 }
 
@@ -57,13 +57,11 @@ pub fn create_renamed(
     renamed: Option<String>,
     rename_all_type: RenameAllType,
 ) -> String {
-    if renamed.is_none() {
-        if rename_all_type != RenameAllType::None {
-            format!("{}", rename(rename_all_type, basename))
-        } else {
-            basename
-        }
+    if let Some(renamed) = renamed {
+        renamed
+    } else if rename_all_type != RenameAllType::None {
+        rename(rename_all_type, basename)
     } else {
-        renamed.unwrap()
+        basename
     }
 }

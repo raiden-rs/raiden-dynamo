@@ -180,24 +180,27 @@ pub(crate) fn expand_update_item(
                 let add_expression = add_items.into_iter().map(|(name, value)| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
                     let attr_name = format!("#{}", name.into_attr_name());
-                    attr_names.insert(attr_name.clone(), name.into_attr_name());
-                    attr_values.insert(placeholder.clone(), value);
-                    format!("{} {}", attr_name.clone(), placeholder)
+                    let val = format!("{} {}", attr_name, placeholder);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    attr_values.insert(placeholder, value);
+                    val
                 }).collect::<Vec<_>>().join(", ");
 
                 let remove_expression = remove_items.into_iter().map(|name| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
                     let attr_name = format!("#{}", name.into_attr_name());
-                    attr_names.insert(attr_name.clone(), name.into_attr_name());
-                    format!("{}", attr_name.clone())
+                    let val = format!("{}", attr_name);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    val
                 }).collect::<Vec<_>>().join(", ");
 
                 let delete_expression = delete_items.into_iter().map(|(name, value)| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
                     let attr_name = format!("#{}", name.into_attr_name());
-                    attr_names.insert(attr_name.clone(), name.into_attr_name());
-                    attr_values.insert(placeholder.clone(), value);
-                    format!("{} {}", attr_name.clone(), placeholder)
+                    let val = format!("{} {}", attr_name, placeholder);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    attr_values.insert(placeholder, value);
+                    val
                 }).collect::<Vec<_>>().join(", ");
 
                 let mut update_expressions: Vec<String> = vec![];

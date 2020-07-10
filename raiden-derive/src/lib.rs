@@ -28,14 +28,14 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let table_name = if let Some(name) = finder::find_table_name(&attrs) {
         name
     } else {
-        struct_name.clone().to_string()
+        struct_name.to_string()
     };
 
     let rename_all = finder::find_rename_all(&attrs);
-    let rename_all_type = if rename_all.is_none() {
-        rename::RenameAllType::None
+    let rename_all_type = if let Some(rename_all) = rename_all {
+        rename::RenameAllType::from_str(&rename_all).unwrap()
     } else {
-        rename::RenameAllType::from_str(&rename_all.unwrap()).unwrap()
+        rename::RenameAllType::None
     };
 
     let fields = match input.data {
@@ -50,7 +50,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = finder::find_rename_value(&key.attrs);
-            if !renamed.is_none() {
+            if renamed.is_some() {
                 format_ident!("{}", renamed.unwrap())
             } else if rename_all_type != rename::RenameAllType::None {
                 format_ident!(
