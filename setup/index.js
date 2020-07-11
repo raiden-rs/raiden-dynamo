@@ -280,7 +280,7 @@ const put = (params) =>
   }
 
   await createTable({
-    TableName: 'test-Project-staging',
+    TableName: 'test-user-staging',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [
       { AttributeName: 'id', AttributeType: 'S' },

@@ -122,8 +122,15 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let key_condition_builder =
         key_condition::expand_key_condition_builder(&attr_enum_name, &struct_name);
 
-    let transact_write =
-        ops::expand_transact_write(&struct_name, &fields, rename_all_type, &table_name);
+    let transact_write = ops::expand_transact_write(
+        &struct_name,
+        &partition_key,
+        &sort_key,
+        &fields,
+        &attr_enum_name,
+        rename_all_type,
+        &table_name,
+    );
 
     let expanded = quote! {
 

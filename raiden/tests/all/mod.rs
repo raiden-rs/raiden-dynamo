@@ -7,4 +7,5 @@ mod put;
 mod query;
 mod rename;
 mod rename_all;
+mod transact_write;
 mod update;

@@ -3,13 +3,17 @@ use quote::*;
 
 pub(crate) fn expand_transact_write(
     struct_name: &proc_macro2::Ident,
+    partition_key: &proc_macro2::Ident,
+    _sort_key: &Option<proc_macro2::Ident>,
     fields: &syn::FieldsNamed,
+    attr_enum_name: &proc_macro2::Ident,
     rename_all_type: crate::rename::RenameAllType,
     table_name: &str,
 ) -> proc_macro2::TokenStream {
     let item_input_name = format_ident!("{}PutItemInput", struct_name);
     // let item_output_name = format_ident!("{}PutItemOutput", struct_name);
     let put_builder = format_ident!("{}TransactPutItemBuilder", struct_name);
+    let update_builder = format_ident!("{}TransactUpdateItemBuilder", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
     // let output_values = fields.named.iter().map(|f| {
@@ -85,6 +89,28 @@ pub(crate) fn expand_transact_write(
                     // item: output_item,
                 }
             }
+
+            // TODO: Support sort key
+            pub fn update<K>(key: K) -> #update_builder where K: ::raiden::IntoAttribute + std::marker::Send {
+                let mut input = ::raiden::Update::default();
+
+                let key_attr: AttributeValue = key.into_attr();
+                let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                input.key = key_set;
+
+                #update_builder {
+                    input,
+                    table_name: #table_name.to_owned(),
+                    table_prefix: "".to_owned(),
+                    table_suffix: "".to_owned(),
+                    // item: output_item,
+                    add_items: vec![],
+                    set_items: vec![],
+                    remove_items: vec![],
+                    delete_items: vec![],
+                }
+            }
         }
 
         pub struct #put_builder {
@@ -115,6 +141,145 @@ pub(crate) fn expand_transact_write(
             }
 
             fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                }
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.condition_expression = Some(cond_str);
+                self
+            }
+        }
+
+        pub struct #update_builder {
+            pub table_name: String,
+            pub table_prefix: String,
+            pub table_suffix: String,
+            pub input: ::raiden::Update,
+
+            pub add_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
+            pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
+            pub remove_items: Vec<#attr_enum_name>,
+            pub delete_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
+        }
+
+        impl ::raiden::TransactWriteUpdateBuilder for #update_builder {
+            fn build(mut self) -> ::raiden::Update {
+                // let mut input = self.input;
+
+                // TODO: Refactor later
+                let mut attr_names: ::raiden::AttributeNames = std::collections::HashMap::new();
+                let mut attr_values: ::raiden::AttributeValues = std::collections::HashMap::new();
+
+                let add_items = std::mem::replace(&mut self.add_items, vec![]);
+                let set_items = std::mem::replace(&mut self.set_items, vec![]);
+                let remove_items = std::mem::replace(&mut self.remove_items, vec![]);
+                let delete_items = std::mem::replace(&mut self.delete_items, vec![]);
+
+                let mut set_expressions = vec![];
+                for set_item in set_items {
+                    let (expression, names, values) = set_item;
+                    attr_names = ::raiden::merge_map(attr_names, names);
+                    attr_values = ::raiden::merge_map(attr_values, values);
+                    set_expressions.push(expression);
+                }
+                let set_expression = set_expressions.join(", ");
+
+                let add_expression = add_items.into_iter().map(|(name, value)| {
+                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                    let attr_name = format!("#{}", name.into_attr_name());
+                    let val = format!("{} {}", attr_name, placeholder);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    attr_values.insert(placeholder, value);
+                    val
+                }).collect::<Vec<_>>().join(", ");
+
+                let remove_expression = remove_items.into_iter().map(|name| {
+                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                    let attr_name = format!("#{}", name.into_attr_name());
+                    let val = format!("{}", attr_name);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    val
+                }).collect::<Vec<_>>().join(", ");
+
+                let delete_expression = delete_items.into_iter().map(|(name, value)| {
+                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                    let attr_name = format!("#{}", name.into_attr_name());
+                    let val = format!("{} {}", attr_name, placeholder);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    attr_values.insert(placeholder, value);
+                    val
+                }).collect::<Vec<_>>().join(", ");
+
+                let mut update_expressions: Vec<String> = vec![];
+                if !add_expression.is_empty() {
+                    update_expressions.push(format!("ADD {}", add_expression));
+                }
+                if !set_expression.is_empty() {
+                    update_expressions.push(format!("SET {}", set_expression));
+                }
+                if !remove_expression.is_empty() {
+                    update_expressions.push(format!("REMOVE {}", remove_expression));
+                }
+                if !delete_expression.is_empty() {
+                    update_expressions.push(format!("DELETE {}", delete_expression));
+                }
+                let update_expression = update_expressions.join(" ");
+
+                if self.input.expression_attribute_names.is_none() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                } else {
+                    self.input.expression_attribute_names = Some(::raiden::merge_map(self.input.expression_attribute_names.unwrap(), attr_names));
+                }
+                if self.input.expression_attribute_values.is_none() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                } else {
+                    self.input.expression_attribute_values = Some(::raiden::merge_map(self.input.expression_attribute_values.unwrap(), attr_values));
+                }
+
+                self.input.update_expression = update_expression;
+
+                self.input.table_name = format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix);
+                dbg!( format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix));
+                self.input
+            }
+        }
+
+        impl #update_builder {
+
+            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+                self.table_prefix = s.into();
+                self
+            }
+
+            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+                self.table_suffix = s.into();
+                self
+            }
+
+            pub fn add(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
+                self.add_items.push((attr, value.into_attr()));
+                self
+            }
+
+            pub fn set(mut self, set: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+                self.set_items.push(set.build());
+                self
+            }
+
+            pub fn remove(mut self, attr: #attr_enum_name) -> Self {
+                self.remove_items.push(attr);
+                self
+            }
+
+            pub fn delete(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
+                self.delete_items.push((attr, value.into_attr()));
+                self
+            }
+
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
                     self.input.expression_attribute_names = Some(attr_names);

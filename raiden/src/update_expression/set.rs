@@ -170,18 +170,12 @@ impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilled<T> {
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
                 let set_attr_name = format!("#{}", set_attr);
-                let expression = format!(
-                  "{} = {} {}",
-                  attr_name,
-                  set_attr_name,
-                  op_expression
-                );
+                let expression = format!("{} = {} {}", attr_name, set_attr_name, op_expression);
                 names.insert(set_attr_name, set_attr);
                 (expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
-                let expression =
-                    format!("{} = {} {}", attr_name, placeholder, op_expression);
+                let expression = format!("{} = {} {}", attr_name, placeholder, op_expression);
                 values.insert(placeholder, value);
                 (expression, names, values)
             }
@@ -200,7 +194,6 @@ mod tests {
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     enum UserAttrNames {
-        Id,
         Name,
         Age,
     }
@@ -208,7 +201,6 @@ mod tests {
     impl super::super::IntoAttrName for UserAttrNames {
         fn into_attr_name(self) -> String {
             match self {
-                UserAttrNames::Id => "id".to_owned(),
                 UserAttrNames::Name => "name".to_owned(),
                 UserAttrNames::Age => "age".to_owned(),
             }
