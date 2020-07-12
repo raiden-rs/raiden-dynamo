@@ -12,6 +12,7 @@ mod tests {
         #[raiden(partition_key)]
         id: String,
         name: String,
+        age: usize,
     }
 
     #[test]
@@ -30,6 +31,25 @@ mod tests {
     }
 
     #[test]
+    fn test_set_and_add_update_expression() {
+        let client = User::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        reset_value_id();
+        let (expression, _, _) = client
+            .update("id0")
+            .set(User::update_expression().set(User::name()).value("updated"))
+            .add(User::update_expression().add(User::age()).value(1))
+            .build_expression();
+
+        assert_eq!(
+            expression,
+            "ADD #age :value1 SET #name = :value0".to_owned()
+        );
+    }
+
+    #[test]
     fn test_update() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -37,12 +57,14 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let set_expression = User::update_expression()
+            let set_name_expression = User::update_expression()
                 .set(User::name())
                 .value("updated!!");
+            let set_age_expression = User::update_expression().set(User::age()).value(12);
             let res = client
                 .update("id0")
-                .set(set_expression)
+                .set(set_name_expression)
+                .set(set_age_expression)
                 .return_all_new()
                 .run()
                 .await
@@ -51,7 +73,8 @@ mod tests {
                 res.item,
                 Some(User {
                     id: "id0".to_owned(),
-                    name: "updated!!".to_owned()
+                    name: "updated!!".to_owned(),
+                    age: 12,
                 })
             );
         }
