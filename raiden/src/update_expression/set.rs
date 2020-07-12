@@ -1,3 +1,5 @@
+use super::*;
+
 pub struct Set<T: super::IntoAttrName> {
     target: T,
     index: Option<usize>,
@@ -84,10 +86,6 @@ impl<T: super::IntoAttrName> Set<T> {
             if_not_exists: false,
         }
     }
-}
-
-pub trait SetExpressionBuilder {
-    fn build(self) -> (String, super::AttributeNames, super::AttributeValues);
 }
 
 impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {

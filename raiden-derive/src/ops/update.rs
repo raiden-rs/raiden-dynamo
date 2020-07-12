@@ -96,6 +96,10 @@ pub(crate) fn expand_update_item(
             fn set(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Set<#attr_enum_name> {
                 ::raiden::update_expression::Set::new(attr)
             }
+
+            fn add(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Add<#attr_enum_name> {
+                ::raiden::update_expression::Add::new(attr)
+            }
         }
 
         #client_trait
@@ -103,7 +107,7 @@ pub(crate) fn expand_update_item(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::UpdateItemInput,
-            pub add_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
+            pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub remove_items: Vec<#attr_enum_name>,
             pub delete_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
@@ -115,8 +119,8 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn add(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
-                self.add_items.push((attr, value.into_attr()));
+            pub fn add(mut self, add: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+                self.add_items.push(add.build());
                 self
             }
 
@@ -177,14 +181,14 @@ pub(crate) fn expand_update_item(
                 }
                 let set_expression = set_expressions.join(", ");
 
-                let add_expression = add_items.into_iter().map(|(name, value)| {
-                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
-                    let attr_name = format!("#{}", name.into_attr_name());
-                    let val = format!("{} {}", attr_name, placeholder);
-                    attr_names.insert(attr_name, name.into_attr_name());
-                    attr_values.insert(placeholder, value);
-                    val
-                }).collect::<Vec<_>>().join(", ");
+                let mut add_expressions = vec![];
+                for add_item in add_items {
+                    let (expression, names, values) = add_item;
+                    attr_names = ::raiden::merge_map(attr_names, names);
+                    attr_values = ::raiden::merge_map(attr_values, values);
+                    add_expressions.push(expression);
+                }
+                let add_expression = add_expressions.join(", ");
 
                 let remove_expression = remove_items.into_iter().map(|name| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
