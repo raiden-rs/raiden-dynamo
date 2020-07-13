@@ -91,7 +91,7 @@ pub(crate) fn expand_query(
 
                     let res = self.client.query(self.input.clone()).await?;
                     if let Some(res_items) = res.items {
-                        for res_item in res_items.into_iter() {
+                        for res_item in res_items.iter() {
                             items.push(#struct_name {
                                 #(#from_item)*
                             })

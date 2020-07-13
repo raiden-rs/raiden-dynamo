@@ -120,7 +120,7 @@ pub(crate) fn expand_batch_get(
                     let res = self.client.batch_get_item(input).await?;
                     if let Some(res_responses) = &res.responses {
                         if let Some(res_items) = res_responses.get(&self.table_name) {
-                            for res_item in res_items.into_iter() {
+                            for res_item in res_items.iter() {
                                 items.push(#struct_name {
                                     #(#from_item)*
                                 })
