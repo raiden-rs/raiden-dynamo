@@ -5,6 +5,7 @@ mod get;
 mod key_condition;
 mod put;
 mod query;
+mod scan;
 mod rename;
 mod rename_all;
 mod transact_write;
