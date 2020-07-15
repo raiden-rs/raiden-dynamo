@@ -136,7 +136,7 @@ mod tests {
     }
 
     #[test]
-    fn test_query_with_renamed() {
+    fn test_scan_with_renamed() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Project::client(Region::Custom {
