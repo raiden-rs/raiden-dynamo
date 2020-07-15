@@ -92,6 +92,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
     let query = ops::expand_query(&struct_name, &fields, rename_all_type);
 
+    let scan = ops::expand_scan(&struct_name, &fields, rename_all_type);
+
     let batch_get = ops::expand_batch_get(
         &partition_key,
         &sort_key,
@@ -153,6 +155,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         #batch_get
 
         #query
+
+        #scan
 
         #put_item
 

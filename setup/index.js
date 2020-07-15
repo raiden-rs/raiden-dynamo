@@ -355,4 +355,27 @@ const put = (params) =>
       year: { N: '1999' },
     },
   });
+
+  await createTable({
+    TableName: 'ScanTestData0',
+    KeySchema: [
+      { AttributeName: 'id', KeyType: 'HASH' },
+      { AttributeName: 'year', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'year', AttributeType: 'N' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'ScanTestData0',
+    Item: {
+      id: { S: 'scanId0' },
+      name: { S: 'scanAlice' },
+      year: { N: '2001' },
+      num: { N: '2000' }
+    },
+  });
 })();
