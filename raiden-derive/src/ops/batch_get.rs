@@ -21,7 +21,7 @@ pub(crate) fn expand_batch_get(
     let builder_init = quote! {
         #builder_name {
             client: &self.client,
-            table_name: self.table_name.to_string(),
+            table_name: self.table_name(),
             keys: key_attrs,
         }
     };
