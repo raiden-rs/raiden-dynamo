@@ -267,7 +267,11 @@ impl FromStringSetItem for String {
 impl<A: IntoAttribute> IntoAttribute for Vec<A> {
     fn into_attr(mut self: Self) -> AttributeValue {
         if self.is_empty() {
-            return AttributeValue::default();
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
         }
         AttributeValue {
             l: Some(self.drain(..).map(|s| s.into_attr()).collect()),
@@ -281,8 +285,12 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
         if value.is_none() {
             return Ok(vec![]);
         }
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return Ok(vec![]);
+        }
         value
-            .unwrap()
             .l
             .ok_or((/* TODO: Add convert error handling */))?
             .into_iter()
@@ -294,7 +302,11 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
 impl IntoAttribute for std::collections::HashSet<usize> {
     fn into_attr(self: Self) -> AttributeValue {
         if self.is_empty() {
-            return AttributeValue::default();
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
         }
         AttributeValue {
             ns: Some(self.into_iter().map(|s| s.to_string()).collect()),
@@ -308,7 +320,12 @@ impl FromAttribute for std::collections::HashSet<usize> {
         if value.is_none() {
             return Ok(std::collections::HashSet::new());
         }
-        let mut nums = value.unwrap().ns.ok_or(())?;
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return Ok(std::collections::HashSet::new());
+        }
+        let mut nums = value.ns.ok_or(())?;
         let mut results: Vec<Result<usize, ()>> = nums
             .drain(..)
             .map(|ns| ns.parse().map_err(|_| ()))
@@ -320,7 +337,11 @@ impl FromAttribute for std::collections::HashSet<usize> {
 impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections::HashSet<A> {
     fn into_attr(self: Self) -> AttributeValue {
         if self.is_empty() {
-            return AttributeValue::default();
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
         }
         AttributeValue {
             ss: Some(self.into_iter().map(|s| s.into_ss_item()).collect()),
@@ -336,7 +357,12 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
         if value.is_none() {
             return Ok(std::collections::HashSet::new());
         }
-        let mut ss = value.unwrap().ss.ok_or(())?;
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return Ok(std::collections::HashSet::new());
+        }
+        let mut ss = value.ss.ok_or(())?;
         ss.drain(..).map(A::from_ss_item).collect()
     }
 }

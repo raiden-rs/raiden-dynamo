@@ -175,18 +175,22 @@ pub(crate) fn expand_update_item(
                 let mut set_expressions = vec![];
                 for set_item in set_items {
                     let (expression, names, values) = set_item;
-                    attr_names = ::raiden::merge_map(attr_names, names);
-                    attr_values = ::raiden::merge_map(attr_values, values);
-                    set_expressions.push(expression);
+                    if expression != "".to_owned() {
+                        attr_names = ::raiden::merge_map(attr_names, names);
+                        attr_values = ::raiden::merge_map(attr_values, values);
+                        set_expressions.push(expression);
+                    }
                 }
                 let set_expression = set_expressions.join(", ");
 
                 let mut add_expressions = vec![];
                 for add_item in add_items {
                     let (expression, names, values) = add_item;
-                    attr_names = ::raiden::merge_map(attr_names, names);
-                    attr_values = ::raiden::merge_map(attr_values, values);
-                    add_expressions.push(expression);
+                    if expression != "".to_owned() {
+                        attr_names = ::raiden::merge_map(attr_names, names);
+                        attr_values = ::raiden::merge_map(attr_values, values);
+                        add_expressions.push(expression);
+                    }
                 }
                 let add_expression = add_expressions.join(", ");
 
@@ -228,16 +232,29 @@ pub(crate) fn expand_update_item(
             pub async fn run(mut self) -> Result<::raiden::update::UpdateOutput<#struct_name>, ::raiden::RaidenError> {
                 let (expression, names, values) = self.build_expression();
                 if self.input.expression_attribute_names.is_none() {
-                    self.input.expression_attribute_names = Some(names);
+                    if names.is_empty() {
+                        self.input.expression_attribute_names = None;
+                    } else {
+                        self.input.expression_attribute_names = Some(names);
+                    }
                 } else {
                     self.input.expression_attribute_names = Some(::raiden::merge_map(self.input.expression_attribute_names.unwrap(), names));
                 }
+
                 if self.input.expression_attribute_values.is_none() {
-                    self.input.expression_attribute_values = Some(values);
+                    if values.is_empty() {
+                        self.input.expression_attribute_values = None;
+                    } else {
+                        self.input.expression_attribute_values = Some(values);
+                    }
                 } else {
                     self.input.expression_attribute_values = Some(::raiden::merge_map(self.input.expression_attribute_values.unwrap(), values));
                 }
-                self.input.update_expression = Some(expression);
+
+                if expression != "" {
+                    self.input.update_expression = Some(expression);
+                }
+
                 let has_return_values = self.input.return_values.is_some();
                 let res = self.client.update_item(self.input).await?;
 
