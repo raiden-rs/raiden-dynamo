@@ -375,7 +375,23 @@ const put = (params) =>
       id: { S: 'scanId0' },
       name: { S: 'scanAlice' },
       year: { N: '2001' },
-      num: { N: '2000' }
+      num: { N: '2000' },
+    },
+  });
+
+  await createTable({
+    TableName: 'EmptySetTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'EmptySetTestData0',
+    Item: {
+      id: { S: 'id0' },
+      nset: { NS: ['2000'] },
+      sset: { SS: ['Hello'] },
     },
   });
 })();

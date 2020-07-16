@@ -28,9 +28,15 @@ impl<T: super::IntoAttrName> SetExpressionBuilder for AddExpressionFilled<T> {
         let attr_name = format!("#{}", attr);
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
-        names.insert(attr_name.clone(), attr);
         let mut values: super::AttributeValues = std::collections::HashMap::new();
         let (placeholder, value) = self.value;
+
+        // See. https://github.com/raiden-rs/raiden/issues/57
+        if value.null.is_some() {
+            return ("".to_owned(), names, values);
+        }
+
+        names.insert(attr_name.clone(), attr);
         let expression = format!("{} {}", attr_name, placeholder);
         values.insert(placeholder, value);
         (expression, names, values)
