@@ -175,7 +175,7 @@ pub(crate) fn expand_update_item(
                 let mut set_expressions = vec![];
                 for set_item in set_items {
                     let (expression, names, values) = set_item;
-                    if expression != "".to_owned() {
+                    if expression != "" {
                         attr_names = ::raiden::merge_map(attr_names, names);
                         attr_values = ::raiden::merge_map(attr_values, values);
                         set_expressions.push(expression);
@@ -186,7 +186,7 @@ pub(crate) fn expand_update_item(
                 let mut add_expressions = vec![];
                 for add_item in add_items {
                     let (expression, names, values) = add_item;
-                    if expression != "".to_owned() {
+                    if expression != "" {
                         attr_names = ::raiden::merge_map(attr_names, names);
                         attr_values = ::raiden::merge_map(attr_values, values);
                         add_expressions.push(expression);
