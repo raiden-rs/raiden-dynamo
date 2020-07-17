@@ -98,6 +98,13 @@ pub trait FromStringSetItem: Sized {
 
 impl IntoAttribute for String {
     fn into_attr(self: Self) -> AttributeValue {
+        if self == "" {
+            // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
+        }
         AttributeValue {
             s: Some(self),
             ..AttributeValue::default()
@@ -108,17 +115,26 @@ impl IntoAttribute for String {
 impl FromAttribute for String {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
         if value.is_none() {
-            return Err(());
+            return Ok("".to_owned());
         }
-        value
-            .unwrap()
-            .s
-            .ok_or((/* TODO: Add convert error handling */))
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/58
+            return Ok("".to_owned());
+        }
+        value.s.ok_or((/* TODO: Add convert error handling */))
     }
 }
 
 impl IntoAttribute for &'_ str {
     fn into_attr(self: Self) -> AttributeValue {
+        if self == "" {
+            // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
+        }
         AttributeValue {
             s: Some(self.to_owned()),
             ..AttributeValue::default()
@@ -128,11 +144,19 @@ impl IntoAttribute for &'_ str {
 
 impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
     fn into_attr(self: Self) -> AttributeValue {
+        let s = match self {
+            std::borrow::Cow::Owned(o) => o,
+            std::borrow::Cow::Borrowed(b) => b.to_owned(),
+        };
+        if s == "" {
+            // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
+            return AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            };
+        }
         AttributeValue {
-            s: Some(match self {
-                std::borrow::Cow::Owned(o) => o,
-                std::borrow::Cow::Borrowed(b) => b.to_owned(),
-            }),
+            s: Some(s),
             ..AttributeValue::default()
         }
     }
@@ -143,8 +167,12 @@ impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
         if value.is_none() {
             return Err(());
         }
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/58
+            return Ok(std::borrow::Cow::Owned("".to_owned()));
+        }
         value
-            .unwrap()
             .s
             .map(std::borrow::Cow::Owned)
             .ok_or((/* TODO: Add convert error handling */))
