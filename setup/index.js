@@ -394,4 +394,19 @@ const put = (params) =>
       sset: { SS: ['Hello'] },
     },
   });
+
+  await createTable({
+    TableName: 'EmptyStringTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'EmptyStringTestData0',
+    Item: {
+      id: { S: 'id0' },
+      name: { NULL: true },
+    },
+  });
 })();

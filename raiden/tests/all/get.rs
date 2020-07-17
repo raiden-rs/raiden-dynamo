@@ -318,4 +318,36 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct EmptyStringTestData0 {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        name: String,
+    }
+
+    #[test]
+    fn test_get_empty_string() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = EmptyStringTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: EmptyStringTestData0 {
+                        id: "id0".to_owned(),
+                        name: "".to_owned(),
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }

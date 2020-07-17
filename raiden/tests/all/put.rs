@@ -359,4 +359,30 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone)]
+    pub struct EmptyStringTestData0 {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        name: String,
+    }
+
+    #[test]
+    fn test_put_with_empty_string() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = EmptyStringTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let item = EmptyStringTestData0::put_item_builder()
+                .name("".to_owned())
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
 }
