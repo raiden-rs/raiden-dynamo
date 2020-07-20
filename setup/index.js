@@ -424,4 +424,19 @@ const put = (params) =>
       sset: { SS: ['foo', 'bar'] },
     },
   });
+
+  await createTable({
+    TableName: 'UpdateAddTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'UpdateAddTestData0',
+    Item: {
+      id: { S: 'id0' },
+      sset: { SS: ['foo', 'bar'] },
+    },
+  });
 })();
