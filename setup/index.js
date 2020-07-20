@@ -395,6 +395,15 @@ const put = (params) =>
     },
   });
 
+  await put({
+    TableName: 'EmptySetTestData0',
+    Item: {
+      id: { S: 'id1' },
+      nset: { NS: ['2001'] },
+      sset: { SS: ['World'] },
+    },
+  });
+
   await createTable({
     TableName: 'EmptyStringTestData0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],

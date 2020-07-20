@@ -185,30 +185,6 @@ mod tests {
     }
 
     #[test]
-    fn test_update_empty_set_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = EmptySetTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let set_expression = EmptySetTestData0::update_expression()
-                .set(EmptySetTestData0::sset())
-                .value(sset);
-            let res = client
-                .update("id0")
-                .set(set_expression)
-                .return_all_new()
-                .run()
-                .await;
-            dbg!(&res);
-            assert_eq!(res.is_ok(), true,);
-        }
-        rt.block_on(example());
-    }
-
-    #[test]
     fn test_update_with_only_attr() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -220,7 +196,7 @@ mod tests {
                 .set(EmptySetTestData0::sset())
                 .attr(EmptySetTestData0::sset());
             let res = client
-                .update("id0")
+                .update("id1")
                 .set(set_expression)
                 .return_all_new()
                 .run()
@@ -231,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_with_empty_hash() {
+    fn test_update_empty_set_sort_key() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptySetTestData0::client(Region::Custom {
@@ -239,6 +215,34 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let expected_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let set_expression = EmptySetTestData0::update_expression()
+                .set(EmptySetTestData0::sset())
+                .value(sset);
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .return_all_new()
+                .run()
+                .await;
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_add_with_empty_hash_set() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = EmptySetTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut expected_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            expected_sset.insert("Hello".to_owned());
             let expression = EmptySetTestData0::update_expression()
                 .add(EmptySetTestData0::sset())
                 .value(sset);
@@ -248,8 +252,8 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
-            dbg!(&res);
             assert_eq!(res.is_ok(), true);
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
         rt.block_on(example());
     }
