@@ -115,7 +115,7 @@ impl IntoAttribute for String {
 impl FromAttribute for String {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
         if value.is_none() {
-            return Ok("".to_owned());
+            return Err(());
         }
         let value = value.unwrap();
         if let Some(true) = value.null {
@@ -231,7 +231,7 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
 impl<T: FromAttribute> FromAttribute for Option<T> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
         if value.is_none() {
-            return Err(());
+            return Ok(None);
         }
         let value = value.unwrap();
         match value.null {
@@ -274,24 +274,6 @@ impl FromStringSetItem for String {
     }
 }
 
-// impl IntoAttribute for std::collections::HashSet<String> {
-//     fn into_attr(mut self: Self) -> AttributeValue {
-//         AttributeValue {
-//             ss: Some(self.drain().collect()),
-//             ..AttributeValue::default()
-//         }
-//     }
-// }
-//
-// impl FromAttribute for std::collections::HashSet<String> {
-//     fn from_attr(value: AttributeValue) -> Result<Self, ()> {
-//         value
-//             .ss
-//             .ok_or((/* TODO: Add convert error handling */))
-//             .map(|mut value| value.drain(..).collect())
-//     }
-// }
-
 impl<A: IntoAttribute> IntoAttribute for Vec<A> {
     fn into_attr(mut self: Self) -> AttributeValue {
         if self.is_empty() {
@@ -331,10 +313,8 @@ impl IntoAttribute for std::collections::HashSet<usize> {
     fn into_attr(self: Self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
-            return AttributeValue {
-                null: Some(true),
-                ..Default::default()
-            };
+            //      https://github.com/raiden-rs/raiden-dynamo/issues/64
+            return AttributeValue::default();
         }
         AttributeValue {
             ns: Some(self.into_iter().map(|s| s.to_string()).collect()),
@@ -366,10 +346,8 @@ impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections:
     fn into_attr(self: Self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
-            return AttributeValue {
-                null: Some(true),
-                ..Default::default()
-            };
+            //      https://github.com/raiden-rs/raiden-dynamo/issues/64
+            return AttributeValue::default();
         }
         AttributeValue {
             ss: Some(self.into_iter().map(|s| s.into_ss_item()).collect()),

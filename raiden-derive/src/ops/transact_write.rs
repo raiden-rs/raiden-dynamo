@@ -160,7 +160,7 @@ pub(crate) fn expand_transact_write(
             pub input: ::raiden::Update,
 
             pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
-            pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
+            pub set_items: Vec<::raiden::update_expression::SetOrRemove>,
             pub remove_items: Vec<#attr_enum_name>,
             pub delete_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
         }
@@ -178,14 +178,34 @@ pub(crate) fn expand_transact_write(
                 let remove_items = std::mem::replace(&mut self.remove_items, vec![]);
                 let delete_items = std::mem::replace(&mut self.delete_items, vec![]);
 
+                let mut remove_expressions = remove_items.into_iter().map(|name| {
+                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                    let attr_name = format!("#{}", name.into_attr_name());
+                    let val = format!("{}", attr_name);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    val
+                }).collect::<Vec<String>>();
+
                 let mut set_expressions = vec![];
                 for set_item in set_items {
-                    let (expression, names, values) = set_item;
-                    attr_names = ::raiden::merge_map(attr_names, names);
-                    attr_values = ::raiden::merge_map(attr_values, values);
-                    set_expressions.push(expression);
+                    match set_item {
+                        raiden::update_expression::SetOrRemove::Set(expression, names, values) => {
+                            attr_names = ::raiden::merge_map(attr_names, names);
+                            attr_values = ::raiden::merge_map(attr_values, values);
+                            set_expressions.push(expression);
+                        }
+                        // https://github.com/raiden-rs/raiden-dynamo/issues/64
+                        // If empty set detected, replace it to remove expression.
+                        raiden::update_expression::SetOrRemove::Remove(expression, names) => {
+                            attr_names = ::raiden::merge_map(attr_names, names);
+                            remove_expressions.push(expression);
+                        }
+                    }
                 }
+
                 let set_expression = set_expressions.join(", ");
+
+                let remove_expression = remove_expressions.join(", ");
 
                 let mut add_expressions = vec![];
                 for add_item in add_items {
@@ -196,13 +216,7 @@ pub(crate) fn expand_transact_write(
                 }
                 let add_expression = add_expressions.join(", ");
 
-                let remove_expression = remove_items.into_iter().map(|name| {
-                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
-                    let attr_name = format!("#{}", name.into_attr_name());
-                    let val = format!("{}", attr_name);
-                    attr_names.insert(attr_name, name.into_attr_name());
-                    val
-                }).collect::<Vec<_>>().join(", ");
+
 
                 let delete_expression = delete_items.into_iter().map(|(name, value)| {
                     let placeholder = format!(":value{}", ::raiden::generate_value_id());
@@ -258,12 +272,12 @@ pub(crate) fn expand_transact_write(
                 self
             }
 
-            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateAddExpressionBuilder) -> Self {
                 self.add_items.push(add.build());
                 self
             }
 
-            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateSetExpressionBuilder) -> Self {
                 self.set_items.push(set.build());
                 self
             }

@@ -22,7 +22,7 @@ impl<T: super::IntoAttrName> Add<T> {
     }
 }
 
-impl<T: super::IntoAttrName> UpdateExpressionBuilder for AddExpressionFilled<T> {
+impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
@@ -32,7 +32,8 @@ impl<T: super::IntoAttrName> UpdateExpressionBuilder for AddExpressionFilled<T> 
         let (placeholder, value) = self.value;
 
         // See. https://github.com/raiden-rs/raiden/issues/57
-        if value.null.is_some() {
+        //      https://github.com/raiden-rs/raiden/issues/58
+        if value.null.is_some() || value == AttributeValue::default() {
             return ("".to_owned(), names, values);
         }
 

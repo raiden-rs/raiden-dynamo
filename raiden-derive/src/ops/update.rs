@@ -112,7 +112,7 @@ pub(crate) fn expand_update_item(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::UpdateItemInput,
             pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
-            pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
+            pub set_items: Vec<::raiden::update_expression::SetOrRemove>,
             pub remove_items: Vec<#attr_enum_name>,
             pub delete_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
         }
@@ -123,12 +123,12 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateAddExpressionBuilder) -> Self {
                 self.add_items.push(add.build());
                 self
             }
 
-            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateSetExpressionBuilder) -> Self {
                 self.set_items.push(set.build());
                 self
             }
@@ -138,7 +138,7 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn delete(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+            pub fn delete(mut self, set: impl ::raiden::update_expression::UpdateDeleteExpressionBuilder) -> Self {
                 self.delete_items.push(set.build());
                 self
             }
@@ -176,13 +176,28 @@ pub(crate) fn expand_update_item(
                 let remove_items = std::mem::replace(&mut self.remove_items, vec![]);
                 let delete_items = std::mem::replace(&mut self.delete_items, vec![]);
 
+                let mut remove_expressions = remove_items.into_iter().map(|name| {
+                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                    let attr_name = format!("#{}", name.into_attr_name());
+                    let val = format!("{}", attr_name);
+                    attr_names.insert(attr_name, name.into_attr_name());
+                    val
+                }).collect::<Vec<String>>();
+
                 let mut set_expressions = vec![];
                 for set_item in set_items {
-                    let (expression, names, values) = set_item;
-                    if expression != "" {
-                        attr_names = ::raiden::merge_map(attr_names, names);
-                        attr_values = ::raiden::merge_map(attr_values, values);
-                        set_expressions.push(expression);
+                    match set_item {
+                        raiden::update_expression::SetOrRemove::Set(expression, names, values) => {
+                            attr_names = ::raiden::merge_map(attr_names, names);
+                            attr_values = ::raiden::merge_map(attr_values, values);
+                            set_expressions.push(expression);
+                        }
+                        // https://github.com/raiden-rs/raiden-dynamo/issues/64
+                        // If empty set detected, replace it to remove expression.
+                        raiden::update_expression::SetOrRemove::Remove(expression, names) => {
+                            attr_names = ::raiden::merge_map(attr_names, names);
+                            remove_expressions.push(expression);
+                        }
                     }
                 }
                 let set_expression = set_expressions.join(", ");
@@ -198,13 +213,7 @@ pub(crate) fn expand_update_item(
                 }
                 let add_expression = add_expressions.join(", ");
 
-                let remove_expression = remove_items.into_iter().map(|name| {
-                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
-                    let attr_name = format!("#{}", name.into_attr_name());
-                    let val = format!("{}", attr_name);
-                    attr_names.insert(attr_name, name.into_attr_name());
-                    val
-                }).collect::<Vec<_>>().join(", ");
+                let remove_expression = remove_expressions.join(", ");
 
                 let mut delete_expressions = vec![];
                 for delete_item in delete_items {

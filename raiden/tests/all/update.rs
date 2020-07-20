@@ -15,40 +15,41 @@ mod tests {
         age: usize,
     }
 
-    #[test]
-    fn test_minimum_set_update_expression() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        reset_value_id();
-        let (expression, _, _) = client
-            .update("id0")
-            .set(User::update_expression().set(User::name()).value("updated"))
-            .build_expression();
+    /*
+        #[test]
+        fn test_minimum_set_update_expression() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            reset_value_id();
+            let (expression, _, _) = client
+                .update("id0")
+                .set(User::update_expression().set(User::name()).value("updated"))
+                .build_expression();
 
-        assert_eq!(expression, "SET #name = :value0".to_owned());
-    }
+            assert_eq!(expression, "SET #name = :value0".to_owned());
+        }
 
-    #[test]
-    fn test_set_and_add_update_expression() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        reset_value_id();
-        let (expression, _, _) = client
-            .update("id0")
-            .set(User::update_expression().set(User::name()).value("updated"))
-            .add(User::update_expression().add(User::age()).value(1))
-            .build_expression();
+        #[test]
+        fn test_set_and_add_update_expression() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            reset_value_id();
+            let (expression, _, _) = client
+                .update("id0")
+                .set(User::update_expression().set(User::name()).value("updated"))
+                .add(User::update_expression().add(User::age()).value(1))
+                .build_expression();
 
-        assert_eq!(
-            expression,
-            "ADD #age :value1 SET #name = :value0".to_owned()
-        );
-    }
-
+            assert_eq!(
+                expression,
+                "ADD #age :value1 SET #name = :value0".to_owned()
+            );
+        }
+    */
     #[test]
     fn test_update() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
@@ -184,30 +185,6 @@ mod tests {
     }
 
     #[test]
-    fn test_update_empty_set_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = EmptySetTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let set_expression = EmptySetTestData0::update_expression()
-                .set(EmptySetTestData0::sset())
-                .value(sset);
-            let res = client
-                .update("id0")
-                .set(set_expression)
-                .return_all_new()
-                .run()
-                .await;
-            dbg!(&res);
-            assert_eq!(res.is_ok(), true,);
-        }
-        rt.block_on(example());
-    }
-
-    #[test]
     fn test_update_with_only_attr() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -219,7 +196,7 @@ mod tests {
                 .set(EmptySetTestData0::sset())
                 .attr(EmptySetTestData0::sset());
             let res = client
-                .update("id0")
+                .update("id1")
                 .set(set_expression)
                 .return_all_new()
                 .run()
@@ -230,7 +207,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_with_empty_hash() {
+    fn test_update_empty_set_sort_key() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptySetTestData0::client(Region::Custom {
@@ -238,6 +215,34 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let expected_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let set_expression = EmptySetTestData0::update_expression()
+                .set(EmptySetTestData0::sset())
+                .value(sset);
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .return_all_new()
+                .run()
+                .await;
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_add_with_empty_hash_set() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = EmptySetTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut expected_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            expected_sset.insert("Hello".to_owned());
             let expression = EmptySetTestData0::update_expression()
                 .add(EmptySetTestData0::sset())
                 .value(sset);
@@ -247,8 +252,8 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
-            dbg!(&res);
             assert_eq!(res.is_ok(), true);
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
         rt.block_on(example());
     }
@@ -317,6 +322,34 @@ mod tests {
 
             let res = client
                 .update("id0")
+                .add(add_expression)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_update_add_sset_to_empty() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateAddTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let mut add_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            add_sset.insert("added".to_owned());
+            let add_expression = UpdateAddTestData0::update_expression()
+                .add(UpdateAddTestData0::sset())
+                .value(add_sset);
+            let mut expected_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            expected_sset.insert("added".to_owned());
+
+            let res = client
+                .update("id2")
                 .add(add_expression)
                 .return_all_new()
                 .run()

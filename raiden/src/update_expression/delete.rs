@@ -22,7 +22,7 @@ impl<T: super::IntoAttrName> Delete<T> {
     }
 }
 
-impl<T: super::IntoAttrName> UpdateExpressionBuilder for DeleteExpressionFilled<T> {
+impl<T: super::IntoAttrName> UpdateDeleteExpressionBuilder for DeleteExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
@@ -32,7 +32,8 @@ impl<T: super::IntoAttrName> UpdateExpressionBuilder for DeleteExpressionFilled<
         let (placeholder, value) = self.value;
 
         // See. https://github.com/raiden-rs/raiden/issues/57
-        if value.null.is_some() {
+        //      https://github.com/raiden-rs/raiden/issues/58
+        if value.null.is_some() || value == AttributeValue::default() {
             return ("".to_owned(), names, values);
         }
 
