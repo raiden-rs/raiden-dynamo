@@ -55,7 +55,12 @@ pub(crate) fn expand_query(
                 self
             }
 
-            fn scan_index_forward(mut self) -> Self {
+            fn desc(mut self) -> Self {
+                self.input.scan_index_forward = Some(false);
+                self
+            }
+
+            fn asc(mut self) -> Self {
                 self.input.scan_index_forward = Some(true);
                 self
             }
