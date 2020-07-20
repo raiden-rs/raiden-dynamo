@@ -215,7 +215,7 @@ pub(crate) fn expand_update_item(
                         delete_expressions.push(expression);
                     }
                 }
-                let delete_expression = add_expressions.join(", ");
+                let delete_expression = delete_expressions.join(", ");
 
                 let mut update_expressions: Vec<String> = vec![];
                 if !add_expression.is_empty() {
