@@ -22,7 +22,7 @@ impl<T: super::IntoAttrName> Add<T> {
     }
 }
 
-impl<T: super::IntoAttrName> SetExpressionBuilder for AddExpressionFilled<T> {
+impl<T: super::IntoAttrName> UpdateExpressionBuilder for AddExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);

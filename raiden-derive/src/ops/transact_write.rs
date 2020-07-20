@@ -258,12 +258,12 @@ pub(crate) fn expand_transact_write(
                 self
             }
 
-            pub fn add(mut self, add: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
                 self.add_items.push(add.build());
                 self
             }
 
-            pub fn set(mut self, set: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
                 self.set_items.push(set.build());
                 self
             }
