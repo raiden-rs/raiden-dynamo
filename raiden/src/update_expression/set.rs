@@ -134,9 +134,8 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
                 // See. https://github.com/raiden-rs/raiden/issues/57
                 //      https://github.com/raiden-rs/raiden/issues/58
                 if value.null.is_some() || value == AttributeValue::default() {
-                    let expression = format!("{}", attr_name);
                     // Use remove instead of set
-                    return SetOrRemove::Remove(expression, names);
+                    return SetOrRemove::Remove(attr_name, names);
                 }
                 let expression = format!("{} = {}", attr_name, placeholder);
                 values.insert(placeholder, value);

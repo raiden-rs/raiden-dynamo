@@ -385,4 +385,40 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct EmptyPutTestData0 {
+        #[raiden(partition_key)]
+        id: String,
+        sset: std::collections::HashSet<String>,
+    }
+
+    #[test]
+    fn test_put_with_empty_sset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = EmptyPutTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let item = EmptyPutTestData0::put_item_builder()
+                .id("testid")
+                .sset(set)
+                .build()
+                .unwrap();
+            let res = client.put(item).run().await;
+            assert_eq!(res.is_ok(), true);
+            let res = client.get(res.unwrap().item.id).run().await;
+            assert_eq!(
+                res.unwrap().item,
+                EmptyPutTestData0 {
+                    id: "testid".to_owned(),
+                    sset: expected_set
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }
