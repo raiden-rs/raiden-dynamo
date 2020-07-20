@@ -100,6 +100,10 @@ pub(crate) fn expand_update_item(
             fn add(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Add<#attr_enum_name> {
                 ::raiden::update_expression::Add::new(attr)
             }
+
+            fn delete(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Delete<#attr_enum_name> {
+                ::raiden::update_expression::Delete::new(attr)
+            }
         }
 
         #client_trait
@@ -110,7 +114,7 @@ pub(crate) fn expand_update_item(
             pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub set_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub remove_items: Vec<#attr_enum_name>,
-            pub delete_items: Vec<(#attr_enum_name, ::raiden::AttributeValue)>,
+            pub delete_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
         }
 
         impl<'a> #builder_name<'a> {
@@ -119,12 +123,12 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn add(mut self, add: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+            pub fn add(mut self, add: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
                 self.add_items.push(add.build());
                 self
             }
 
-            pub fn set(mut self, set: impl ::raiden::update_expression::SetExpressionBuilder) -> Self {
+            pub fn set(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
                 self.set_items.push(set.build());
                 self
             }
@@ -134,8 +138,8 @@ pub(crate) fn expand_update_item(
                 self
             }
 
-            pub fn delete(mut self, attr: #attr_enum_name, value: impl ::raiden::IntoAttribute) -> Self {
-                self.delete_items.push((attr, value.into_attr()));
+            pub fn delete(mut self, set: impl ::raiden::update_expression::UpdateExpressionBuilder) -> Self {
+                self.delete_items.push(set.build());
                 self
             }
 
@@ -202,14 +206,16 @@ pub(crate) fn expand_update_item(
                     val
                 }).collect::<Vec<_>>().join(", ");
 
-                let delete_expression = delete_items.into_iter().map(|(name, value)| {
-                    let placeholder = format!(":value{}", ::raiden::generate_value_id());
-                    let attr_name = format!("#{}", name.into_attr_name());
-                    let val = format!("{} {}", attr_name, placeholder);
-                    attr_names.insert(attr_name, name.into_attr_name());
-                    attr_values.insert(placeholder, value);
-                    val
-                }).collect::<Vec<_>>().join(", ");
+                let mut delete_expressions = vec![];
+                for delete_item in delete_items {
+                    let (expression, names, values) = delete_item;
+                    if expression != "" {
+                        attr_names = ::raiden::merge_map(attr_names, names);
+                        attr_values = ::raiden::merge_map(attr_values, values);
+                        delete_expressions.push(expression);
+                    }
+                }
+                let delete_expression = delete_expressions.join(", ");
 
                 let mut update_expressions: Vec<String> = vec![];
                 if !add_expression.is_empty() {

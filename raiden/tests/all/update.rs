@@ -252,4 +252,40 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct UpdateDeleteTestData0 {
+        #[raiden(partition_key)]
+        id: String,
+        sset: std::collections::HashSet<String>,
+    }
+
+    #[test]
+    fn test_update_delete_sset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateDeleteTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let mut delete_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            delete_sset.insert("foo".to_owned());
+            let delete_expression = UpdateDeleteTestData0::update_expression()
+                .delete(UpdateDeleteTestData0::sset())
+                .value(delete_sset);
+            let mut expected_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            expected_sset.insert("bar".to_owned());
+
+            let res = client
+                .update("id0")
+                .delete(delete_expression)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
+        }
+        rt.block_on(example());
+    }
 }

@@ -114,7 +114,7 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
     }
 }
 
-impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
+impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
@@ -139,7 +139,7 @@ impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilledWithout
     }
 }
 
-impl<T: super::IntoAttrName> SetExpressionBuilder for SetExpressionFilled<T> {
+impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
