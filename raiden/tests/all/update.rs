@@ -325,4 +325,32 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[test]
+    fn test_update_add_sset_to_empty() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateAddTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let mut add_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
+            add_sset.insert("added".to_owned());
+            let add_expression = UpdateAddTestData0::update_expression()
+                .add(UpdateAddTestData0::sset())
+                .value(add_sset);
+            let mut expected_sset: std::collections::HashSet<String> =
+                std::collections::HashSet::new();
+            expected_sset.insert("added".to_owned());
+
+            let res = client
+                .update("id2")
+                .add(add_expression)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
+        }
+        rt.block_on(example());
+    }
 }

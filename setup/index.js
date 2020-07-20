@@ -439,4 +439,19 @@ const put = (params) =>
       sset: { SS: ['foo', 'bar'] },
     },
   });
+
+  await put({
+    TableName: 'UpdateAddTestData0',
+    Item: {
+      id: { S: 'id1' },
+      sset: { NULL: true },
+    },
+  });
+
+  await put({
+    TableName: 'UpdateAddTestData0',
+    Item: {
+      id: { S: 'id2' },
+    },
+  });
 })();
