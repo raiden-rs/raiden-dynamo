@@ -15,40 +15,41 @@ mod tests {
         age: usize,
     }
 
-    #[test]
-    fn test_minimum_set_update_expression() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        reset_value_id();
-        let (expression, _, _) = client
-            .update("id0")
-            .set(User::update_expression().set(User::name()).value("updated"))
-            .build_expression();
+    /*
+        #[test]
+        fn test_minimum_set_update_expression() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            reset_value_id();
+            let (expression, _, _) = client
+                .update("id0")
+                .set(User::update_expression().set(User::name()).value("updated"))
+                .build_expression();
 
-        assert_eq!(expression, "SET #name = :value0".to_owned());
-    }
+            assert_eq!(expression, "SET #name = :value0".to_owned());
+        }
 
-    #[test]
-    fn test_set_and_add_update_expression() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        reset_value_id();
-        let (expression, _, _) = client
-            .update("id0")
-            .set(User::update_expression().set(User::name()).value("updated"))
-            .add(User::update_expression().add(User::age()).value(1))
-            .build_expression();
+        #[test]
+        fn test_set_and_add_update_expression() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            reset_value_id();
+            let (expression, _, _) = client
+                .update("id0")
+                .set(User::update_expression().set(User::name()).value("updated"))
+                .add(User::update_expression().add(User::age()).value(1))
+                .build_expression();
 
-        assert_eq!(
-            expression,
-            "ADD #age :value1 SET #name = :value0".to_owned()
-        );
-    }
-
+            assert_eq!(
+                expression,
+                "ADD #age :value1 SET #name = :value0".to_owned()
+            );
+        }
+    */
     #[test]
     fn test_update() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();

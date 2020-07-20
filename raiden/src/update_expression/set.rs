@@ -114,8 +114,8 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
     }
 }
 
-impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
-    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
+impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
+    fn build(self) -> SetOrRemove {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
 
@@ -128,19 +128,26 @@ impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilledWith
                 let set_attr_name = format!("#{}", set_attr);
                 let expression = format!("{} = {}", attr_name, set_attr_name);
                 names.insert(set_attr_name, set_attr);
-                (expression, names, values)
+                SetOrRemove::Set(expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
+                // See. https://github.com/raiden-rs/raiden/issues/57
+                //      https://github.com/raiden-rs/raiden/issues/58
+                if value.null.is_some() || value == AttributeValue::default() {
+                    let expression = format!("{}", attr_name);
+                    // Use remove instead of set
+                    return SetOrRemove::Remove(expression, names);
+                }
                 let expression = format!("{} = {}", attr_name, placeholder);
                 values.insert(placeholder, value);
-                (expression, names, values)
+                SetOrRemove::Set(expression, names, values)
             }
         }
     }
 }
 
-impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilled<T> {
-    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
+impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<T> {
+    fn build(self) -> SetOrRemove {
         let attr = self.target.into_attr_name();
         let attr_name = format!("#{}", attr);
 
@@ -170,12 +177,12 @@ impl<T: super::IntoAttrName> UpdateExpressionBuilder for SetExpressionFilled<T> 
                 let set_attr_name = format!("#{}", set_attr);
                 let expression = format!("{} = {} {}", attr_name, set_attr_name, op_expression);
                 names.insert(set_attr_name, set_attr);
-                (expression, names, values)
+                SetOrRemove::Set(expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
                 let expression = format!("{} = {} {}", attr_name, placeholder, op_expression);
                 values.insert(placeholder, value);
-                (expression, names, values)
+                SetOrRemove::Set(expression, names, values)
             }
         }
     }
@@ -208,29 +215,38 @@ mod tests {
     #[test]
     fn test_set_value_expression() {
         crate::value_id::reset_value_id();
-        let (expression, names, values) = Set::new(UserAttrNames::Name).value("updated!!").build();
-        let mut expected_names = std::collections::HashMap::new();
-        let mut expected_values = std::collections::HashMap::new();
-        expected_names.insert("#name".to_owned(), "name".to_owned());
-        expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
-        assert_eq!(expression, "#name = :value0".to_owned(),);
-        assert_eq!(names, expected_names);
-        assert_eq!(values, expected_values);
+        if let SetOrRemove::Set(expression, names, values) =
+            Set::new(UserAttrNames::Name).value("updated!!").build()
+        {
+            let mut expected_names = std::collections::HashMap::new();
+            let mut expected_values = std::collections::HashMap::new();
+            expected_names.insert("#name".to_owned(), "name".to_owned());
+            expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
+            assert_eq!(expression, "#name = :value0".to_owned(),);
+            assert_eq!(names, expected_names);
+            assert_eq!(values, expected_values);
+            return;
+        }
+        panic!("should not pass");
     }
 
     #[test]
     fn test_set_attr_expression_with_add_value() {
         crate::value_id::reset_value_id();
-        let (expression, names, values) = Set::new(UserAttrNames::Age)
+        if let SetOrRemove::Set(expression, names, values) = Set::new(UserAttrNames::Age)
             .attr(UserAttrNames::Age)
             .add_value(10)
-            .build();
-        let mut expected_names = std::collections::HashMap::new();
-        let mut expected_values = std::collections::HashMap::new();
-        expected_names.insert("#age".to_owned(), "age".to_owned());
-        expected_values.insert(":value0".to_owned(), 10.into_attr());
-        assert_eq!(expression, "#age = #age + :value0".to_owned(),);
-        assert_eq!(names, expected_names);
-        assert_eq!(values, expected_values);
+            .build()
+        {
+            let mut expected_names = std::collections::HashMap::new();
+            let mut expected_values = std::collections::HashMap::new();
+            expected_names.insert("#age".to_owned(), "age".to_owned());
+            expected_values.insert(":value0".to_owned(), 10.into_attr());
+            assert_eq!(expression, "#age = #age + :value0".to_owned(),);
+            assert_eq!(names, expected_names);
+            assert_eq!(values, expected_values);
+            return;
+        }
+        panic!("should not pass");
     }
 }
