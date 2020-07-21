@@ -4,8 +4,6 @@ use thiserror::Error;
 #[derive(Error, Debug, PartialEq)]
 pub enum RaidenError {
     #[error("`{0}`")]
-    ConditionCheckError(String),
-    #[error("`{0}`")]
     DataExistsError(String),
     #[error("`{0}`")]
     ConditionalCheckFailed(String),
