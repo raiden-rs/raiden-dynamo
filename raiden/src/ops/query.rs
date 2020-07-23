@@ -6,6 +6,6 @@ pub struct QueryOutput<T> {
     pub consumed_capacity: Option<crate::ConsumedCapacity>,
     pub items: Vec<T>,
     pub count: Option<i64>,
-    pub last_evaluated_key: Option<::std::collections::HashMap<String, crate::AttributeValue>>,
+    pub next_token: Option<crate::NextToken>,
     pub scanned_count: Option<i64>,
 }

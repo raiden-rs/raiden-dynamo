@@ -57,7 +57,7 @@ mod tests {
         rt.block_on(example());
     }
 
-     #[test]
+    #[test]
     fn test_rename_key_get_item() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -104,7 +104,7 @@ mod tests {
                         name: "john".to_owned(),
                         before_rename: 1999,
                     },],
-                    last_evaluated_key: None,
+                    next_token: None,
                     scanned_count: Some(1),
                 }
             )

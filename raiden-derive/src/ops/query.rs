@@ -110,12 +110,18 @@ pub(crate) fn expand_query(
                         has_next = limit - scanned > 0;
                         self.limit = Some(limit - scanned);
                     }
+
                     if res.last_evaluated_key.is_none() || !has_next {
+                        let next_token = if res.last_evaluated_key.is_some() {
+                            Some(::raiden::NextToken::from_attr(&res.last_evaluated_key.unwrap()))
+                        } else {
+                            None
+                        };
                         return Ok(::raiden::query::QueryOutput {
                             consumed_capacity: res.consumed_capacity,
                             count: res.count,
                             items,
-                            last_evaluated_key: res.last_evaluated_key,
+                            next_token,
                             scanned_count: res.scanned_count,
                         })
                     }

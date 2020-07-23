@@ -44,7 +44,7 @@ mod tests {
                             num: 2000,
                         },
                     ],
-                    last_evaluated_key: None,
+                    next_token: None,
                     scanned_count: Some(2),
                 }
             )
@@ -76,7 +76,7 @@ mod tests {
                         year: 1999,
                         num: 1000,
                     },],
-                    last_evaluated_key: None,
+                    next_token: None,
                     scanned_count: Some(1),
                 }
             )
@@ -172,6 +172,40 @@ mod tests {
                 .run()
                 .await;
             assert_eq!(res.unwrap().items.len(), 10);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_query_over_limit_with_next_token() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = Test::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
+            let res = client
+                .query()
+                .index("testGSI")
+                .limit(9)
+                .key_condition(cond)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 9);
+            assert!(res.next_token.is_some());
+            let cond = Test::key_condition(Test::ref_id()).eq("id0");
+            let res = client
+                .query()
+                .index("testGSI")
+                .limit(10)
+                .next_token(res.next_token.unwrap())
+                .key_condition(cond)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 1);
         }
         rt.block_on(example());
     }
