@@ -26,13 +26,11 @@ mod tests {
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
-                .build()
-                .unwrap();
+                .build();
             let input2 = User::put_item_builder()
                 .id("testId2".to_owned())
                 .name("bokuweb".to_owned())
-                .build()
-                .unwrap();
+                .build();
             assert_eq!(
                 tx.put(User::put(input).condition(cond))
                     .put(User::put(input2))
@@ -56,8 +54,7 @@ mod tests {
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
-                .build()
-                .unwrap();
+                .build();
             let set_expression = User::update_expression()
                 .set(User::name())
                 .value("updated!!");
@@ -83,8 +80,7 @@ mod tests {
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
-                .build()
-                .unwrap();
+                .build();
             assert_eq!(
                 tx.put(
                     User::put(input)

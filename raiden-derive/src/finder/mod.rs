@@ -110,3 +110,15 @@ pub(crate) fn find_sort_key_field(fields: &syn::FieldsNamed) -> Option<syn::Fiel
     }
     fields.get(0).cloned()
 }
+
+pub(crate) fn is_option(ty: &syn::Type) -> bool {
+    match ty {
+        syn::Type::Path(syn::TypePath {
+            path: syn::Path { segments, .. },
+            ..
+        }) => {
+            segments.iter().any(|s| s.ident == "Option")
+        }
+        _ => false,
+    }
+}

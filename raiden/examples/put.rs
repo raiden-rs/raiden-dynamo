@@ -44,8 +44,7 @@ fn main() {
         let input = User::put_item_builder()
             .id("testId".to_owned())
             .name("bokuweb".to_owned())
-            .build()
-            .unwrap();
+            .build();
         let res = client.put(input).run().await;
         dbg!(res);
     }
