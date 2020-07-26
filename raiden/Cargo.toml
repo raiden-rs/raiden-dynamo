@@ -26,7 +26,7 @@ safe-builder = { tag = "0.0.3", git = "https://github.com/raiden-rs/safe-builder
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
-insta = "0.13"
+insta = "0.16"
 tokio = "0.2"
 
 [features]
