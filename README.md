@@ -49,8 +49,7 @@ fn main() {
         let input = User::put_item_builder()
             .id("mock_id".to_owned())
             .name("bokuweb".to_owned())
-            .build()
-            .unwrap();
+            .build();
         let res = client.put(&input).run().await;
     }
     rt.block_on(example());

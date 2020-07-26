@@ -1,5 +1,6 @@
 use crate::rename::*;
 use quote::*;
+use syn::*;
 
 pub(crate) fn expand_put_item(
     _partition_key: &proc_macro2::Ident,
@@ -86,17 +87,26 @@ pub(crate) fn expand_put_item(
         }
     };
 
-    quote! {
-        impl #struct_name {
-            pub fn put_item_builder() -> #item_input_builder_name {
-                #item_input_builder_name::default()
-            }
-        }
+    // Create default type variables for PutItemBuilder, i.e. XXXPutItemBuilder<(), (), ()>
+    let required_field_idents: Vec<Ident> = fields
+        .named
+        .iter()
+        .filter(|f| !crate::finder::include_unary_attr(&f.attrs, "uuid"))
+        .filter(|f| !crate::finder::is_option(&f.ty))
+        .map(|f| f.ident.clone().unwrap())
+        .collect();
+    let default_types = expand_default_type_variables(&required_field_idents);
 
+    quote! {
         #[derive(Debug, Clone, PartialEq, Builder)]
-        #[builder(setter(into))]
         pub struct #item_input_name {
             #(#input_fields)*
+        }
+
+        impl #struct_name {
+            pub fn put_item_builder() -> #item_input_builder_name<#(#default_types)*> {
+                #item_input_name::builder()
+            }
         }
 
         #[derive(Debug, Clone, PartialEq)]
@@ -231,3 +241,12 @@ pub struct PutItemInput {
 }
 
 */
+
+#[allow(clippy::ptr_arg)]
+fn expand_default_type_variables(
+    idents: &Vec<Ident>,
+) -> impl Iterator<Item = proc_macro2::TokenStream> {
+    idents.clone().into_iter().map(|_ident| {
+        quote! { (), }
+    })
+}

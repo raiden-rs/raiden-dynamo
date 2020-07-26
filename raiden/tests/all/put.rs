@@ -99,8 +99,7 @@ mod tests {
             let user = User::put_item_builder()
                 .id("mock_id".to_owned())
                 .name("bokuweb".to_owned())
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(user).run().await;
             dbg!(res);
         }
@@ -209,9 +208,8 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let item = UserWithUuid::put_item_builder()
-                .name("bokuweb")
-                .build()
-                .unwrap();
+                .name("bokuweb".to_owned())
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -238,10 +236,9 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let item = UserVecTest::put_item_builder()
-                .name("bokuweb")
+                .name("bokuweb".to_owned())
                 .nums(vec![0, 1, 2])
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -271,10 +268,9 @@ mod tests {
             nums.insert(1);
 
             let item = UserSetTest::put_item_builder()
-                .name("bokuweb")
+                .name("bokuweb".to_owned())
                 .nums(nums)
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -319,10 +315,9 @@ mod tests {
             nums.insert(1);
 
             let item = UserSetTest::put_item_builder()
-                .name("bokuweb")
+                .name("bokuweb".to_owned())
                 .nums(nums)
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -349,10 +344,7 @@ mod tests {
             });
             let set: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-            let item = UserEmptySetTest::put_item_builder()
-                .set(set)
-                .build()
-                .unwrap();
+            let item = UserEmptySetTest::put_item_builder().set(set).build();
             let res = client.put(item).run().await;
             dbg!(&res);
             assert_eq!(res.is_ok(), true);
@@ -378,8 +370,7 @@ mod tests {
             });
             let item = EmptyStringTestData0::put_item_builder()
                 .name("".to_owned())
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
         }
@@ -404,10 +395,9 @@ mod tests {
             let set: std::collections::HashSet<String> = std::collections::HashSet::new();
             let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
             let item = EmptyPutTestData0::put_item_builder()
-                .id("testid")
+                .id("testid".to_owned())
                 .sset(set)
-                .build()
-                .unwrap();
+                .build();
             let res = client.put(item).run().await;
             assert_eq!(res.is_ok(), true);
             let res = client.get(res.unwrap().item.id).run().await;

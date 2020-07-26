@@ -238,13 +238,3 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 //         _ => return None,
 //     };
 // }
-
-fn is_option(ty: &Type) -> bool {
-    match ty {
-        Type::Path(syn::TypePath {
-            path: syn::Path { segments, .. },
-            ..
-        }) if segments[0].ident == "Option" => true,
-        _ => false,
-    }
-}

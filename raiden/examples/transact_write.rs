@@ -19,13 +19,11 @@ fn main() {
         let input = User::put_item_builder()
             .id("testId".to_owned())
             .name("bokuweb".to_owned())
-            .build()
-            .unwrap();
+            .build();
         let input2 = User::put_item_builder()
             .id("testId2".to_owned())
             .name("bokuweb".to_owned())
-            .build()
-            .unwrap();
+            .build();
         tx.put(User::put(input).condition(cond))
             .put(User::put(input2))
             .run()

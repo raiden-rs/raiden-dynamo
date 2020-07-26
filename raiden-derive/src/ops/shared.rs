@@ -15,7 +15,7 @@ pub(crate) fn expand_attr_to_item(
         } else {
             ident.to_string()
         };
-        if crate::is_option(&f.ty) {
+        if crate::finder::is_option(&f.ty) {
             quote! {
               #ident: {
                 let item = #item_ident.get(#attr_key);
