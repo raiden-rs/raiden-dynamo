@@ -971,7 +971,7 @@ dependencies = [
  "rusoto_credential",
  "rusoto_dynamodb",
  "rust-crypto",
- "safe-builder 0.1.0 (git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.4)",
+ "safe-builder 0.1.0 (git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.5)",
  "serde",
  "serde_derive",
  "serde_json",
@@ -1311,9 +1311,9 @@ dependencies = [
 [[package]]
 name = "safe-builder"
 version = "0.1.0"
-source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.4#6dd85b5f16a2ff072d4dad1600dd2822216764c2"
+source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.5#619e8b52bda18e0b9fd1e7584b4b477bc31fb8bb"
 dependencies = [
- "safe-builder-derive 0.1.0 (git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.4)",
+ "safe-builder-derive 0.1.0 (git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.5)",
 ]
 
 [[package]]
@@ -1331,7 +1331,7 @@ dependencies = [
 [[package]]
 name = "safe-builder-derive"
 version = "0.1.0"
-source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.4#6dd85b5f16a2ff072d4dad1600dd2822216764c2"
+source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.5#619e8b52bda18e0b9fd1e7584b4b477bc31fb8bb"
 dependencies = [
  "convert_case",
  "proc-macro2",
