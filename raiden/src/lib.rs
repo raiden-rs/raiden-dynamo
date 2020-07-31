@@ -10,12 +10,14 @@ pub mod ops;
 pub mod types;
 pub mod update_expression;
 pub mod value_id;
+pub mod retry;
 
 pub use condition::*;
 pub use errors::*;
 pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
+pub use retry::*;
 
 pub use id_generator::*;
 pub use raiden_derive::*;
