@@ -142,6 +142,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
             )*
             table_prefix: String,
             table_suffix: String,
+            retry_condition: ::raiden::RetryCondition,
         }
 
         #attr_names
@@ -174,7 +175,13 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
                     table_prefix: "".to_owned(),
                     table_suffix: "".to_owned(),
                     client,
+                    retry_condition: ::raiden::RetryCondition::new(),
                 }
+            }
+
+            pub fn with_retries(mut self, s: Box<dyn ::raiden::retry::RetryStrategy>) -> Self {
+                self.retry_condition.strategy = s;
+                self
             }
 
             pub fn table_prefix(mut self, prefix: impl Into<String>) -> Self {

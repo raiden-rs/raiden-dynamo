@@ -36,8 +36,8 @@ pub(crate) fn expand_get_item(
                     #builder_name {
                         client: &self.client,
                         input,
-                        policy: ::raiden::Policy::default(),
-                        condition: ::raiden::DefaultRetryCondition,
+                        policy: self.retry_condition.strategy.policy(),
+                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -62,8 +62,8 @@ pub(crate) fn expand_get_item(
                     #builder_name {
                         client: &self.client,
                         input,
-                        policy: ::raiden::Policy::default(),
-                        condition: ::raiden::DefaultRetryCondition,
+                        policy: self.retry_condition.strategy.policy(),
+                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -76,8 +76,8 @@ pub(crate) fn expand_get_item(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::GetItemInput,
-            policy: ::raiden::Policy,
-            condition: ::raiden::DefaultRetryCondition,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
