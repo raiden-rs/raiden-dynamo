@@ -37,7 +37,7 @@ pub(crate) fn expand_get_item(
                         client: &self.client,
                         input,
                         policy: ::raiden::Policy::default(),
-                        condition: ::raiden::RetryCondition,
+                        condition: ::raiden::DefaultRetryCondition,
                     }
                 }
             }
@@ -63,7 +63,7 @@ pub(crate) fn expand_get_item(
                         client: &self.client,
                         input,
                         policy: ::raiden::Policy::default(),
-                        condition: ::raiden::RetryCondition,
+                        condition: ::raiden::DefaultRetryCondition,
                     }
                 }
             }
@@ -77,7 +77,7 @@ pub(crate) fn expand_get_item(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::GetItemInput,
             policy: ::raiden::Policy,
-            condition: ::raiden::RetryCondition,
+            condition: ::raiden::DefaultRetryCondition,
         }
 
         impl<'a> #builder_name<'a> {

@@ -33,9 +33,9 @@ impl Into<RetryPolicy> for Policy {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-pub struct RetryCondition;
+pub struct DefaultRetryCondition;
 
-impl Condition<super::RaidenError> for RetryCondition {
+impl Condition<super::RaidenError> for DefaultRetryCondition {
     fn is_retryable(&mut self, error: &RaidenError) -> bool {
         matches!(error, RaidenError::InternalServerError(_) | RaidenError::ProvisionedThroughputExceeded(_) | RaidenError::RequestLimitExceeded(_))
     }
