@@ -36,8 +36,6 @@ pub(crate) fn expand_get_item(
                     #builder_name {
                         client: &self.client,
                         input,
-                        policy: self.retry_condition.strategy.policy(),
-                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -62,8 +60,6 @@ pub(crate) fn expand_get_item(
                     #builder_name {
                         client: &self.client,
                         input,
-                        policy: self.retry_condition.strategy.policy(),
-                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -76,8 +72,6 @@ pub(crate) fn expand_get_item(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::GetItemInput,
-            pub policy: ::raiden::Policy,
-            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
@@ -87,31 +81,18 @@ pub(crate) fn expand_get_item(
             }
 
             async fn run(self) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
-                let policy: ::raiden::RetryPolicy = self.policy.into();
-                let client = self.client;
-                let input = self.input;
-                policy.retry_if(move || {
-                    let client = client.clone();
-                    let input = input.clone();
-                    async {
-                        #builder_name::inner_run(client, input).await
-                    }
-                }, self.condition).await
-            }
-
-            async fn inner_run(client: ::raiden::DynamoDbClient, input: ::raiden::GetItemInput) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
-                let res = client.get_item(input).await?;
-                if res.item.is_none() {
-                    return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
-                };
-                let res_item = &res.item.unwrap();
-                let item = #struct_name {
+                 let res = self.client.get_item(self.input).await?;
+                 if res.item.is_none() {
+                     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
+                 };
+                 let res_item = &res.item.unwrap();
+                 let item = #struct_name {
                     #(#from_item)*
-                };
-                Ok(::raiden::get::GetOutput {
-                    item,
-                    consumed_capacity: res.consumed_capacity,
-                })
+                 };
+                 Ok(::raiden::get::GetOutput {
+                     item,
+                     consumed_capacity: res.consumed_capacity,
+                 })
             }
         }
     }

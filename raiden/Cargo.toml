@@ -6,6 +6,7 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+
 [dependencies]
 raiden-derive = { version = "*", path = "../raiden-derive" }
 rusoto_credential = "0.44"
@@ -22,9 +23,6 @@ serde_derive = "^1"
 base64 = "^0.12"
 thiserror = "^1"
 safe-builder = { tag = "0.0.5", git = "https://github.com/raiden-rs/safe-builder.git" }
-again = "0.1"
-log = "0.4"
-pretty_env_logger = "0.4"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
