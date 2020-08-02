@@ -358,4 +358,25 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[test]
+    fn test_update_to_empty_string() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let set_name_expression = User::update_expression().set(User::name()).value("");
+            let res = client
+                .update("id0")
+                .set(set_name_expression)
+                .return_all_new()
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.item.unwrap().name, "".to_owned(),);
+        }
+        rt.block_on(example());
+    }
 }
