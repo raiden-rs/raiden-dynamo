@@ -44,8 +44,6 @@ pub(crate) fn expand_update_item(
                         add_items: vec![],
                         remove_items: vec![],
                         delete_items: vec![],
-                        policy: self.retry_condition.strategy.policy(),
-                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -74,8 +72,6 @@ pub(crate) fn expand_update_item(
                         add_items: vec![],
                         remove_items: vec![],
                         delete_items: vec![],
-                        policy: self.retry_condition.strategy.policy(),
-                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -119,8 +115,6 @@ pub(crate) fn expand_update_item(
             pub set_items: Vec<::raiden::update_expression::SetOrRemove>,
             pub remove_items: Vec<#attr_enum_name>,
             pub delete_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
-            pub policy: ::raiden::Policy,
-            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
@@ -277,17 +271,7 @@ pub(crate) fn expand_update_item(
                 }
 
                 let has_return_values = self.input.return_values.is_some();
-
-                let policy: ::raiden::RetryPolicy = self.policy.into();
-                let client = self.client;
-                let input = self.input;
-                let res = policy.retry_if(move || {
-                    let client = client.clone();
-                    let input = input.clone();
-                    async {
-                        #builder_name::inner_run(client, input).await
-                    }
-                }, self.condition).await?;
+                let res = self.client.update_item(self.input).await?;
 
                 let item = if has_return_values {
                     let res_item = &res.attributes.unwrap();
@@ -303,11 +287,6 @@ pub(crate) fn expand_update_item(
                     consumed_capacity: res.consumed_capacity,
                     item_collection_metrics: res.item_collection_metrics,
                 })
-            }
-
-            async fn inner_run(client: ::raiden::DynamoDbClient, input: ::raiden::UpdateItemInput) -> Result<::raiden::UpdateItemOutput, ::raiden::RaidenError> {
-                let res = client.update_item(input).await?;
-                Ok(res)
             }
         }
     }
