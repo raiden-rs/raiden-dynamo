@@ -179,7 +179,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub fn with_retries(mut self, s: Box<dyn ::raiden::retry::RetryStrategy>) -> Self {
+            pub fn with_retries(mut self, s: Box<dyn ::raiden::retry::RetryStrategy + Send + Sync>) -> Self {
                 self.retry_condition.strategy = s;
                 self
             }

@@ -37,7 +37,7 @@ impl Into<RetryPolicy> for Policy {
 
 pub struct RetryCondition {
     pub count: std::sync::Arc<AtomicUsize>,
-    pub strategy: Box<dyn RetryStrategy>,
+    pub strategy: Box<dyn RetryStrategy + Send + Sync>,
 }
 
 impl RetryCondition {
