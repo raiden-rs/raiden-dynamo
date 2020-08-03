@@ -376,8 +376,8 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let _ = client
-                .with_retries(Box::new(MyRetryStrategy))
-                .get("anonymous")
+            .with_retries(Box::new(MyRetryStrategy))
+            .get("anonymous")
                 .run()
                 .await;
         }
