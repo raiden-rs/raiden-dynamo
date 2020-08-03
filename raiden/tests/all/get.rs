@@ -376,8 +376,8 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let _ = client
-            .with_retries(Box::new(MyRetryStrategy))
-            .get("anonymous")
+                .with_retries(Box::new(MyRetryStrategy))
+                .get("anonymous")
                 .run()
                 .await;
         }
@@ -389,20 +389,13 @@ mod tests {
     fn test_should_build_with_twice_retry() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let mut client = User::client(Region::Custom {
+            let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
-            });
-            let _ = client
-                .with_retries(Box::new(MyRetryStrategy))
-                .get("anonymous")
-                .run()
-                .await;
-            let _ = client
-                .with_retries(Box::new(MyRetryStrategy))
-                .get("anonymous")
-                .run()
-                .await;
+            })
+            .with_retries(Box::new(MyRetryStrategy));
+            let _ = client.get("anonymous").run().await;
+            let _ = client.get("anonymous").run().await;
         }
         rt.block_on(example());
     }

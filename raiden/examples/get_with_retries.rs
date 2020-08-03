@@ -34,12 +34,6 @@ fn main() {
             .get("anonymous")
             .run()
             .await;
-
-        let _ = client
-            .with_retries(Box::new(MyRetryStrategy))
-            .get("anonymous")
-            .run()
-            .await;
     }
     rt.block_on(example());
 }
