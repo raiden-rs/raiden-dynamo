@@ -95,4 +95,45 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static RETRY_COUNT: AtomicUsize = AtomicUsize::new(1);
+    struct MyRetryStrategy;
+
+    impl RetryStrategy for MyRetryStrategy {
+        fn should_retry(&self, _error: &RaidenError, retry_count: usize) -> bool {
+            RETRY_COUNT.store(retry_count, Ordering::Relaxed);
+            true
+        }
+
+        fn policy(&self) -> Policy {
+            Policy::Limit(3)
+        }
+    }
+
+    #[test]
+    fn test_retry() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let tx = ::raiden::WriteTx::new(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let input = User::put_item_builder()
+                .id("testId".to_owned())
+                .name("bokuweb".to_owned())
+                .build();
+            assert_eq!(
+                tx.with_retries(Box::new(MyRetryStrategy))
+                    .put(User::put(input).table_prefix("unknown"))
+                    .run()
+                    .await
+                    .is_err(),
+                true,
+            )
+        }
+        rt.block_on(example());
+        assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 3)
+    }
 }
