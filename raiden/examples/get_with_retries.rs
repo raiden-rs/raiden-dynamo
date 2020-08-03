@@ -25,10 +25,16 @@ fn main() {
     pretty_env_logger::init();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
-        let client = User::client(Region::Custom {
+        let mut client = User::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
+        let _ = client
+            .with_retries(Box::new(MyRetryStrategy))
+            .get("anonymous")
+            .run()
+            .await;
+
         let _ = client
             .with_retries(Box::new(MyRetryStrategy))
             .get("anonymous")

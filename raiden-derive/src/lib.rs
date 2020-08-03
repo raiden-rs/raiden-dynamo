@@ -179,17 +179,17 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
                 }
             }
 
-            pub fn with_retries(mut self, s: Box<dyn ::raiden::retry::RetryStrategy + Send + Sync>) -> Self {
+            pub fn with_retries(&mut self, s: Box<dyn ::raiden::retry::RetryStrategy + Send + Sync>) -> &mut Self {
                 self.retry_condition.strategy = s;
                 self
             }
 
-            pub fn table_prefix(mut self, prefix: impl Into<String>) -> Self {
+            pub fn table_prefix(&mut self, prefix: impl Into<String>) -> &mut Self {
                 self.table_prefix = prefix.into();
                 self
             }
 
-            pub fn table_suffix(mut self, suffix: impl Into<String>) -> Self {
+            pub fn table_suffix(&mut self, suffix: impl Into<String>) -> &mut Self {
                 self.table_suffix = suffix.into();
                 self
             }

@@ -351,4 +351,59 @@ mod tests {
         rt.block_on(example());
     }
 
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    static RETRY_COUNT: AtomicUsize = AtomicUsize::new(1);
+    struct MyRetryStrategy;
+
+    impl RetryStrategy for MyRetryStrategy {
+        fn should_retry(&self, _error: &RaidenError, retry_count: usize) -> bool {
+            RETRY_COUNT.store(retry_count, Ordering::Relaxed);
+            true
+        }
+
+        fn policy(&self) -> Policy {
+            Policy::Limit(3)
+        }
+    }
+
+    #[test]
+    fn test_retry() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let mut client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let _ = client
+                .with_retries(Box::new(MyRetryStrategy))
+                .get("anonymous")
+                .run()
+                .await;
+        }
+        rt.block_on(example());
+        assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 3)
+    }
+
+    #[test]
+    fn test_should_build_with_twice_retry() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let mut client = User::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let _ = client
+                .with_retries(Box::new(MyRetryStrategy))
+                .get("anonymous")
+                .run()
+                .await;
+            let _ = client
+                .with_retries(Box::new(MyRetryStrategy))
+                .get("anonymous")
+                .run()
+                .await;
+        }
+        rt.block_on(example());
+    }
 }

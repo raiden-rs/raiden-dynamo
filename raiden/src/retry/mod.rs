@@ -14,7 +14,7 @@ pub enum Policy {
 
 impl Default for Policy {
     fn default() -> Self {
-        Policy::Exponential(5, Duration::from_millis(100))
+        Policy::Exponential(5, Duration::from_millis(20))
     }
 }
 
