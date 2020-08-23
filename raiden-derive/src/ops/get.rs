@@ -28,6 +28,8 @@ pub(crate) fn expand_get_item(
                     let mut input = ::raiden::GetItemInput::default();
                     let pk_attr: AttributeValue = pk.into_attr();
                     let sk_attr: AttributeValue = sk.into_attr();
+                    input.projection_expression = self.projection_expression.clone();
+                    input.expression_attribute_names = self.attribute_names.clone();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
                     key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
@@ -54,6 +56,8 @@ pub(crate) fn expand_get_item(
                     where K: ::raiden::IntoAttribute + std::marker::Send
                 {
                     let mut input = ::raiden::GetItemInput::default();
+                    input.projection_expression = self.projection_expression.clone();
+                    input.expression_attribute_names = self.attribute_names.clone();
                     let key_attr: AttributeValue = key.into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
