@@ -12,6 +12,7 @@ mod rename;
 mod sort_key;
 
 use std::str::FromStr;
+use crate::rename::*;
 
 #[proc_macro_derive(Raiden, attributes(raiden))]
 pub fn derive_raiden(input: TokenStream) -> TokenStream {
@@ -134,6 +135,18 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         &table_name,
     );
 
+    let insertion_attribute_name = fields.named.iter().map(|f| {
+        let ident = &f.ident.clone().unwrap();
+        let renamed = crate::finder::find_rename_value(&f.attrs);
+        let result = create_renamed(ident.to_string(), renamed, rename_all_type);
+        quote! {
+            names.insert(
+                format!("#{}", #result.clone()),
+                #result.to_string(),
+            );
+        }
+    });
+
     let expanded = quote! {
 
         pub struct #client_name {
@@ -143,6 +156,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
             table_prefix: String,
             table_suffix: String,
             retry_condition: ::raiden::RetryCondition,
+            attribute_names: Option<::raiden::AttributeNames>,
+            projection_expression: Option<String>
         }
 
         #attr_names
@@ -170,12 +185,21 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         impl #client_name {
             pub fn new(region: ::raiden::Region) -> Self {
                 let client = DynamoDbClient::new(region);
+                let names = {
+                    let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
+                    #(#insertion_attribute_name)*
+                    names
+                };
+                let projection_expression = Some(names.keys().map(|v| v.to_string()).collect::<Vec<String>>().join(", "));
+
                 Self {
                     table_name: #table_name,
                     table_prefix: "".to_owned(),
                     table_suffix: "".to_owned(),
                     client,
                     retry_condition: ::raiden::RetryCondition::new(),
+                    attribute_names: Some(names),
+                    projection_expression
                 }
             }
 
