@@ -399,4 +399,39 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct PartialUser {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        num_usize: usize,
+    }
+
+    #[test]
+    fn test_user_get_item_for_projection_expression() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = PartialUser::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client.get("user_primary_key").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: PartialUser {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        num_usize: 42,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }
