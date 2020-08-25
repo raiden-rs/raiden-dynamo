@@ -7,10 +7,10 @@ pub mod id_generator;
 pub mod key_condition;
 pub mod next_token;
 pub mod ops;
+pub mod retry;
 pub mod types;
 pub mod update_expression;
 pub mod value_id;
-pub mod retry;
 
 pub use condition::*;
 pub use errors::*;
@@ -100,13 +100,8 @@ pub trait FromStringSetItem: Sized {
 
 impl IntoAttribute for String {
     fn into_attr(self: Self) -> AttributeValue {
-        if self == "" {
-            // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
-            return AttributeValue {
-                null: Some(true),
-                ..Default::default()
-            };
-        }
+        // Empty String is allowed since 2020/5
+        // https://aws.amazon.com/jp/about-aws/whats-new/2020/05/amazon-dynamodb-now-supports-empty-values-for-non-key-string-and-binary-attributes-in-dynamodb-tables/
         AttributeValue {
             s: Some(self),
             ..AttributeValue::default()
