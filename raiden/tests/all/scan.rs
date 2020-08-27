@@ -152,4 +152,41 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "ScanTestData0")]
+    pub struct ScanTestData0a {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+    }
+
+    #[test]
+    fn test_scan_for_projection_expression() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = ScanTestData0a::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.scan().run().await;
+
+            assert_eq!(
+                res.unwrap(),
+                scan::ScanOutput {
+                    consumed_capacity: None,
+                    count: Some(1),
+                    items: vec![
+                        ScanTestData0a {
+                            id: "scanId0".to_owned(),
+                            name: "scanAlice".to_owned(),
+                        }
+                    ],
+                    last_evaluated_key: None,
+                    scanned_count: Some(1),
+                }
+            )
+        }
+        rt.block_on(example());
+    }
 }

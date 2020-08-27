@@ -203,6 +203,66 @@ mod tests {
         rt.block_on(example());
     }
 
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "BatchTest1")]
+    pub struct BatchTest1a {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        #[raiden(sort_key)]
+        year: usize,
+    }
+
+    #[test]
+    fn test_batch_get_item_for_projection_expression() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = BatchTest1a::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let keys: Vec<(String, i32)> = (0..250)
+                .into_iter()
+                .map(|n| (format!("id{}", n), 2000 + n))
+                .collect();
+            let expected_items = (0..250)
+                .map(|n| BatchTest1a {
+                    id: format!("id{}", n),
+                    name: "bob".to_owned(),
+                    year: 2000 + n,
+                })
+                .collect();
+
+            let mut res: batch_get::BatchGetOutput<BatchTest1a> = client
+                .batch_get(keys)
+                .run()
+                .await
+                .unwrap();
+            res.items.sort_by_key(|i| {
+                let mut id = i.id.to_string();
+                id.replace_range(0..2, "");
+                id.parse::<i32>().unwrap()
+            });
+
+            assert_eq!(
+                res,
+                batch_get::BatchGetOutput {
+                    items: expected_items,
+                    consumed_capacity: None,
+                    unprocessed_keys: Some(KeysAndAttributes {
+                        attributes_to_get: None,
+                        consistent_read: None,
+                        expression_attribute_names: None,
+                        keys: vec![],
+                        projection_expression: None,
+                    }),
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
     #[test]
     fn test_batch_get_item_missing_all() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
