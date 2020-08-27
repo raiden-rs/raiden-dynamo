@@ -27,6 +27,8 @@ pub(crate) fn expand_scan(
             fn scan(&self) -> #builder_name {
                 let mut input = ::raiden::ScanInput::default();
                 input.table_name = self.table_name();
+                input.projection_expression = self.projection_expression.clone();
+                input.expression_attribute_names = self.attribute_names.clone();
                 #builder_name {
                     client: &self.client,
                     input,
