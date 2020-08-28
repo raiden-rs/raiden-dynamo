@@ -240,4 +240,48 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "QueryTestData0")]
+    pub struct QueryTestData0a {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        year: usize
+    }
+    #[test]
+    fn test_query_for_projection_expression() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = QueryTestData0a::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let cond = QueryTestData0a::key_condition(QueryTestData0a::id()).eq("id0");
+            let res = client.query().key_condition(cond).run().await;
+
+            assert_eq!(
+                res.unwrap(),
+                query::QueryOutput {
+                    consumed_capacity: None,
+                    count: Some(2),
+                    items: vec![
+                        QueryTestData0a {
+                            id: "id0".to_owned(),
+                            name: "john".to_owned(),
+                            year: 1999,
+                        },
+                        QueryTestData0a {
+                            id: "id0".to_owned(),
+                            name: "john".to_owned(),
+                            year: 2000,
+                        },
+                    ],
+                    next_token: None,
+                    scanned_count: Some(2),
+                }
+            )
+        }
+        rt.block_on(example());
+    }
 }

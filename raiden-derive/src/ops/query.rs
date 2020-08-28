@@ -30,6 +30,8 @@ pub(crate) fn expand_query(
                 let mut input = ::raiden::QueryInput::default();
                 // input.filter_expression = Some("num < :value1".to_owned());
                 input.table_name = self.table_name();
+                input.projection_expression = self.projection_expression.clone();
+                input.expression_attribute_names = self.attribute_names.clone();
                 #builder_name {
                     client: &self.client,
                     input,
@@ -72,9 +74,6 @@ pub(crate) fn expand_query(
 
             fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<#key_condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
-                if !attr_names.is_empty() {
-                    self.input.expression_attribute_names = Some(attr_names);
-                }
                 if !attr_values.is_empty() {
                     self.input.expression_attribute_values = Some(attr_values);
                 }

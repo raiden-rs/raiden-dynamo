@@ -1,4 +1,5 @@
 use quote::*;
+use crate::rename::*;
 
 pub(crate) fn expand_batch_get(
     partition_key: &proc_macro2::Ident,
@@ -18,11 +19,32 @@ pub(crate) fn expand_batch_get(
         quote! { std::vec::Vec<(::raiden::AttributeValue, ::raiden::AttributeValue)> }
     };
 
+    let insertion_attribute_name = fields.named.iter().map(|f| {
+        let ident = &f.ident.clone().unwrap();
+        let renamed = crate::finder::find_rename_value(&f.attrs);
+        let result = create_renamed(ident.to_string(), renamed, rename_all_type);
+        quote! {
+            names.insert(
+                format!("#{}", #result.clone()),
+                #result.to_string(),
+            );
+        }
+    });
+
     let builder_init = quote! {
+        let names = {
+            let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
+            #(#insertion_attribute_name)*
+            names
+        };
+        let projection_expression = Some(names.keys().map(|v| v.to_string()).collect::<Vec<String>>().join(", "));
+
         #builder_name {
             client: &self.client,
             table_name: self.table_name(),
             keys: key_attrs,
+            attribute_names: Some(names),
+            projection_expression
         }
     };
 
@@ -96,6 +118,8 @@ pub(crate) fn expand_batch_get(
             pub client: &'a ::raiden::DynamoDbClient,
             pub table_name: String,
             pub keys: #builder_keys_type,
+            pub attribute_names: Option<::raiden::AttributeNames>,
+            pub projection_expression: Option<String>
         }
 
         impl<'a> #builder_name<'a> {
@@ -108,6 +132,8 @@ pub(crate) fn expand_batch_get(
 
                     let mut item = ::raiden::KeysAndAttributes::default();
                     item.keys = Default::default();
+                    item.expression_attribute_names = self.attribute_names.clone();
+                    item.projection_expression = self.projection_expression.clone();
 
                     let keys = self.keys.drain(0..std::cmp::min(100, self.keys.len()));
                     #convert_to_external_proc
