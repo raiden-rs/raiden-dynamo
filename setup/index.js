@@ -470,4 +470,16 @@ const put = (params) =>
     AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
     ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
   });
+
+  await createTable({
+    TableName: 'ReservedTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'ReservedTestData0',
+    Item: { id: { S: 'id0' }, type: { S: 'reserved' } },
+  });
 })();

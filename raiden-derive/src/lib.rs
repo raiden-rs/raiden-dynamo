@@ -9,6 +9,7 @@ mod finder;
 mod key_condition;
 mod ops;
 mod rename;
+mod helpers;
 mod sort_key;
 
 use std::str::FromStr;
