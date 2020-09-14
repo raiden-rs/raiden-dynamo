@@ -20,7 +20,12 @@ pub fn expand_attr_names(
         let name = if let Some(renamed) = renamed {
             renamed.to_case(Case::Pascal)
         } else {
-            ident.to_string().to_case(Case::Pascal)
+            let s = ident.to_string();
+            if s.starts_with("r#") {
+                s[2..].to_owned().to_case(Case::Pascal)
+            } else {
+                s.to_case(Case::Pascal)
+            }
         };
         let name = format_ident!("{}", name);
         quote! {
@@ -32,7 +37,14 @@ pub fn expand_attr_names(
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
-        let attr_name = basename.to_string();
+
+        let basename = if basename.starts_with("r#") {
+            basename[2..].to_owned()
+        } else {
+            basename
+        };
+
+        let attr_name = basename.clone();
         let name = basename.to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {

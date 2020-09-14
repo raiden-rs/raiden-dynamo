@@ -434,4 +434,37 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "ReservedTestData0")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct Reserved {
+        #[raiden(partition_key)]
+        id: String,
+        #[raiden(rename = "type")]
+        r#type: String,
+    }
+
+    #[test]
+    fn test_rename_with_reserved() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = Reserved::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: Reserved {
+                        id: "id0".to_owned(),
+                        r#type: "reserved".to_owned(),
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }
