@@ -12,7 +12,7 @@ pub struct Reserved {
 fn main() {
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
-        let mut client = User::client(Region::Custom {
+        let client = Reserved::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });

@@ -44,7 +44,12 @@ pub fn expand_attr_names(
         let ident = &f.ident.clone().unwrap();
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
-        let func_name = format_ident!("{}", basename.to_case(Case::Snake));
+        let func_name = basename.to_case(Case::Snake);
+        let func_name = if crate::helpers::is_reserved(&func_name) {
+            format_ident!("r#{}", func_name)
+        } else {
+            format_ident!("{}", func_name)
+        };
         let name = basename.to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {
