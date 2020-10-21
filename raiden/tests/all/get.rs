@@ -235,7 +235,7 @@ mod tests {
     pub struct CustomSSItem(String);
 
     impl raiden::IntoStringSetItem for CustomSSItem {
-        fn into_ss_item(self: Self) -> String {
+        fn into_ss_item(self) -> String {
             "test".to_owned()
         }
     }
