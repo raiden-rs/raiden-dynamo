@@ -87,7 +87,7 @@ pub trait ToAttrMaps: Sized {
 }
 
 pub trait IntoAttribute: Sized {
-    fn into_attr(self: Self) -> AttributeValue;
+    fn into_attr(self) -> AttributeValue;
 }
 
 pub trait FromAttribute: Sized {
@@ -99,7 +99,7 @@ pub trait FromStringSetItem: Sized {
 }
 
 impl IntoAttribute for String {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         // Empty String is allowed since 2020/5
         // https://aws.amazon.com/jp/about-aws/whats-new/2020/05/amazon-dynamodb-now-supports-empty-values-for-non-key-string-and-binary-attributes-in-dynamodb-tables/
         AttributeValue {
@@ -124,7 +124,7 @@ impl FromAttribute for String {
 }
 
 impl IntoAttribute for &'_ str {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         if self == "" {
             // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
             return AttributeValue {
@@ -140,7 +140,7 @@ impl IntoAttribute for &'_ str {
 }
 
 impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         let s = match self {
             std::borrow::Cow::Owned(o) => o,
             std::borrow::Cow::Borrowed(b) => b.to_owned(),
@@ -179,7 +179,7 @@ impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
 macro_rules! default_attr_for_num {
     ($to: ty) => {
         impl IntoAttribute for $to {
-            fn into_attr(self: Self) -> AttributeValue {
+            fn into_attr(self) -> AttributeValue {
                 AttributeValue {
                     n: Some(format!("{}", self)),
                     ..AttributeValue::default()
@@ -214,7 +214,7 @@ default_attr_for_num!(i16);
 default_attr_for_num!(i8);
 
 impl<T: IntoAttribute> IntoAttribute for Option<T> {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         match self {
             Some(value) => value.into_attr(),
             _ => AttributeValue {
@@ -239,7 +239,7 @@ impl<T: FromAttribute> FromAttribute for Option<T> {
 }
 
 impl IntoAttribute for bool {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         AttributeValue {
             bool: Some(self),
             ..AttributeValue::default()
@@ -260,7 +260,7 @@ impl FromAttribute for bool {
 }
 
 impl IntoStringSetItem for String {
-    fn into_ss_item(self: Self) -> String {
+    fn into_ss_item(self) -> String {
         self
     }
 }
@@ -272,7 +272,7 @@ impl FromStringSetItem for String {
 }
 
 impl<A: IntoAttribute> IntoAttribute for Vec<A> {
-    fn into_attr(mut self: Self) -> AttributeValue {
+    fn into_attr(mut self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
             return AttributeValue {
@@ -307,7 +307,7 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
 }
 
 impl IntoAttribute for std::collections::HashSet<usize> {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
             //      https://github.com/raiden-rs/raiden-dynamo/issues/64
@@ -340,7 +340,7 @@ impl FromAttribute for std::collections::HashSet<usize> {
 }
 
 impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections::HashSet<A> {
-    fn into_attr(self: Self) -> AttributeValue {
+    fn into_attr(self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
             //      https://github.com/raiden-rs/raiden-dynamo/issues/64
