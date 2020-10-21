@@ -467,4 +467,37 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "UseDefaultTestData0")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UseDefault {
+        #[raiden(partition_key)]
+        id: String,
+        #[raiden(use_default)]
+        is_ok: bool,
+    }
+
+    #[test]
+    fn test_use_default() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UseDefault::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UseDefault {
+                        id: "id0".to_owned(),
+                        is_ok: false,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }
