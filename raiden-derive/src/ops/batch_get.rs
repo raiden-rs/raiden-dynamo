@@ -1,5 +1,5 @@
-use quote::*;
 use crate::rename::*;
+use quote::*;
 
 pub(crate) fn expand_batch_get(
     partition_key: &proc_macro2::Ident,
@@ -127,6 +127,8 @@ pub(crate) fn expand_batch_get(
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
 
+                // TODO: for now set 5, however we should make it more flexible.
+                let mut unprocessed_retry = 5;
                 loop {
                     let mut input = ::raiden::BatchGetItemInput::default();
 
@@ -135,8 +137,14 @@ pub(crate) fn expand_batch_get(
                     item.expression_attribute_names = self.attribute_names.clone();
                     item.projection_expression = self.projection_expression.clone();
 
-                    let keys = self.keys.drain(0..std::cmp::min(100, self.keys.len()));
-                    #convert_to_external_proc
+                    for key in unprocessed_keys.keys.iter() {
+                        item.keys.push(key.clone());
+                    }
+
+                    if unprocessed_keys.keys.len() < 100 {
+                        let keys = self.keys.drain(0..std::cmp::min(100 - unprocessed_keys.keys.len(), self.keys.len()));
+                        #convert_to_external_proc
+                    }
 
                     input.request_items = Default::default();
                     input
@@ -144,6 +152,11 @@ pub(crate) fn expand_batch_get(
                         .insert(self.table_name.to_string(), item);
 
                     let res = self.client.batch_get_item(input).await?;
+
+                    if self.keys.is_empty() {
+                        unprocessed_retry -= 1;
+                    }
+
                     if let Some(res_responses) = &res.responses {
                         if let Some(res_items) = res_responses.get(&self.table_name) {
                             for res_item in res_items.iter() {
@@ -158,14 +171,16 @@ pub(crate) fn expand_batch_get(
                         return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
                     }
 
+                    unprocessed_keys.keys = vec![];
+
                     if let Some(mut keys_by_table) = res.unprocessed_keys {
                         if let Some(mut keys_attrs) = keys_by_table.get_mut(&self.table_name) {
-                            unprocessed_keys.keys.append(&mut keys_attrs.keys);
+                            unprocessed_keys.keys = keys_attrs.keys.clone();
                         }
                     }
 
-                    // TODO: required somehing to prevent infinite-loop
-                    if self.keys.is_empty() {
+
+                    if (self.keys.is_empty() && unprocessed_keys.keys.is_empty()) || unprocessed_retry == 0 {
                         return Ok(::raiden::batch_get::BatchGetOutput {
                             consumed_capacity: res.consumed_capacity,
                             items,

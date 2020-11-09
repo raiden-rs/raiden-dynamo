@@ -234,11 +234,8 @@ mod tests {
                 })
                 .collect();
 
-            let mut res: batch_get::BatchGetOutput<BatchTest1a> = client
-                .batch_get(keys)
-                .run()
-                .await
-                .unwrap();
+            let mut res: batch_get::BatchGetOutput<BatchTest1a> =
+                client.batch_get(keys).run().await.unwrap();
             res.items.sort_by_key(|i| {
                 let mut id = i.id.to_string();
                 id.replace_range(0..2, "");
@@ -291,6 +288,37 @@ mod tests {
                     }),
                 }
             );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct BatchTest2 {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+    }
+    #[test]
+    fn test_batch_get_item_with_16MB_limitation() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = BatchTest2::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res: batch_get::BatchGetOutput<BatchTest2> = client
+                .batch_get(vec![
+                    "id0", "id1", "id2", "id3", "id4", "id5", "id6", "id7", "id8", "id9", "id10",
+                    "id11", "id12", "id13", "id14", "id15", "id16", "id17", "id18", "id19", "id20",
+                    "id21", "id22", "id23", "id24", "id25", "id26", "id27", "id28", "id29", "id30",
+                    "id31", "id32", "id33", "id34", "id35", "id36", "id37", "id38", "id39", "id40",
+                    "id41", "id42", "id43", "id44", "id45", "id46", "id47", "id48", "id49", "id50",
+                ])
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 51);
         }
         rt.block_on(example());
     }

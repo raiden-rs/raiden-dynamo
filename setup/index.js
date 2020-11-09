@@ -280,6 +280,20 @@ const put = (params) =>
   }
 
   await createTable({
+    TableName: 'BatchTest2',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
+  });
+
+  for (let i = 0; i < 250; i++) {
+    await put({
+      TableName: 'BatchTest2',
+      Item: { id: { S: `id${i}` }, name: { S: [...new Array(100000)].map((_) => 'test').join('') } },
+    });
+  }
+
+  await createTable({
     TableName: 'test-user-staging',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
     AttributeDefinitions: [

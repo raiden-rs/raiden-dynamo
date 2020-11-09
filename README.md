@@ -137,46 +137,6 @@ Then open `http://localhost:8001` in browser.
 - [x] TransactWriteItems
 - [x] UpdateItem
 
-### Table
-
-- [ ] CreateGlobalTable
-- [ ] CreateTable
-- [ ] DeleteTable
-- [ ] DescribeGlobalTable
-- [ ] DescribeGlobalTableSettings
-- [ ] DescribeTable
-- [ ] DescribeTableReplicaAutoScaling
-- [ ] DescribeTimeToLive
-- [ ] ListGlobalTables
-- [ ] ListTables
-- [ ] UpdateGlobalTable
-- [ ] UpdateGlobalTableSettings
-- [ ] UpdateTable
-- [ ] UpdateTableReplicaAutoScaling
-- [ ] UpdateTimeToLive
-
-### Management: Backup/Restore
-
-- [ ] CreateBackup
-- [ ] DeleteBackup
-- [ ] DescribeBackup
-- [ ] DescribeContinuousBackups
-- [ ] ListBackups
-- [ ] RestoreTableFromBackup
-- [ ] RestoreTableToPointInTime
-- [ ] UpdateContinuousBackups
-
-### Management: Metadata
-
-- [ ] DescribeContributorInsights
-- [ ] DescribeEndpoints
-- [ ] DescribeLimits
-- [ ] ListContributorInsights
-- [ ] ListTagsOfResource
-- [ ] TagResource
-- [ ] UntagResource
-- [ ] UpdateContributorInsights
-
 ## Known limitations
 
 Here is a list of unsupported features/behaviors in the actual implementation.
