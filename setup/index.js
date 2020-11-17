@@ -508,4 +508,16 @@ const put = (params) =>
     TableName: 'UseDefaultTestData0',
     Item: { id: { S: 'id0' } },
   });
+
+  await createTable({
+    TableName: 'TxDeleteTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'TxDeleteTestData0',
+    Item: { id: { S: 'id0' }, name: { S: 'hello' } },
+  });
 })();

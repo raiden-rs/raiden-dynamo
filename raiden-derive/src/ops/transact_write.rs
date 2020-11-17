@@ -14,6 +14,7 @@ pub(crate) fn expand_transact_write(
     // let item_output_name = format_ident!("{}PutItemOutput", struct_name);
     let put_builder = format_ident!("{}TransactPutItemBuilder", struct_name);
     let update_builder = format_ident!("{}TransactUpdateItemBuilder", struct_name);
+    let delete_builder = format_ident!("{}TransactDeleteItemBuilder", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
 
     // let output_values = fields.named.iter().map(|f| {
@@ -82,6 +83,22 @@ pub(crate) fn expand_transact_write(
                 // };
                 input.item = input_item;
                 #put_builder {
+                    input,
+                    table_name: #table_name.to_owned(),
+                    table_prefix: "".to_owned(),
+                    table_suffix: "".to_owned(),
+                    // item: output_item,
+                }
+            }
+
+            // TODO: Support sort key
+            pub fn delete<K>(key: K) -> #delete_builder where K: ::raiden::IntoAttribute + std::marker::Send {
+                let mut input = ::raiden::Delete::default();
+                let key_attr: AttributeValue = key.into_attr();
+                let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                input.key = key_set;
+                #delete_builder {
                     input,
                     table_name: #table_name.to_owned(),
                     table_prefix: "".to_owned(),
@@ -304,6 +321,46 @@ pub(crate) fn expand_transact_write(
                 self
             }
         }
+
+        pub struct #delete_builder {
+            pub table_name: String,
+            pub table_prefix: String,
+            pub table_suffix: String,
+            pub input: ::raiden::Delete,
+        }
+
+        impl ::raiden::TransactWriteDeleteBuilder for #delete_builder {
+            fn build(self) -> ::raiden::Delete {
+                let mut input = self.input;
+                input.table_name = format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix);
+                input
+            }
+        }
+
+        impl #delete_builder {
+            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+                self.table_prefix = s.into();
+                self
+            }
+
+            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+                self.table_suffix = s.into();
+                self
+            }
+
+            fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    self.input.expression_attribute_names = Some(attr_names);
+                }
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.condition_expression = Some(cond_str);
+                self
+            }
+        }
+
     }
 }
 
