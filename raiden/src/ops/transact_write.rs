@@ -40,6 +40,16 @@ impl WriteTx {
         self
     }
 
+    pub fn delete(mut self, builder: impl TransactWriteDeleteBuilder) -> Self {
+        self.items.push(TransactWriteItem {
+            condition_check: None,
+            delete: Some(builder.build()),
+            update: None,
+            put: None,
+        });
+        self
+    }
+
     pub async fn run(self) -> Result<(), crate::RaidenError> {
         let policy: crate::RetryPolicy = self.retry_condition.strategy.policy().into();
         let client = self.client;
@@ -77,4 +87,8 @@ pub trait TransactWritePutBuilder {
 
 pub trait TransactWriteUpdateBuilder {
     fn build(self) -> crate::Update;
+}
+
+pub trait TransactWriteDeleteBuilder {
+    fn build(self) -> crate::Delete;
 }

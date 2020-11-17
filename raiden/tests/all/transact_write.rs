@@ -136,4 +136,53 @@ mod tests {
         rt.block_on(example());
         assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 3)
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct TxDeleteTestData0 {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+    }
+
+    #[test]
+    fn test_transact_delete_and_put() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let tx = ::raiden::WriteTx::new(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let input = TxDeleteTestData0::put_item_builder()
+                .id("testId".to_owned())
+                .name("bokuweb".to_owned())
+                .build();
+            assert_eq!(
+                tx.put(TxDeleteTestData0::put(input))
+                    .delete(TxDeleteTestData0::delete("id0"))
+                    .run()
+                    .await
+                    .is_ok(),
+                true,
+            );
+
+            let client = TxDeleteTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap_err(),
+                RaidenError::ResourceNotFound("resource not found".to_owned())
+            );
+            let res = client.get("testId").run().await;
+            assert_eq!(
+                res.unwrap().item,
+                TxDeleteTestData0 {
+                    id: "testId".to_owned(),
+                    name: "bokuweb".to_owned()
+                }
+            );
+        }
+        rt.block_on(example());
+    }
 }
