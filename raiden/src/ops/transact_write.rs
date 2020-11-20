@@ -50,6 +50,16 @@ impl WriteTx {
         self
     }
 
+    pub fn condition_check(mut self, builder: impl TransactWriteConditionCheckBuilder) -> Self {
+        self.items.push(TransactWriteItem {
+            condition_check: Some(builder.build()),
+            delete: None,
+            update: None,
+            put: None,
+        });
+        self
+    }
+
     pub async fn run(self) -> Result<(), crate::RaidenError> {
         let policy: crate::RetryPolicy = self.retry_condition.strategy.policy().into();
         let client = self.client;
@@ -91,4 +101,8 @@ pub trait TransactWriteUpdateBuilder {
 
 pub trait TransactWriteDeleteBuilder {
     fn build(self) -> crate::Delete;
+}
+
+pub trait TransactWriteConditionCheckBuilder {
+    fn build(self) -> crate::ConditionCheck;
 }
