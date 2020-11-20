@@ -185,4 +185,90 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct TxConditionalCheckTestData0 {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+    }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct TxConditionalCheckTestData1 {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+    }
+
+    #[test]
+    fn should_succeed_to_put_when_condition_check_ok() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let tx = ::raiden::WriteTx::new(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let input = TxConditionalCheckTestData0::put_item_builder()
+                .id("testId0".to_owned())
+                .name("bokuweb".to_owned())
+                .build();
+            let cond = TxConditionalCheckTestData1::condition()
+                .attr_exists(TxConditionalCheckTestData1::id());
+            assert_eq!(
+                tx.put(TxConditionalCheckTestData0::put(input))
+                    .condition_check(
+                        TxConditionalCheckTestData1::condition_check("id1").condition(cond)
+                    )
+                    .run()
+                    .await
+                    .is_ok(),
+                true,
+            );
+
+            let client = TxConditionalCheckTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("testId0").run().await;
+            assert_eq!(
+                res.unwrap().item,
+                TxConditionalCheckTestData0 {
+                    id: "testId0".to_owned(),
+                    name: "bokuweb".to_owned()
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn should_fail_to_put_when_condition_check_ng() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let tx = ::raiden::WriteTx::new(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let input = TxConditionalCheckTestData0::put_item_builder()
+                .id("testId1".to_owned())
+                .name("bokuweb".to_owned())
+                .build();
+            let cond = TxConditionalCheckTestData1::condition()
+                .attr_not_exists(TxConditionalCheckTestData1::id());
+
+            let res = tx
+                .put(TxConditionalCheckTestData0::put(input))
+                .condition_check(
+                    TxConditionalCheckTestData1::condition_check("id1").condition(cond),
+                )
+                .run()
+                .await;
+            assert_eq!(res.is_err(), true,);
+            assert!(matches!(
+                res.unwrap_err(),
+                RaidenError::TransactionCanceled(_)
+            ),);
+        }
+        rt.block_on(example());
+    }
 }
