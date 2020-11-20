@@ -49,6 +49,7 @@ impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
         }
     }
 }
+
 impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         if self.not {
