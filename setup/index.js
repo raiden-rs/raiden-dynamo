@@ -544,4 +544,21 @@ const put = (params) =>
     TableName: 'TxConditionalCheckTestData1',
     Item: { id: { S: 'id1' }, name: { S: 'world' } },
   });
+
+  await createTable({
+    TableName: 'UpdateRemoveTestData0',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'UpdateRemoveTestData0',
+    Item: { id: { S: 'id1' }, name: { S: 'world' } },
+  });
+
+  await put({
+    TableName: 'UpdateRemoveTestData0',
+    Item: { id: { S: 'id2' } },
+  });
 })();

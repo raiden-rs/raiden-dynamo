@@ -15,41 +15,6 @@ mod tests {
         age: usize,
     }
 
-    /*
-        #[test]
-        fn test_minimum_set_update_expression() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            reset_value_id();
-            let (expression, _, _) = client
-                .update("id0")
-                .set(User::update_expression().set(User::name()).value("updated"))
-                .build_expression();
-
-            assert_eq!(expression, "SET #name = :value0".to_owned());
-        }
-
-        #[test]
-        fn test_set_and_add_update_expression() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            reset_value_id();
-            let (expression, _, _) = client
-                .update("id0")
-                .set(User::update_expression().set(User::name()).value("updated"))
-                .add(User::update_expression().add(User::age()).value(1))
-                .build_expression();
-
-            assert_eq!(
-                expression,
-                "ADD #age :value1 SET #name = :value0".to_owned()
-            );
-        }
-    */
     #[test]
     fn test_update() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
@@ -376,6 +341,52 @@ mod tests {
                 .await
                 .unwrap();
             assert_eq!(res.item.unwrap().name, "".to_owned(),);
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct UpdateRemoveTestData0 {
+        #[raiden(partition_key)]
+        id: String,
+        name: Option<String>,
+    }
+
+    #[test]
+    fn test_update_remove_sset() {
+        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateRemoveTestData0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client
+                .update("id1")
+                .remove(UpdateRemoveTestData0::name())
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(
+                res.unwrap().item.unwrap(),
+                UpdateRemoveTestData0 {
+                    id: "id1".to_owned(),
+                    name: None
+                }
+            );
+
+            let res = client
+                .update("id2")
+                .remove(UpdateRemoveTestData0::name())
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(
+                res.unwrap().item.unwrap(),
+                UpdateRemoveTestData0 {
+                    id: "id2".to_owned(),
+                    name: None
+                }
+            );
         }
         rt.block_on(example());
     }
