@@ -21,11 +21,10 @@ pub struct User {
     name: String,
 }
 
-
 #[tokio::main]
 async fn main() {
     let client = User::client(Region::UsEast1);
-    let res = client.get("user_primary_key").run().await;
+    let _res = client.get("user_primary_key").run().await; // User { id: "foo".to_string(), name: "bokuweb".to_string() }
 }
 ```
 
@@ -44,7 +43,7 @@ pub struct User {
 async fn main() {
     let client = User::client(Region::UsEast1);
     let input = User::put_item_builder()
-        .id("mock_id".to_owned())
+        .id("foo".to_owned())
         .name("bokuweb".to_owned())
         .build();
     let res = client.put(&input).run().await;
@@ -58,7 +57,6 @@ async fn main() {
 pub struct User {
     #[raiden(partition_key)]
     id: String,
-    name: String,
     #[raiden(sort_key)]
     year: usize,
 }
