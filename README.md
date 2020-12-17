@@ -24,7 +24,7 @@ pub struct User {
 #[tokio::main]
 async fn main() {
     let client = User::client(Region::UsEast1);
-    let _res = client.get("user_primary_key").run().await; // User { id: "foo".to_string(), name: "bokuweb".to_string() }
+    let _res = client.get("user_primary_key").run().await;
 }
 ```
 
