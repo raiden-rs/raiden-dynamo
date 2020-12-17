@@ -13,8 +13,6 @@
 ### get_item example
 
 ```Rust
-use raiden::*;
-
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
 pub struct User {
@@ -23,44 +21,39 @@ pub struct User {
     name: String,
 }
 
-fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-    async fn hello() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let res = client.get("user_primary_key").run().await;
-    }
-    rt.block_on(hello());
+
+#[tokio::main]
+async fn main() {
+    let client = User::client(Region::UsEast1);
+    let res = client.get("user_primary_key").run().await;
 }
 ```
 
 ### put_item example
 
 ```Rust
-fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-    async fn hello() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let input = User::put_item_builder()
-            .id("mock_id".to_owned())
-            .name("bokuweb".to_owned())
-            .build();
-        let res = client.put(&input).run().await;
-    }
-    rt.block_on(example());
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+pub struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = User::client(Region::UsEast1);
+    let input = User::put_item_builder()
+        .id("mock_id".to_owned())
+        .name("bokuweb".to_owned())
+        .build();
+    let res = client.put(&input).run().await;
 }
 ```
 
 ### batch_get_item example
 
 ```Rust
-use raiden::*;
-
 #[derive(Raiden, Debug, PartialEq)]
 pub struct User {
     #[raiden(partition_key)]
@@ -68,20 +61,13 @@ pub struct User {
     name: String,
     #[raiden(sort_key)]
     year: usize,
-    num: usize,
 }
 
-fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
-    async fn hello() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let keys: Vec<(&str, usize)> = vec![("Alice", 1992), ("Bob", 1976), ("Charlie", 2002)];
-        let res = client.batch_get(keys).run().await;
-    }
-    rt.block_on(hello());
+#[tokio::main]
+async fn main() {
+    let client = User::client(Region::UsEast1);
+    let keys: Vec<(&str, usize)> = vec![("Alice", 1992), ("Bob", 1976), ("Charlie", 2002)];
+    let res = client.batch_get(keys).run().await;
 }
 ```
 
