@@ -100,7 +100,7 @@ impl std::fmt::Display for ConversionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ConversionError::ValueIsNone => write!(f, "Value is none"),
-            ConversionError::ParseInt => write!(f, "Int parsing error"),
+            ConversionError::ParseInt => write!(f, "Parsing error of integer"),
         }
     }
 }
