@@ -125,7 +125,7 @@ impl FromAttribute for String {
 
 impl IntoAttribute for &'_ str {
     fn into_attr(self) -> AttributeValue {
-        if self == "" {
+        if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
             return AttributeValue {
                 null: Some(true),
@@ -145,7 +145,7 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
             std::borrow::Cow::Owned(o) => o,
             std::borrow::Cow::Borrowed(b) => b.to_owned(),
         };
-        if s == "" {
+        if s.is_empty() {
             // See. https://github.com/raiden-rs/raiden-dynamo/issues/58
             return AttributeValue {
                 null: Some(true),
