@@ -90,12 +90,29 @@ pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
 }
 
+#[derive(Debug)]
+pub enum ConversionError {
+    ValueIsNone,
+    ParseInt,
+}
+
+impl std::fmt::Display for ConversionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ConversionError::ValueIsNone => write!(f, "Value is none"),
+            ConversionError::ParseInt => write!(f, "Int parsing error"),
+        }
+    }
+}
+
+impl std::error::Error for ConversionError {}
+
 pub trait FromAttribute: Sized {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()>;
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError>;
 }
 
 pub trait FromStringSetItem: Sized {
-    fn from_ss_item(value: String) -> Result<Self, ()>;
+    fn from_ss_item(value: String) -> Result<Self, ConversionError>;
 }
 
 impl IntoAttribute for String {
@@ -110,16 +127,16 @@ impl IntoAttribute for String {
 }
 
 impl FromAttribute for String {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
-            return Err(());
+            return Err(ConversionError::ValueIsNone);
         }
         let value = value.unwrap();
         if let Some(true) = value.null {
             // See. https://github.com/raiden-rs/raiden/issues/58
             return Ok("".to_owned());
         }
-        value.s.ok_or((/* TODO: Add convert error handling */))
+        value.s.ok_or(ConversionError::ValueIsNone)
     }
 }
 
@@ -160,9 +177,9 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 }
 
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
-            return Err(());
+            return Err(ConversionError::ValueIsNone);
         }
         let value = value.unwrap();
         if let Some(true) = value.null {
@@ -172,7 +189,7 @@ impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
         value
             .s
             .map(std::borrow::Cow::Owned)
-            .ok_or((/* TODO: Add convert error handling */))
+            .ok_or(ConversionError::ValueIsNone)
     }
 }
 
@@ -187,15 +204,15 @@ macro_rules! default_attr_for_num {
             }
         }
         impl FromAttribute for $to {
-            fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+            fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
                 if value.is_none() {
-                    return Err((/* TODO: */));
+                    return Err(ConversionError::ValueIsNone);
                 }
                 value
                     .unwrap()
                     .n
                     .map(|v| v.parse().unwrap())
-                    .ok_or((/* TODO: Add convert error handling */))
+                    .ok_or(ConversionError::ValueIsNone)
             }
         }
     };
@@ -226,7 +243,7 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
 }
 
 impl<T: FromAttribute> FromAttribute for Option<T> {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
             return Ok(None);
         }
@@ -248,14 +265,11 @@ impl IntoAttribute for bool {
 }
 
 impl FromAttribute for bool {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
-            return Err(());
+            return Err(ConversionError::ValueIsNone);
         }
-        value
-            .unwrap()
-            .bool
-            .ok_or((/* TODO: Add convert error handling */))
+        value.unwrap().bool.ok_or(ConversionError::ValueIsNone)
     }
 }
 
@@ -266,7 +280,7 @@ impl IntoStringSetItem for String {
 }
 
 impl FromStringSetItem for String {
-    fn from_ss_item(value: String) -> Result<Self, ()> {
+    fn from_ss_item(value: String) -> Result<Self, ConversionError> {
         Ok(value)
     }
 }
@@ -288,7 +302,7 @@ impl<A: IntoAttribute> IntoAttribute for Vec<A> {
 }
 
 impl<A: FromAttribute> FromAttribute for Vec<A> {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
             return Ok(vec![]);
         }
@@ -299,7 +313,7 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
         }
         value
             .l
-            .ok_or((/* TODO: Add convert error handling */))?
+            .ok_or(ConversionError::ValueIsNone)?
             .into_iter()
             .map(|item| A::from_attr(Some(item)))
             .collect()
@@ -321,7 +335,7 @@ impl IntoAttribute for std::collections::HashSet<usize> {
 }
 
 impl FromAttribute for std::collections::HashSet<usize> {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
             return Ok(std::collections::HashSet::new());
         }
@@ -330,10 +344,10 @@ impl FromAttribute for std::collections::HashSet<usize> {
             // See. https://github.com/raiden-rs/raiden/issues/57
             return Ok(std::collections::HashSet::new());
         }
-        let mut nums = value.ns.ok_or(())?;
-        let mut results: Vec<Result<usize, ()>> = nums
+        let mut nums = value.ns.ok_or(ConversionError::ValueIsNone)?;
+        let mut results: Vec<Result<usize, ConversionError>> = nums
             .drain(..)
-            .map(|ns| ns.parse().map_err(|_| ()))
+            .map(|ns| ns.parse().map_err(|_| ConversionError::ParseInt))
             .collect();
         results.drain(..).collect()
     }
@@ -356,7 +370,7 @@ impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections:
 impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
     for std::collections::HashSet<A>
 {
-    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         if value.is_none() {
             return Ok(std::collections::HashSet::new());
         }
@@ -365,7 +379,7 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
             // See. https://github.com/raiden-rs/raiden/issues/57
             return Ok(std::collections::HashSet::new());
         }
-        let mut ss = value.ss.ok_or(())?;
+        let mut ss = value.ss.ok_or(ConversionError::ValueIsNone)?;
         ss.drain(..).map(A::from_ss_item).collect()
     }
 }

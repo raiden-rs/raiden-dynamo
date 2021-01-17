@@ -241,7 +241,7 @@ mod tests {
     }
 
     impl raiden::FromStringSetItem for CustomSSItem {
-        fn from_ss_item(value: String) -> Result<Self, ()> {
+        fn from_ss_item(value: String) -> Result<Self, ConversionError> {
             Ok(CustomSSItem(value))
         }
     }

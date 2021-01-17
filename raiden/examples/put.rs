@@ -19,7 +19,7 @@ impl raiden::IntoAttribute for CustomId {
 }
 
 impl raiden::FromAttribute for CustomId {
-    fn from_attr(value: Option<raiden::AttributeValue>) -> Result<Self, ()> {
+    fn from_attr(value: Option<raiden::AttributeValue>) -> Result<Self, ConversionError> {
         Ok(CustomId(value.unwrap().s.unwrap()))
     }
 }
