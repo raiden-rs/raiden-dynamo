@@ -8,11 +8,11 @@ edition = "2018"
 
 [dependencies]
 raiden-derive = { version = "*", path = "../raiden-derive" }
-rusoto_credential = "0.45"
-rusoto_core_default = { package = "rusoto_core", version = "0.45", optional = true }
-rusoto_core_rustls = { package = "rusoto_core", version = "0.45", default_features = false, features=["rustls"], optional = true }
-rusoto_dynamodb_default = { package = "rusoto_dynamodb", version = "0.45", features=["serialize_structs"], optional = true }
-rusoto_dynamodb_rustls = { package = "rusoto_dynamodb", version = "0.45", default_features = false, features=["rustls", "serialize_structs"], optional = true }
+rusoto_credential = "0.46"
+rusoto_core_default = { package = "rusoto_core", version = "0.46", optional = true }
+rusoto_core_rustls = { package = "rusoto_core", version = "0.46", default_features = false, features=["rustls"], optional = true }
+rusoto_dynamodb_default = { package = "rusoto_dynamodb", version = "0.46", features=["serialize_structs"], optional = true }
+rusoto_dynamodb_rustls = { package = "rusoto_dynamodb", version = "0.46", default_features = false, features=["rustls", "serialize_structs"], optional = true }
 uuid = { version = "^0.8", features = ["v4"], optional = true }
 async-trait = "^0.1.42"
 rust-crypto = "^0.2"
@@ -29,7 +29,7 @@ pretty_env_logger = "0.4"
 [dev-dependencies]
 pretty_assertions = "0.6.1"
 insta = "0.16"
-tokio = "0.2"
+tokio = "1.0.2"
 
 [features]
 default = ["uuid", "rusoto_core_default", "rusoto_dynamodb_default"]
