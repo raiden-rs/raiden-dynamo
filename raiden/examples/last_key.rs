@@ -4,9 +4,9 @@ use raiden::*;
 #[raiden(table_name = "LastEvaluateKeyData")]
 pub struct Test {
     #[raiden(partition_key)]
-    id: String,
-    ref_id: String,
-    long_text: String,
+    pub id: String,
+    pub ref_id: String,
+    pub long_text: String,
 }
 
 fn main() {

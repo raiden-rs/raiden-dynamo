@@ -4,13 +4,13 @@ use raiden::*;
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
-    id: String,
+    pub id: String,
 }
 
 struct MyRetryStrategy;
 
 impl RetryStrategy for MyRetryStrategy {
-    fn should_retry(&self, error: &RaidenError, request_count: usize) -> bool {
+    fn should_retry(&self, _error: &RaidenError, request_count: usize) -> bool {
         log::info!("request count {}", request_count);
         true
     }
@@ -25,7 +25,7 @@ fn main() {
     pretty_env_logger::init();
     let mut rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
-        let mut client = User::client(Region::Custom {
+        let client = User::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });

@@ -4,8 +4,8 @@ use raiden::*;
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
-    id: String,
-    name: String,
+    pub id: String,
+    pub name: String,
 }
 
 fn main() {

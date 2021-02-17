@@ -26,6 +26,8 @@ pub(crate) fn expand_query(
         }
 
         impl #trait_name for #client_name {
+
+            #![allow(clippy::field_reassign_with_default)]
             fn query(&self) -> #builder_name {
                 let mut input = ::raiden::QueryInput::default();
                 // input.filter_expression = Some("num < :value1".to_owned());

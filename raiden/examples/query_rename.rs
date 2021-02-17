@@ -5,9 +5,9 @@ use raiden::*;
 #[raiden(rename_all = "camelCase")]
 pub struct Project {
     #[raiden(partition_key)]
-    id: String,
-    org_id: String,
-    updated_at: String,
+    pub id: String,
+    pub org_id: String,
+    pub updated_at: String,
 }
 
 fn main() {
@@ -18,7 +18,7 @@ fn main() {
             name: "ap-northeast-1".into(),
         });
         let cond = Project::key_condition(Project::org_id()).eq("myOrg");
-        let res = client
+        let _res = client
             .query()
             .index("orgIndex")
             .limit(11)

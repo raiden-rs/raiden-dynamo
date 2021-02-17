@@ -24,6 +24,7 @@ pub(crate) fn expand_scan(
         }
 
         impl #trait_name for #client_name {
+            #![allow(clippy::field_reassign_with_default)]
             fn scan(&self) -> #builder_name {
                 let mut input = ::raiden::ScanInput::default();
                 input.table_name = self.table_name();
