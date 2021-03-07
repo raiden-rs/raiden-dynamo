@@ -4,9 +4,9 @@ use raiden::*;
 #[raiden(table_name = "ReservedTestData0")]
 pub struct Reserved {
     #[raiden(partition_key)]
-    id: String,
+    pub id: String,
     #[raiden(rename = "type")]
-    some_type: String,
+    pub some_type: String,
 }
 
 fn main() {

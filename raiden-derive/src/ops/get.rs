@@ -55,14 +55,17 @@ pub(crate) fn expand_get_item(
                 fn get<K>(&self, key: K) -> #builder_name
                     where K: ::raiden::IntoAttribute + std::marker::Send
                 {
-                    let mut input = ::raiden::GetItemInput::default();
-                    input.projection_expression = self.projection_expression.clone();
-                    input.expression_attribute_names = self.attribute_names.clone();
                     let key_attr: AttributeValue = key.into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
-                    input.key = key_set;
-                    input.table_name = self.table_name();
+                    let input = ::raiden::GetItemInput {
+                        key: key_set,
+                        table_name: self.table_name(),
+                        projection_expression: self.projection_expression.clone(),
+                        expression_attribute_names: self.attribute_names.clone(),
+                        ..::raiden::GetItemInput::default()
+                    };
+
                     #builder_name {
                         client: &self.client,
                         input,

@@ -4,12 +4,12 @@ use raiden::*;
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
-    id: String,
+    pub id: String,
     #[raiden(sort_key)]
-    year: usize,
+    pub year: usize,
     #[raiden(uuid)]
-    uuid: String,
-    name: String,
+    pub uuid: String,
+    pub name: String,
 }
 
 fn main() {

@@ -299,7 +299,7 @@ mod tests {
         name: String,
     }
     #[test]
-    fn test_batch_get_item_with_16MB_limitation() {
+    fn test_batch_get_item_with_16mb_limitation() {
         let mut rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest2::client(Region::Custom {

@@ -120,6 +120,7 @@ pub(crate) fn expand_put_item(
 
         impl #trait_name for #client_name {
             fn put(&self, item: #item_input_name) -> #builder_name{
+                #![allow(clippy::field_reassign_with_default)]
                 let mut input = ::raiden::PutItemInput::default();
                 // let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
                 // let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();

@@ -10,7 +10,7 @@ impl Into<CustomId> for String {
 }
 
 impl raiden::IntoAttribute for CustomId {
-    fn into_attr(self: Self) -> raiden::AttributeValue {
+    fn into_attr(self) -> raiden::AttributeValue {
         raiden::AttributeValue {
             s: Some(self.0),
             ..::raiden::AttributeValue::default()
@@ -28,10 +28,10 @@ impl raiden::FromAttribute for CustomId {
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
-    id: String,
+    pub id: String,
     #[raiden(uuid)]
-    uuid: CustomId,
-    name: String,
+    pub uuid: CustomId,
+    pub name: String,
 }
 
 fn main() {
@@ -45,8 +45,7 @@ fn main() {
             .id("testId".to_owned())
             .name("bokuweb".to_owned())
             .build();
-        let res = client.put(input).run().await;
-        dbg!(res);
+        let _ = client.put(input).run().await;
     }
     rt.block_on(example());
 }
