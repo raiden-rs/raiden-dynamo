@@ -944,6 +944,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-quote"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5e84ab161de78c915302ca325a19bee6df272800e2ae1a43fe3ef430bab2a100"
+dependencies = [
+ "proc-macro-hack",
+ "proc-macro2",
+ "proc-quote-impl",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "proc-quote-impl"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1001,7 +1014,7 @@ dependencies = [
  "convert_case",
  "ident_case",
  "proc-macro2",
- "proc-quote",
+ "proc-quote 0.4.0",
  "quote",
  "safe-builder 0.1.0 (git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.3)",
  "syn",
@@ -1327,7 +1340,7 @@ source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.3#415b64c887
 dependencies = [
  "convert_case",
  "proc-macro2",
- "proc-quote",
+ "proc-quote 0.3.2",
  "quote",
  "syn",
 ]
@@ -1339,7 +1352,7 @@ source = "git+https://github.com/raiden-rs/safe-builder.git?tag=0.0.5#619e8b52bd
 dependencies = [
  "convert_case",
  "proc-macro2",
- "proc-quote",
+ "proc-quote 0.3.2",
  "quote",
  "syn",
 ]
