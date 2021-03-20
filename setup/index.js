@@ -51,6 +51,22 @@ const put = (params) =>
   });
 
   await createTable({
+    TableName: 'FloatTest',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'FloatTest',
+    Item: {
+      id: { S: 'primary_key' },
+      float32: { N: '1.23' },
+      float64: { N: '2.34' },
+    },
+  });
+
+  await createTable({
     TableName: 'QueryTestData0',
     KeySchema: [
       { AttributeName: 'id', KeyType: 'HASH' },
