@@ -22,6 +22,7 @@ pub enum KeyConditionTypes {
         super::Placeholder,
         super::AttributeValue,
     ),
+    BeginsWith(super::Placeholder, super::AttributeValue),
 }
 
 pub trait KeyConditionBuilder<T> {
@@ -130,6 +131,14 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilledOrWaitConjunction<T> {
                     attr_values,
                 )
             }
+            super::key_condition::KeyConditionTypes::BeginsWith(placeholder, value) => {
+                attr_values.insert(placeholder.to_string(), value);
+                (
+                    format!("begins_with(#{}, {})", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
         }
     }
 }
@@ -180,6 +189,10 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilled<T> {
                     "#{} BETWEEN {} AND {}",
                     attr_name, placeholder1, placeholder2
                 )
+            }
+            super::key_condition::KeyConditionTypes::BeginsWith(placeholder, value) => {
+                left_values.insert(placeholder.clone(), value);
+                format!("begins_with(#{}, {})", attr_name, placeholder)
             }
         };
         (
@@ -253,6 +266,20 @@ impl<T> KeyCondition<T> {
             placeholder2,
             value2.into_attr(),
         );
+        KeyConditionFilledOrWaitConjunction {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn begins_with(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> KeyConditionFilledOrWaitConjunction<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond =
+            super::key_condition::KeyConditionTypes::BeginsWith(placeholder, value.into_attr());
         KeyConditionFilledOrWaitConjunction {
             attr: self.attr,
             cond,

@@ -62,4 +62,21 @@ mod tests {
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
+
+    #[test]
+    fn test_begins_with_key_condition() {
+        reset_value_id();
+
+        let cond = User::key_condition(User::name()).begins_with("bokuweb");
+        let (key_condition, attribute_names, attribute_values) = cond.build();
+        let mut expected_names: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        expected_names.insert("#name".to_owned(), "name".to_owned());
+        let mut expected_values: std::collections::HashMap<String, AttributeValue> =
+            std::collections::HashMap::new();
+        expected_values.insert(":value0".to_owned(), "bokuweb".into_attr());
+        assert_eq!(key_condition, "begins_with(#name, :value0)".to_owned(),);
+        assert_eq!(attribute_names, expected_names);
+        assert_eq!(attribute_values, expected_values);
+    }
 }
