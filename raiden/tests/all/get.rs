@@ -21,7 +21,7 @@ mod tests {
 
     #[test]
     fn test_user_get_item() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -50,7 +50,7 @@ mod tests {
 
     #[test]
     fn test_user_get_item_with_consistent_read() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserClient::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -78,7 +78,7 @@ mod tests {
 
     #[test]
     fn test_user_get_item_with_not_found_error() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserClient::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -107,7 +107,7 @@ mod tests {
 
     #[test]
     fn test_get_unstored_value() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithUnStored::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -139,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_get_empty_hashset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithEmptyHashSet::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_get_empty_vec() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithEmptyVec::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -207,7 +207,7 @@ mod tests {
 
     #[test]
     fn test_get_stringset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithStringSet::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -258,7 +258,7 @@ mod tests {
 
     #[test]
     fn test_get_custom_stringset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithCustomStringSet::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn test_user_get_item_with_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithSortKey::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_get_empty_string() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptyStringTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -369,7 +369,7 @@ mod tests {
 
     #[test]
     fn test_retry() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let mut client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -387,7 +387,7 @@ mod tests {
 
     #[test]
     fn test_should_build_with_twice_retry() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_user_get_item_for_projection_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = PartialUser::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -447,7 +447,7 @@ mod tests {
 
     #[test]
     fn test_rename_with_reserved() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Reserved::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -480,7 +480,7 @@ mod tests {
 
     #[test]
     fn test_use_default() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UseDefault::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -493,6 +493,40 @@ mod tests {
                     item: UseDefault {
                         id: "id0".to_owned(),
                         is_ok: false,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "FloatTest")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct FloatTest {
+        #[raiden(partition_key)]
+        id: String,
+        float32: f32,
+        float64: f64,
+    }
+
+    #[test]
+    fn test_float() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = FloatTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("primary_key").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: FloatTest {
+                        id: "primary_key".to_owned(),
+                        float32: 1.23,
+                        float64: 2.34,
                     },
                     consumed_capacity: None,
                 }

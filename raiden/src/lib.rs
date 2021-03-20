@@ -230,6 +230,9 @@ default_attr_for_num!(i32);
 default_attr_for_num!(i16);
 default_attr_for_num!(i8);
 
+default_attr_for_num!(f32);
+default_attr_for_num!(f64);
+
 impl<T: IntoAttribute> IntoAttribute for Option<T> {
     fn into_attr(self) -> AttributeValue {
         match self {
