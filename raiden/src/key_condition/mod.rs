@@ -273,6 +273,7 @@ impl<T> KeyCondition<T> {
         }
     }
 
+    // We can use `begins_with` only with a range key after specifying an EQ condition for the primary key.
     pub fn begins_with(
         self,
         value: impl super::IntoAttribute,

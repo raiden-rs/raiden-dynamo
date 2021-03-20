@@ -96,6 +96,47 @@ const put = (params) =>
     Item: { id: { S: 'id2' }, name: { S: 'alice' }, year: { N: '2013' }, num: { N: '4000' } },
   });
 
+  await put({
+    TableName: 'QueryTestData0',
+    Item: { id: { S: 'id3' }, name: { S: 'bar0' }, year: { N: '1987' }, num: { N: '4000' } },
+  });
+
+  await put({
+    TableName: 'QueryTestData0',
+    Item: { id: { S: 'id3' }, name: { S: 'bar1' }, year: { N: '2000' }, num: { N: '4000' } },
+  });
+
+  await put({
+    TableName: 'QueryTestData0',
+    Item: { id: { S: 'id3' }, name: { S: 'bar2' }, year: { N: '2029' }, num: { N: '4000' } },
+  });
+
+  await createTable({
+    TableName: 'QueryTestData1',
+    KeySchema: [
+      { AttributeName: 'id', KeyType: 'HASH' },
+      { AttributeName: 'name', KeyType: 'RANGE' },
+    ],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'name', AttributeType: 'S' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'QueryTestData1',
+    Item: { id: { S: 'id0' }, name: { S: 'john' } },
+  });
+  await put({
+    TableName: 'QueryTestData1',
+    Item: { id: { S: 'id0' }, name: { S: 'jack' } },
+  });
+  await put({
+    TableName: 'QueryTestData1',
+    Item: { id: { S: 'id0' }, name: { S: 'bob' } },
+  });
+
   await createTable({
     TableName: 'RenameTestData0',
     KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],

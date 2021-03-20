@@ -4,7 +4,7 @@ pub fn expand_key_condition_builder(
     attr_enum_name: &proc_macro2::Ident,
     struct_name: &proc_macro2::Ident,
 ) -> proc_macro2::TokenStream {
-    let key_condition_token_name = format_ident!("{}KenConditionToken", struct_name);
+    let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
     quote! {
 
         pub struct #key_condition_token_name;
