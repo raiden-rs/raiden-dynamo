@@ -9,7 +9,7 @@ pub(crate) fn expand_query(
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
 
-    let key_condition_token_name = format_ident!("{}KenConditionToken", struct_name);
+    let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
 
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 

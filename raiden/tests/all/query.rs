@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = QueryTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_query_with_and_key_condition() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = QueryTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -95,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_query_limit_1() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -116,7 +116,7 @@ mod tests {
 
     #[test]
     fn test_query_limit_5() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_query_no_limit() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_query_over_limit() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -178,7 +178,7 @@ mod tests {
 
     #[test]
     fn test_query_over_limit_with_next_token() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_query_with_renamed() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Project::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -247,11 +247,11 @@ mod tests {
         #[raiden(partition_key)]
         id: String,
         name: String,
-        year: usize
+        year: usize,
     }
     #[test]
     fn test_query_for_projection_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = QueryTestData0a::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -276,6 +276,51 @@ mod tests {
                             name: "john".to_owned(),
                             year: 2000,
                         },
+                    ],
+                    next_token: None,
+                    scanned_count: Some(2),
+                }
+            )
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "QueryTestData1")]
+    pub struct QueryTestData1 {
+        #[raiden(partition_key)]
+        id: String,
+        #[raiden(sort_key)]
+        name: String,
+    }
+
+    #[test]
+    fn test_query_with_begins_with_key_condition() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = QueryTestData1::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let cond = QueryTestData1::key_condition(QueryTestData1::id())
+                .eq("id0")
+                .and(QueryTestData1::key_condition(QueryTestData1::name()).begins_with("j"));
+            let res = client.query().key_condition(cond).run().await;
+
+            assert_eq!(
+                res.unwrap(),
+                query::QueryOutput {
+                    consumed_capacity: None,
+                    count: Some(2),
+                    items: vec![
+                        QueryTestData1 {
+                            id: "id0".to_owned(),
+                            name: "jack".to_owned(),
+                        },
+                        QueryTestData1 {
+                            id: "id0".to_owned(),
+                            name: "john".to_owned(),
+                        }
                     ],
                     next_token: None,
                     scanned_count: Some(2),
