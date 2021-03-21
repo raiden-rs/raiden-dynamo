@@ -127,5 +127,5 @@ Here is a list of unsupported features/behaviors in the actual implementation.
 We have a plan to resolve these issues in a future release.
 
 - [x] Automatic retrying: https://github.com/raiden-rs/raiden/issues/44
-- [ ] Strict type checking of keys: https://github.com/raiden-rs/raiden/issues/26
+- [x] Strict type checking of keys: https://github.com/raiden-rs/raiden/issues/26
 - [x] Exponential backoff handling
