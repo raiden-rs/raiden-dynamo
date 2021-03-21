@@ -1,13 +1,15 @@
+use proc_macro2::*;
 use quote::*;
+use syn::*;
 
 pub(crate) fn expand_update_item(
-    partition_key: &proc_macro2::Ident,
-    sort_key: &Option<proc_macro2::Ident>,
-    fields: &syn::FieldsNamed,
-    attr_enum_name: &proc_macro2::Ident,
-    struct_name: &proc_macro2::Ident,
+    partition_key: &(Ident, Type),
+    sort_key: &Option<(Ident, Type)>,
+    fields: &FieldsNamed,
+    attr_enum_name: &Ident,
+    struct_name: &Ident,
     rename_all_type: crate::rename::RenameAllType,
-) -> proc_macro2::TokenStream {
+) -> TokenStream {
     let item_output_name = format_ident!("{}UpdateItemOutput", struct_name);
     let trait_name = format_ident!("{}UpdateItem", struct_name);
     let update_expression_name = format_ident!("{}UpdateExpression", struct_name);
@@ -15,26 +17,23 @@ pub(crate) fn expand_update_item(
     let builder_name = format_ident!("{}UpdateItemBuilder", struct_name);
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
+    let (partition_key_ident, partition_key_type) = partition_key;
 
     let client_trait = if let Some(sort_key) = sort_key {
+        let (sort_key_ident, sort_key_type) = sort_key;
         quote! {
             pub trait #trait_name {
-                fn update<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send;
+                fn update(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn update<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send
-                {
+                fn update(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     let mut input = ::raiden::UpdateItemInput::default();
-                    let pk_attr: AttributeValue = pk.into_attr();
-                    let sk_attr: AttributeValue = sk.into_attr();
+                    let pk_attr: AttributeValue = pk.into().into_attr();
+                    let sk_attr: AttributeValue = sk.into().into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                    key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
-                    key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                    key_set.insert(stringify!(#partition_key_ident).to_owned(), pk_attr);
+                    key_set.insert(stringify!(#sort_key_ident).to_owned(), sk_attr);
                     input.key = key_set;
                     input.table_name = self.table_name();
                     #builder_name {
@@ -51,18 +50,15 @@ pub(crate) fn expand_update_item(
     } else {
         quote! {
             pub trait #trait_name {
-                fn update<K>(&self, key: K) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send;
+                fn update(&self, key: impl Into<#partition_key_type>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn update<K>(&self, key: K) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send
-                {
+                fn update(&self, key: impl Into<#partition_key_type>) -> #builder_name {
                     let mut input = ::raiden::UpdateItemInput::default();
-                    let key_attr: AttributeValue = key.into_attr();
+                    let key_attr: AttributeValue = key.into().into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                    key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                     input.key = key_set;
                     input.table_name = self.table_name();
                     #builder_name {

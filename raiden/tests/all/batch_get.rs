@@ -25,7 +25,7 @@ mod tests {
 
     #[test]
     fn test_batch_get_item() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -70,7 +70,7 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_extended() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -108,7 +108,7 @@ mod tests {
     // ref. https://github.com/raiden-rs/raiden/issues/44
     #[test]
     fn test_batch_get_item_partial_missing() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -164,22 +164,22 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest1::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
 
-            let keys: Vec<(String, i32)> = (0..250)
+            let keys: Vec<(String, usize)> = (0..250)
                 .into_iter()
-                .map(|n| (format!("id{}", n), 2000 + n))
+                .map(|n| (format!("id{}", n), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)
                 .map(|n| BatchTest1 {
                     id: format!("id{}", n),
                     name: "bob".to_owned(),
-                    year: 2000 + n,
+                    year: (2000 + n) as usize,
                     num: n,
                 })
                 .collect();
@@ -215,22 +215,22 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_for_projection_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest1a::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
 
-            let keys: Vec<(String, i32)> = (0..250)
+            let keys: Vec<(String, usize)> = (0..250)
                 .into_iter()
-                .map(|n| (format!("id{}", n), 2000 + n))
+                .map(|n| (format!("id{}", n), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)
                 .map(|n| BatchTest1a {
                     id: format!("id{}", n),
                     name: "bob".to_owned(),
-                    year: 2000 + n,
+                    year: 2000 + n as usize,
                 })
                 .collect();
 
@@ -239,7 +239,7 @@ mod tests {
             res.items.sort_by_key(|i| {
                 let mut id = i.id.to_string();
                 id.replace_range(0..2, "");
-                id.parse::<i32>().unwrap()
+                id.parse::<usize>().unwrap()
             });
 
             assert_eq!(
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_missing_all() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest1::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -270,7 +270,11 @@ mod tests {
             });
 
             let res: batch_get::BatchGetOutput<BatchTest1> = client
-                .batch_get(vec![("id300", 2300), ("id301", 2301), ("id302", 2302)])
+                .batch_get(vec![
+                    ("id300", 2300 as usize),
+                    ("id301", 2301 as usize),
+                    ("id302", 2302 as usize),
+                ])
                 .run()
                 .await
                 .unwrap();
@@ -300,7 +304,7 @@ mod tests {
     }
     #[test]
     fn test_batch_get_item_with_16mb_limitation() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = BatchTest2::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
