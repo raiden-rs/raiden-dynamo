@@ -34,6 +34,8 @@ pub(crate) fn expand_query(
                 input.table_name = self.table_name();
                 input.projection_expression = self.projection_expression.clone();
                 input.expression_attribute_names = self.attribute_names.clone();
+                // Enable consistent on default
+                input.consistent_read = Some(true);
                 #builder_name {
                     client: &self.client,
                     input,
@@ -49,8 +51,8 @@ pub(crate) fn expand_query(
                 self
             }
 
-            fn consistent(mut self) -> Self {
-                self.input.consistent_read = Some(true);
+            fn disable_consistent(mut self) -> Self {
+                self.input.consistent_read = Some(false);
                 self
             }
 

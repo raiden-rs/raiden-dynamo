@@ -61,6 +61,8 @@ pub(crate) fn expand_get_item(
                     let input = ::raiden::GetItemInput {
                         key: key_set,
                         table_name: self.table_name(),
+                        // Enable consistent on default
+                        consistent_read: Some(true),
                         projection_expression: self.projection_expression.clone(),
                         expression_attribute_names: self.attribute_names.clone(),
                         ..::raiden::GetItemInput::default()
@@ -88,8 +90,8 @@ pub(crate) fn expand_get_item(
         }
 
         impl<'a> #builder_name<'a> {
-            fn consistent(mut self) -> Self {
-                self.input.consistent_read = Some(true);
+            fn disable_consistent(mut self) -> Self {
+                self.input.consistent_read = Some(false);
                 self
             }
 

@@ -56,7 +56,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -84,7 +84,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("not_exist_key").consistent().run().await;
+            let res = client.get("not_exist_key").run().await;
             assert_eq!(
                 res,
                 Err(RaidenError::ResourceNotFound(
@@ -113,7 +113,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             assert_eq!(
                 res,
                 // Err(RaidenError::AttributeValueNotFoundError {
@@ -145,7 +145,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -179,7 +179,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -213,7 +213,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             let mut set = std::collections::HashSet::new();
             set.insert("Hello".to_owned());
             assert_eq!(
@@ -264,7 +264,7 @@ mod tests {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client.get("user_primary_key").consistent().run().await;
+            let res = client.get("user_primary_key").run().await;
             let mut set = std::collections::HashSet::new();
             set.insert(CustomSSItem("Hello".to_owned()));
             assert_eq!(
