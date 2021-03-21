@@ -1,38 +1,37 @@
+use proc_macro2::*;
 use quote::*;
+use syn::*;
 
 pub(crate) fn expand_get_item(
-    partition_key: &proc_macro2::Ident,
-    sort_key: &Option<proc_macro2::Ident>,
-    struct_name: &proc_macro2::Ident,
+    partition_key: &(Ident, Type),
+    sort_key: &Option<(Ident, Type)>,
+    struct_name: &Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
-) -> proc_macro2::TokenStream {
+) -> TokenStream {
     let trait_name = format_ident!("{}GetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}GetItemBuilder", struct_name);
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let (partition_key_ident, partition_key_type) = partition_key;
 
     let client_trait = if let Some(sort_key) = sort_key {
+        let (sort_key_ident, sort_key_type) = sort_key;
         quote! {
             pub trait #trait_name {
-                fn get<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send;
+                fn get(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn get<PK, SK>(&self, pk: PK, sk: SK) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send
-                {
+                fn get(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     let mut input = ::raiden::GetItemInput::default();
-                    let pk_attr: AttributeValue = pk.into_attr();
-                    let sk_attr: AttributeValue = sk.into_attr();
+                    let pk_attr: AttributeValue = pk.into().into_attr();
+                    let sk_attr: AttributeValue = sk.into().into_attr();
                     input.projection_expression = self.projection_expression.clone();
                     input.expression_attribute_names = self.attribute_names.clone();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                    key_set.insert(stringify!(#partition_key).to_owned(), pk_attr);
-                    key_set.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                    key_set.insert(stringify!(#partition_key_ident).to_owned(), pk_attr);
+                    key_set.insert(stringify!(#sort_key_ident).to_owned(), sk_attr);
                     input.key = key_set;
                     input.table_name = self.table_name();
                     #builder_name {
@@ -47,17 +46,14 @@ pub(crate) fn expand_get_item(
     } else {
         quote! {
             pub trait #trait_name {
-                fn get<K>(&self, key: K) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send;
+                fn get(&self, key: impl Into<#partition_key_type>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn get<K>(&self, key: K) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send
-                {
-                    let key_attr: AttributeValue = key.into_attr();
+                fn get(&self, key: impl Into<#partition_key_type>) -> #builder_name {
+                    let key_attr: AttributeValue = key.into().into_attr();
                     let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                    key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                    key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                     let input = ::raiden::GetItemInput {
                         key: key_set,
                         table_name: self.table_name(),

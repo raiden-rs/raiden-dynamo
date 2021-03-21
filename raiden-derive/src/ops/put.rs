@@ -1,13 +1,12 @@
 use crate::rename::*;
+use proc_macro2::*;
 use quote::*;
-use syn::*;
 
 pub(crate) fn expand_put_item(
-    _partition_key: &proc_macro2::Ident,
-    struct_name: &proc_macro2::Ident,
+    struct_name: &Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
-) -> proc_macro2::TokenStream {
+) -> TokenStream {
     let item_input_name = format_ident!("{}PutItemInput", struct_name);
     let item_input_builder_name = format_ident!("{}PutItemInputBuilder", struct_name);
     let item_output_name = format_ident!("{}PutItemOutput", struct_name);
@@ -244,9 +243,7 @@ pub struct PutItemInput {
 */
 
 #[allow(clippy::ptr_arg)]
-fn expand_default_type_variables(
-    idents: &Vec<Ident>,
-) -> impl Iterator<Item = proc_macro2::TokenStream> {
+fn expand_default_type_variables(idents: &Vec<Ident>) -> impl Iterator<Item = TokenStream> {
     idents.clone().into_iter().map(|_ident| {
         quote! { (), }
     })

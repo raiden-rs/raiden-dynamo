@@ -302,7 +302,7 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
 
-            let res = client.get("id1", 2003).run().await;
+            let res = client.get("id1", 2003 as usize).run().await;
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -371,7 +371,7 @@ mod tests {
     fn test_retry() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let mut client = User::client(Region::Custom {
+            let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });

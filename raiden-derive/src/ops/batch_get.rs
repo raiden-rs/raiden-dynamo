@@ -1,17 +1,21 @@
-use crate::rename::*;
+use proc_macro2::*;
 use quote::*;
+use syn::*;
+
+use crate::rename::*;
 
 pub(crate) fn expand_batch_get(
-    partition_key: &proc_macro2::Ident,
-    sort_key: &Option<proc_macro2::Ident>,
-    struct_name: &proc_macro2::Ident,
-    fields: &syn::FieldsNamed,
-    rename_all_type: crate::rename::RenameAllType,
+    partition_key: &(Ident, Type),
+    sort_key: &Option<(Ident, Type)>,
+    struct_name: &Ident,
+    fields: &FieldsNamed,
+    rename_all_type: RenameAllType,
 ) -> proc_macro2::TokenStream {
     let trait_name = format_ident!("{}BatchGetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}BatchGetItemBuilder", struct_name);
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let (partition_key_ident, partition_key_type) = partition_key;
 
     let builder_keys_type = if sort_key.is_none() {
         quote! { std::vec::Vec<::raiden::AttributeValue> }
@@ -51,17 +55,14 @@ pub(crate) fn expand_batch_get(
     let client_trait = if sort_key.is_none() {
         quote! {
             pub trait #trait_name {
-                fn batch_get<K>(&self, keys: std::vec::Vec<K>) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send;
+                fn batch_get(&self, keys: std::vec::Vec<impl Into<#partition_key_type>>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn batch_get<K>(&self, keys: std::vec::Vec<K>) -> #builder_name
-                    where K: ::raiden::IntoAttribute + std::marker::Send
-                {
+                fn batch_get(&self, keys: std::vec::Vec<impl Into<#partition_key_type>>) -> #builder_name {
                     let mut key_attrs = vec![];
                     for key in keys.into_iter() {
-                        key_attrs.push(key.into_attr());
+                        key_attrs.push(key.into().into_attr());
                     }
 
                     #builder_init
@@ -69,21 +70,17 @@ pub(crate) fn expand_batch_get(
             }
         }
     } else {
+        let (_, sort_key_type) = sort_key.clone().unwrap();
         quote! {
             pub trait #trait_name {
-                fn batch_get<PK, SK>(&self, keys: std::vec::Vec<(PK, SK)>) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send;
+                fn batch_get(&self, keys: std::vec::Vec<(impl Into<#partition_key_type>, impl Into<#sort_key_type>)>) -> #builder_name;
             }
 
             impl #trait_name for #client_name {
-                fn batch_get<PK, SK>(&self, keys: std::vec::Vec<(PK, SK)>) -> #builder_name
-                    where PK: ::raiden::IntoAttribute + std::marker::Send,
-                          SK: ::raiden::IntoAttribute + std::marker::Send
-                {
+                fn batch_get(&self, keys: std::vec::Vec<(impl Into<#partition_key_type>, impl Into<#sort_key_type>)>) -> #builder_name {
                     let mut key_attrs = vec![];
                     for (pk, sk) in keys.into_iter() {
-                        key_attrs.push((pk.into_attr(), sk.into_attr()));
+                        key_attrs.push((pk.into().into_attr(), sk.into().into_attr()));
                     }
 
                     #builder_init
@@ -93,11 +90,12 @@ pub(crate) fn expand_batch_get(
     };
 
     let convert_to_external_proc = if let Some(sort_key) = sort_key {
+        let (sort_key_ident, _sort_key_type) = sort_key;
         quote! {
             for (pk_attr, sk_attr) in keys.into_iter() {
                 let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
-                key_val.insert(stringify!(#partition_key).to_owned(), pk_attr);
-                key_val.insert(stringify!(#sort_key).to_owned(), sk_attr);
+                key_val.insert(stringify!(#partition_key_ident).to_owned(), pk_attr);
+                key_val.insert(stringify!(#sort_key_ident).to_owned(), sk_attr);
                 item.keys.push(key_val);
             }
         }
@@ -105,7 +103,7 @@ pub(crate) fn expand_batch_get(
         quote! {
             for key_attr in keys.into_iter() {
                 let mut key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = Default::default();
-                key_val.insert(stringify!(#partition_key).to_owned(), key_attr);
+                key_val.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 item.keys.push(key_val);
             }
         }

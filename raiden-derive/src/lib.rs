@@ -6,14 +6,14 @@ use syn::*;
 mod attribute;
 mod condition;
 mod finder;
+mod helpers;
+mod key;
 mod key_condition;
 mod ops;
 mod rename;
-mod helpers;
-mod sort_key;
 
-use std::str::FromStr;
 use crate::rename::*;
+use std::str::FromStr;
 
 #[proc_macro_derive(Raiden, attributes(raiden))]
 pub fn derive_raiden(input: TokenStream) -> TokenStream {
@@ -48,25 +48,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         _ => unimplemented!(),
     };
 
-    let partition_key = match finder::find_partition_key_field(&fields) {
-        Some(key) => {
-            // Rename partition key if renamed.
-            let renamed = finder::find_rename_value(&key.attrs);
-            if renamed.is_some() {
-                format_ident!("{}", renamed.unwrap())
-            } else if rename_all_type != rename::RenameAllType::None {
-                format_ident!(
-                    "{}",
-                    rename::rename(rename_all_type, key.ident.unwrap().to_string())
-                )
-            } else {
-                key.ident.unwrap()
-            }
-        }
-        None => panic!("Please specify partition key"),
-    };
-
-    let sort_key = sort_key::fetch_sort_key(&fields, rename_all_type);
+    let partition_key = key::fetch_partition_key(&fields, rename_all_type);
+    let sort_key = key::fetch_sort_key(&fields, rename_all_type);
 
     let table_name_field = format_ident!("table_name");
     let client_field = format_ident!("client");
@@ -104,7 +87,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         rename_all_type,
     );
 
-    let put_item = ops::expand_put_item(&partition_key, &struct_name, &fields, rename_all_type);
+    let put_item = ops::expand_put_item(&struct_name, &fields, rename_all_type);
 
     let update_item = ops::expand_update_item(
         &partition_key,

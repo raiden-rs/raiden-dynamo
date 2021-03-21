@@ -12,14 +12,14 @@ pub struct Test {
 }
 
 fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = Test::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
             name: "ap-northeast-1".into(),
         });
 
-        let res = client.delete("id1", 2003).run().await;
+        let res = client.delete("id1", 2003 as usize).run().await;
         dbg!(&res);
     }
     rt.block_on(example());

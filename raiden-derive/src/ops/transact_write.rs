@@ -1,23 +1,27 @@
-use crate::rename::*;
+use proc_macro2::*;
 use quote::*;
+use syn::*;
+
+use crate::rename::*;
 
 pub(crate) fn expand_transact_write(
-    struct_name: &proc_macro2::Ident,
-    partition_key: &proc_macro2::Ident,
-    _sort_key: &Option<proc_macro2::Ident>,
-    fields: &syn::FieldsNamed,
-    attr_enum_name: &proc_macro2::Ident,
-    rename_all_type: crate::rename::RenameAllType,
+    struct_name: &Ident,
+    partition_key: &(Ident, Type),
+    _sort_key: &Option<(Ident, Type)>, // TODO: Support sort key
+    fields: &FieldsNamed,
+    attr_enum_name: &Ident,
+    rename_all_type: RenameAllType,
     table_name: &str,
-) -> proc_macro2::TokenStream {
+) -> TokenStream {
     let item_input_name = format_ident!("{}PutItemInput", struct_name);
-    // let item_output_name = format_ident!("{}PutItemOutput", struct_name);
     let put_builder = format_ident!("{}TransactPutItemBuilder", struct_name);
     let update_builder = format_ident!("{}TransactUpdateItemBuilder", struct_name);
     let delete_builder = format_ident!("{}TransactDeleteItemBuilder", struct_name);
     let condition_check_builder = format_ident!("{}TransactConditionCheckBuilder", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
+    let (partition_key_ident, partition_key_type) = partition_key;
 
+    // let (sort_key_ident, sort_key_type) = sort_key;
     // let output_values = fields.named.iter().map(|f| {
     //     let ident = &f.ident.clone().unwrap();
     //     let renamed = crate::finder::find_rename_value(&f.attrs);
@@ -93,11 +97,11 @@ pub(crate) fn expand_transact_write(
             }
 
             // TODO: Support sort key
-            pub fn condition_check<K>(key: K) -> #condition_check_builder where K: ::raiden::IntoAttribute + std::marker::Send {
+            pub fn condition_check(key: impl Into<#partition_key_type>) -> #condition_check_builder {
                 let mut input = ::raiden::ConditionCheck::default();
-                let key_attr: AttributeValue = key.into_attr();
+                let key_attr: AttributeValue = key.into().into_attr();
                 let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
                 #condition_check_builder {
                     input,
@@ -109,11 +113,11 @@ pub(crate) fn expand_transact_write(
             }
 
             // TODO: Support sort key
-            pub fn delete<K>(key: K) -> #delete_builder where K: ::raiden::IntoAttribute + std::marker::Send {
+            pub fn delete(key: impl Into<#partition_key_type>) -> #delete_builder {
                 let mut input = ::raiden::Delete::default();
-                let key_attr: AttributeValue = key.into_attr();
+                let key_attr: AttributeValue = key.into().into_attr();
                 let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
                 #delete_builder {
                     input,
@@ -125,12 +129,12 @@ pub(crate) fn expand_transact_write(
             }
 
             // TODO: Support sort key
-            pub fn update<K>(key: K) -> #update_builder where K: ::raiden::IntoAttribute + std::marker::Send {
+            pub fn update(key: impl Into<#partition_key_type>) -> #update_builder {
                 let mut input = ::raiden::Update::default();
 
-                let key_attr: AttributeValue = key.into_attr();
+                let key_attr: AttributeValue = key.into().into_attr();
                 let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
-                key_set.insert(stringify!(#partition_key).to_owned(), key_attr);
+                key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
 
                 #update_builder {

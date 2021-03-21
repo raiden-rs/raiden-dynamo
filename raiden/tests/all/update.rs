@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn test_update() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_update_with_invalid_key_with_condition() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn test_update_with_unstored() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithUnStored::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_update_with_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UpdateTestData1::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -124,7 +124,7 @@ mod tests {
                 .set(UpdateTestData1::name())
                 .value("bob");
             let res = client
-                .update("id0", 36)
+                .update("id0", 36 as usize)
                 .set(set_expression)
                 .return_all_new()
                 .run()
@@ -151,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_update_with_only_attr() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptySetTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_update_empty_set_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptySetTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -198,7 +198,7 @@ mod tests {
 
     #[test]
     fn test_add_with_empty_hash_set() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptySetTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn test_update_delete_sset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UpdateDeleteTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -268,7 +268,7 @@ mod tests {
 
     #[test]
     fn test_update_add_sset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UpdateAddTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -298,7 +298,7 @@ mod tests {
 
     #[test]
     fn test_update_add_sset_to_empty() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UpdateAddTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_update_to_empty_string() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -354,7 +354,7 @@ mod tests {
 
     #[test]
     fn test_update_remove_sset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UpdateRemoveTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
