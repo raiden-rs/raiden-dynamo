@@ -18,6 +18,7 @@ impl Default for Policy {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<RetryPolicy> for Policy {
     fn into(self) -> RetryPolicy {
         match self {
