@@ -618,4 +618,20 @@ const put = (params) =>
     TableName: 'UpdateRemoveTestData0',
     Item: { id: { S: 'id2' } },
   });
+
+  await createTable({
+    TableName: 'UpdateWithContainsInSetCondition',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+  });
+
+  await put({
+    TableName: 'UpdateWithContainsInSetCondition',
+    Item: {
+      id: { S: 'id0' },
+      name: { S: 'bokuweb' },
+      sset: { SS: ['Hello'] },
+    },
+  });
 })();

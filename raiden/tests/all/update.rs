@@ -390,4 +390,72 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct UpdateWithContainsInSetCondition {
+        #[raiden(partition_key)]
+        id: String,
+        sset: std::collections::HashSet<String>,
+        name: String,
+    }
+
+    #[test]
+    fn should_update_with_contains_condition_in_sset() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let set_expression = UpdateWithContainsInSetCondition::update_expression()
+                .set(UpdateWithContainsInSetCondition::name())
+                .value("Changed");
+
+            let cond = UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "Hello".to_string(),
+            );
+
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .condition(cond)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn should_not_update_with_contains_condition_in_sset() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let set_expression = UpdateWithContainsInSetCondition::update_expression()
+                .set(UpdateWithContainsInSetCondition::name())
+                .value("Changed");
+
+            let cond = UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "World".to_string(),
+            );
+
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .condition(cond)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.is_err(), true);
+        }
+        rt.block_on(example());
+    }
 }

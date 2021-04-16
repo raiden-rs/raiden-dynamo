@@ -41,6 +41,7 @@ pub type Placeholder = String;
 pub use safe_builder::Builder;
 
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum AttributeType {
     S,    // String
     SS,   // String Set
