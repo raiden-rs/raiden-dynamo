@@ -634,4 +634,53 @@ const put = (params) =>
       sset: { SS: ['Hello'] },
     },
   });
+
+  await createTable({
+    TableName: 'QueryLargeDataTest',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [
+      { AttributeName: 'id', AttributeType: 'S' },
+      { AttributeName: 'ref_id', AttributeType: 'S' },
+    ],
+    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
+    GlobalSecondaryIndexes: [
+      {
+        IndexName: 'testGSI',
+        KeySchema: [{ AttributeName: 'ref_id', KeyType: 'HASH' }],
+        Projection: {
+          ProjectionType: 'ALL',
+        },
+        ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
+      },
+    ],
+  });
+
+  for (let i = 0; i < 100; i++) {
+    await put({
+      TableName: 'QueryLargeDataTest',
+      Item: {
+        id: { S: `id${i}` },
+        ref_id: { S: 'ref' },
+        name: { S: [...new Array(100000)].map((_) => 'test').join('') }, // 400KB
+      },
+    });
+  }
+
+  await createTable({
+    TableName: 'ScanLargeDataTest',
+    KeySchema: [{ AttributeName: 'id', KeyType: 'HASH' }],
+    AttributeDefinitions: [{ AttributeName: 'id', AttributeType: 'S' }],
+    ProvisionedThroughput: { ReadCapacityUnits: 50, WriteCapacityUnits: 50 },
+  });
+
+  for (let i = 0; i < 100; i++) {
+    await put({
+      TableName: 'ScanLargeDataTest',
+      Item: {
+        id: { S: `id${i}` },
+        ref_id: { S: 'ref' },
+        name: { S: [...new Array(100000)].map((_) => 'test').join('') }, // 400KB
+      },
+    });
+  }
 })();

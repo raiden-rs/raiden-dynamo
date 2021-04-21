@@ -329,4 +329,71 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "QueryLargeDataTest")]
+    pub struct QueryLargeDataTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        name: String,
+    }
+
+    #[test]
+    fn should_be_obtainable_when_the_size_is_1mb_or_larger() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = QueryLargeDataTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
+            let res = client
+                .query()
+                .index("testGSI")
+                .key_condition(cond)
+                .run()
+                .await;
+
+            assert_eq!(res.unwrap().items.len(), 100)
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn should_be_obtainable_specified_limit_items_when_the_size_is_1mb_or_larger() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = QueryLargeDataTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
+            let res = client
+                .query()
+                .index("testGSI")
+                .key_condition(cond)
+                .limit(40)
+                .run()
+                .await
+                .unwrap();
+
+            assert_eq!(res.items.len(), 40);
+
+            let token = res.next_token;
+
+            let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
+            let res = client
+                .query()
+                .index("testGSI")
+                .key_condition(cond)
+                .next_token(token.unwrap())
+                .run()
+                .await
+                .unwrap();
+
+            assert_eq!(res.items.len(), 60);
+        }
+        rt.block_on(example());
+    }
 }
