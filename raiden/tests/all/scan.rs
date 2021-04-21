@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_scan() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = ScanTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -29,14 +29,12 @@ mod tests {
                 scan::ScanOutput {
                     consumed_capacity: None,
                     count: Some(1),
-                    items: vec![
-                        ScanTestData0 {
-                            id: "scanId0".to_owned(),
-                            name: "scanAlice".to_owned(),
-                            year: 2001,
-                            num: 2000
-                        }
-                    ],
+                    items: vec![ScanTestData0 {
+                        id: "scanId0".to_owned(),
+                        name: "scanAlice".to_owned(),
+                        year: 2001,
+                        num: 2000
+                    }],
                     last_evaluated_key: None,
                     scanned_count: Some(1),
                 }
@@ -56,17 +54,13 @@ mod tests {
 
     #[test]
     fn test_scan_limit_1() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client
-                .scan()
-                .limit(1)
-                .run()
-                .await;
+            let res = client.scan().limit(1).run().await;
             assert_eq!(res.unwrap().items.len(), 1);
         }
         rt.block_on(example());
@@ -74,17 +68,13 @@ mod tests {
 
     #[test]
     fn test_scan_limit_5() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client
-                .scan()
-                .limit(5)
-                .run()
-                .await;
+            let res = client.scan().limit(5).run().await;
             assert_eq!(res.unwrap().items.len(), 5);
         }
         rt.block_on(example());
@@ -92,16 +82,13 @@ mod tests {
 
     #[test]
     fn test_scan_no_limit() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client
-                .scan()
-                .run()
-                .await;
+            let res = client.scan().run().await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
         rt.block_on(example());
@@ -109,17 +96,13 @@ mod tests {
 
     #[test]
     fn test_scan_over_limit() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Test::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client
-                .scan()
-                .limit(11)
-                .run()
-                .await;
+            let res = client.scan().limit(11).run().await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
         rt.block_on(example());
@@ -137,17 +120,13 @@ mod tests {
 
     #[test]
     fn test_scan_with_renamed() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Project::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
-            let res = client
-                .scan()
-                .limit(11)
-                .run()
-                .await;
+            let res = client.scan().limit(11).run().await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
         rt.block_on(example());
@@ -163,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_scan_for_projection_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = ScanTestData0a::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -176,16 +155,37 @@ mod tests {
                 scan::ScanOutput {
                     consumed_capacity: None,
                     count: Some(1),
-                    items: vec![
-                        ScanTestData0a {
-                            id: "scanId0".to_owned(),
-                            name: "scanAlice".to_owned(),
-                        }
-                    ],
+                    items: vec![ScanTestData0a {
+                        id: "scanId0".to_owned(),
+                        name: "scanAlice".to_owned(),
+                    }],
                     last_evaluated_key: None,
                     scanned_count: Some(1),
                 }
             )
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden, Debug, PartialEq)]
+    #[raiden(table_name = "ScanLargeDataTest")]
+    pub struct ScanLargeDataTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        name: String,
+    }
+
+    #[test]
+    fn should_be_scan_when_the_size_is_1mb_or_larger() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = ScanLargeDataTest::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.scan().run().await;
+            assert_eq!(res.unwrap().items.len(), 100)
         }
         rt.block_on(example());
     }

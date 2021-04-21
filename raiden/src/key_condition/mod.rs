@@ -1,5 +1,6 @@
 pub type KeyConditionString = String;
 
+#[derive(Debug, Clone)]
 pub enum KeyConditionConjunction {
     And(
         KeyConditionString,
@@ -41,12 +42,14 @@ pub struct KeyCondition<T> {
     pub _token: std::marker::PhantomData<T>,
 }
 
+#[derive(Debug, Clone)]
 pub struct KeyConditionFilledOrWaitConjunction<T> {
     attr: String,
     cond: KeyConditionTypes,
     _token: std::marker::PhantomData<T>,
 }
 
+#[derive(Debug, Clone)]
 pub struct KeyConditionFilled<T> {
     attr: String,
     cond: KeyConditionTypes,
