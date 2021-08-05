@@ -3,9 +3,9 @@ use raiden::*;
 #[derive(Debug, Clone, PartialEq)]
 pub struct CustomId(String);
 
-impl Into<CustomId> for String {
-    fn into(self) -> CustomId {
-        CustomId(self)
+impl From<String> for CustomId {
+    fn from(v: String) -> CustomId {
+        CustomId(v)
     }
 }
 
@@ -35,7 +35,7 @@ pub struct User {
 }
 
 fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = User::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),

@@ -50,7 +50,7 @@ pub(crate) fn find_eq_string_from(attr: &syn::Attribute, name: &str) -> Option<S
 
 pub(crate) fn find_table_name(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if let Some(lit) = find_eq_string_from(&attr, "table_name") {
+        if let Some(lit) = find_eq_string_from(attr, "table_name") {
             return Some(lit);
         }
     }
@@ -59,7 +59,7 @@ pub(crate) fn find_table_name(attrs: &[syn::Attribute]) -> Option<String> {
 
 pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if let Some(lit) = find_eq_string_from(&attr, "rename_all") {
+        if let Some(lit) = find_eq_string_from(attr, "rename_all") {
             return Some(lit);
         }
     }
@@ -68,7 +68,7 @@ pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
 
 pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if let Some(lit) = find_eq_string_from(&attr, "rename") {
+        if let Some(lit) = find_eq_string_from(attr, "rename") {
             return Some(lit);
         }
     }
@@ -78,7 +78,7 @@ pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
     !attrs.is_empty()
         && attrs.iter().any(|attr| {
-            attr.path.segments[0].ident == "raiden" && find_unary_attr(&attr, name).is_some()
+            attr.path.segments[0].ident == "raiden" && find_unary_attr(attr, name).is_some()
         })
 }
 

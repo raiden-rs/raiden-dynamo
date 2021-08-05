@@ -12,7 +12,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.54.0
           override: true
       - name: Cache cargo registry
         uses: actions/cache@v2

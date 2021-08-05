@@ -9,7 +9,7 @@ pub fn fetch_partition_key(
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
 ) -> (Ident, Type) {
-    match find_partition_key_field(&fields) {
+    match find_partition_key_field(fields) {
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = find_rename_value(&key.attrs);
@@ -33,7 +33,7 @@ pub fn fetch_sort_key(
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
 ) -> Option<(Ident, Type)> {
-    match find_sort_key_field(&fields) {
+    match find_sort_key_field(fields) {
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = find_rename_value(&key.attrs);

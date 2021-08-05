@@ -10,7 +10,7 @@ pub struct Test {
 }
 
 fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = Test::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
