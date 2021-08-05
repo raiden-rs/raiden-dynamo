@@ -11,7 +11,7 @@ pub struct QueryTestData0 {
 }
 
 fn main() {
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = QueryTestData0::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),

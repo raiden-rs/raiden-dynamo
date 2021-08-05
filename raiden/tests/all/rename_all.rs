@@ -18,7 +18,7 @@ mod tests {
 
     #[test]
     fn test_rename_all_camelcase_get() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = RenameAllCamelCaseTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -54,7 +54,7 @@ mod tests {
 
     #[test]
     fn test_rename_all_pascalcase_get() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = RenameAllPascalCaseTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),

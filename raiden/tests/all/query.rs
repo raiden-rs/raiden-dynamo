@@ -86,6 +86,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "LastEvaluateKeyData")]
+    #[allow(dead_code)]
     pub struct Test {
         #[raiden(partition_key)]
         id: String,
@@ -213,6 +214,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "Project")]
     #[raiden(rename_all = "camelCase")]
+    #[allow(dead_code)]
     pub struct Project {
         #[raiden(partition_key)]
         id: String,

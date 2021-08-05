@@ -23,7 +23,7 @@ impl RetryStrategy for MyRetryStrategy {
 fn main() {
     std::env::set_var("RUST_LOG", "info");
     pretty_env_logger::init();
-    let mut rt = tokio::runtime::Runtime::new().unwrap();
+    let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = User::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),

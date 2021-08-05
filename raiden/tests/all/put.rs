@@ -72,7 +72,7 @@ mod tests {
 
     #[test]
     fn test_put_user() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -82,15 +82,14 @@ mod tests {
                 id: "mock_id".to_owned(),
                 name: "bokuweb".to_owned(),
             };
-            let res = client.put(user).run().await;
-            dbg!(res);
+            let _res = client.put(user).run().await;
         }
         rt.block_on(example());
     }
 
     #[test]
     fn test_put_user_with_builder() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -100,8 +99,7 @@ mod tests {
                 .id("mock_id".to_owned())
                 .name("bokuweb".to_owned())
                 .build();
-            let res = client.put(user).run().await;
-            dbg!(res);
+            let _res = client.put(user).run().await;
         }
         rt.block_on(example());
     }
@@ -115,7 +113,7 @@ mod tests {
 
     #[test]
     fn test_put_user_eq_op_condition_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -134,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -158,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_put_user_id_not_exists_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -182,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_put_user_id_exists_expression() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = User::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -201,7 +199,7 @@ mod tests {
 
     #[test]
     fn test_put_user_with_uuid() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserWithUuid::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -229,7 +227,7 @@ mod tests {
 
     #[test]
     fn test_put_user_with_number_vec() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserVecTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -258,7 +256,7 @@ mod tests {
 
     #[test]
     fn test_put_user_with_number_set() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserSetTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -281,13 +279,13 @@ mod tests {
     pub struct Custom {}
 
     impl raiden::IntoStringSetItem for Custom {
-        fn into_ss_item(self: Self) -> String {
+        fn into_ss_item(self) -> String {
             "test".to_owned()
         }
     }
 
     impl raiden::FromStringSetItem for Custom {
-        fn from_ss_item(value: String) -> Result<Self, ConversionError> {
+        fn from_ss_item(_value: String) -> Result<Self, ConversionError> {
             Ok(Custom {})
         }
     }
@@ -305,7 +303,7 @@ mod tests {
 
     #[test]
     fn test_put_user_with_user_defined_set() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserSetTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -336,7 +334,7 @@ mod tests {
 
     #[test]
     fn test_put_user_with_empty_set() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = UserEmptySetTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -346,7 +344,6 @@ mod tests {
 
             let item = UserEmptySetTest::put_item_builder().set(set).build();
             let res = client.put(item).run().await;
-            dbg!(&res);
             assert_eq!(res.is_ok(), true);
         }
         rt.block_on(example());
@@ -362,7 +359,7 @@ mod tests {
 
     #[test]
     fn test_put_with_empty_string() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptyStringTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -386,7 +383,7 @@ mod tests {
 
     #[test]
     fn test_put_with_empty_sset() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = EmptyPutTestData0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
