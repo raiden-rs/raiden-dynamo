@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn test_rename_get_item() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = RenameTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -59,7 +59,7 @@ mod tests {
 
     #[test]
     fn test_rename_key_get_item() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = RenameKeyTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -84,7 +84,7 @@ mod tests {
 
     #[test]
     fn test_rename_query() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = RenameTest::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),

@@ -124,7 +124,7 @@ mod tests {
                 .set(UpdateTestData1::name())
                 .value("bob");
             let res = client
-                .update("id0", 36 as usize)
+                .update("id0", 36_usize)
                 .set(set_expression)
                 .return_all_new()
                 .run()

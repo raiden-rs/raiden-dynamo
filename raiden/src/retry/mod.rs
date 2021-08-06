@@ -77,7 +77,16 @@ pub struct DefaultRetryStrategy;
 impl RetryStrategy for DefaultRetryStrategy {
     fn should_retry(&self, error: &RaidenError, count: usize) -> bool {
         log::debug!("request count is {}", count);
-        matches!(error, RaidenError::InternalServerError(_) | RaidenError::ProvisionedThroughputExceeded(_) | RaidenError::RequestLimitExceeded(_))
+        matches!(
+            error,
+            RaidenError::InternalServerError(_)
+                | RaidenError::ProvisionedThroughputExceeded(_)
+                | RaidenError::RequestLimitExceeded(_)
+                // INFO: For now, return true, when unknown error detected.
+                //       This is because, sometimes throttlingException is included in unknown error.
+                //       please make more rigorous classification of errors.
+                | RaidenError::Unknown(_)
+        )
     }
 
     fn policy(&self) -> Policy {

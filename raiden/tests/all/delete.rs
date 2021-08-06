@@ -15,7 +15,7 @@ mod tests {
 
     #[test]
     fn test_delete_item() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = DeleteTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -30,7 +30,7 @@ mod tests {
 
     #[test]
     fn test_delete_item_with_unstored_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = DeleteTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_delete_item_with_condition() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = DeleteTest0::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -73,14 +73,14 @@ mod tests {
 
     #[test]
     fn test_delete_item_with_sort_key() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = DeleteTest1::client(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
                 name: "ap-northeast-1".into(),
             });
 
-            let res = client.delete("id0", 1999 as usize).run().await;
+            let res = client.delete("id0", 1999_usize).run().await;
             assert_eq!(res.is_ok(), true);
         }
         rt.block_on(example());

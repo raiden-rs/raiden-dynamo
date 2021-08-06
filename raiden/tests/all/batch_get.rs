@@ -271,9 +271,9 @@ mod tests {
 
             let res: batch_get::BatchGetOutput<BatchTest1> = client
                 .batch_get(vec![
-                    ("id300", 2300 as usize),
-                    ("id301", 2301 as usize),
-                    ("id302", 2302 as usize),
+                    ("id300", 2300_usize),
+                    ("id301", 2301_usize),
+                    ("id302", 2302_usize),
                 ])
                 .run()
                 .await

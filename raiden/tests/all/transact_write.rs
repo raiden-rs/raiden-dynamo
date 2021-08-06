@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_minimum_transact_write() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -45,7 +45,7 @@ mod tests {
 
     #[test]
     fn test_transact_write_put_and_update() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -71,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_transact_write_with_prefix_suffix() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_retry() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_transact_delete_and_put() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn should_succeed_to_put_when_condition_check_ok() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
@@ -243,7 +243,7 @@ mod tests {
 
     #[test]
     fn should_fail_to_put_when_condition_check_ng() {
-        let mut rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let tx = ::raiden::WriteTx::new(Region::Custom {
                 endpoint: "http://localhost:8000".into(),
