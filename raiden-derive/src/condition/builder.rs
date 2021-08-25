@@ -100,7 +100,7 @@ pub fn expand_condition_builder(
         }
 
         impl #wait_attr_op_name {
-            fn eq_attr(self, attr: #attr_enum_name) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
+            pub fn eq_attr(self, attr: #attr_enum_name) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
                 let attr = ::raiden::AttrOrPlaceholder::Attr(attr.into_attr_name());
                 let cond = ::raiden::condition::Cond::Cmp(::raiden::condition::ConditionComparisonExpression::Eq(self.attr_or_placeholder, self.attr_value, attr, None));
                 ConditionFilledOrWaitConjunction {
@@ -111,7 +111,7 @@ pub fn expand_condition_builder(
 
             }
 
-            fn eq_value(self, value: impl ::raiden::IntoAttribute) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
+            pub fn eq_value(self, value: impl ::raiden::IntoAttribute) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
                 let placeholder = ::raiden::AttrOrPlaceholder::Placeholder(format!("value{}", ::raiden::generate_value_id()));
                 let cond = ::raiden::condition::Cond::Cmp(::raiden::condition::ConditionComparisonExpression::Eq(self.attr_or_placeholder, self.attr_value, placeholder, Some(value.into_attr())));
                 ConditionFilledOrWaitConjunction {

@@ -44,37 +44,37 @@ pub(crate) fn expand_query(
         }
 
         impl<'a> #builder_name<'a> {
-            fn index(mut self, index: impl Into<String>) -> Self {
+            pub fn index(mut self, index: impl Into<String>) -> Self {
                 self.input.index_name = Some(index.into());
                 self
             }
 
-            fn consistent(mut self) -> Self {
+            pub fn consistent(mut self) -> Self {
                 self.input.consistent_read = Some(true);
                 self
             }
 
-            fn next_token(mut self, token: ::raiden::NextToken) -> Self {
+            pub fn next_token(mut self, token: ::raiden::NextToken) -> Self {
                 self.next_token = Some(token);
                 self
             }
 
-            fn desc(mut self) -> Self {
+            pub fn desc(mut self) -> Self {
                 self.input.scan_index_forward = Some(false);
                 self
             }
 
-            fn asc(mut self) -> Self {
+            pub fn asc(mut self) -> Self {
                 self.input.scan_index_forward = Some(true);
                 self
             }
 
-            fn limit(mut self, limit: usize) -> Self {
+            pub fn limit(mut self, limit: usize) -> Self {
                 self.limit = Some(limit as i64);
                 self
             }
 
-            fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<#key_condition_token_name>) -> Self {
+            pub fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<#key_condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_values.is_empty() {
                     self.input.expression_attribute_values = Some(attr_values);
@@ -83,7 +83,7 @@ pub(crate) fn expand_query(
                 self
             }
 
-            async fn run(mut self) -> Result<::raiden::query::QueryOutput<#struct_name>, ::raiden::RaidenError> {
+            pub async fn run(mut self) -> Result<::raiden::query::QueryOutput<#struct_name>, ::raiden::RaidenError> {
                 if let Some(token) = self.next_token {
                     self.input.exclusive_start_key = Some(token.into_attr_values()?);
                 }

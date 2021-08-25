@@ -123,7 +123,7 @@ pub(crate) fn expand_batch_get(
         impl<'a> #builder_name<'a> {
 
             #![allow(clippy::field_reassign_with_default)]
-            async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
+            pub async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
 

@@ -40,27 +40,27 @@ pub(crate) fn expand_scan(
         }
 
         impl<'a> #builder_name<'a> {
-            fn index(mut self, index: impl Into<String>) -> Self {
+            pub fn index(mut self, index: impl Into<String>) -> Self {
                 self.input.index_name = Some(index.into());
                 self
             }
 
-            fn consistent(mut self) -> Self {
+            pub fn consistent(mut self) -> Self {
                 self.input.consistent_read = Some(true);
                 self
             }
 
-            fn next_token(mut self, token: ::raiden::NextToken) -> Self {
+            pub fn next_token(mut self, token: ::raiden::NextToken) -> Self {
                 self.next_token = Some(token);
                 self
             }
 
-            fn limit(mut self, limit: usize) -> Self {
+            pub fn limit(mut self, limit: usize) -> Self {
                 self.limit = Some(limit as i64);
                 self
             }
 
-            async fn run(mut self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
+            pub async fn run(mut self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
                 if let Some(token) = self.next_token {
                     self.input.exclusive_start_key = Some(token.into_attr_values()?);
                 }

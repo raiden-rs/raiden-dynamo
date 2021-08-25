@@ -168,17 +168,17 @@ pub(crate) fn expand_transact_write(
 
         impl #put_builder {
 
-            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_prefix(mut self, s: impl Into<String>) -> Self {
                 self.table_prefix = s.into();
                 self
             }
 
-            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_suffix(mut self, s: impl Into<String>) -> Self {
                 self.table_suffix = s.into();
                 self
             }
 
-            fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
                     self.input.expression_attribute_names = Some(attr_names);
@@ -300,12 +300,12 @@ pub(crate) fn expand_transact_write(
 
         impl #update_builder {
 
-            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_prefix(mut self, s: impl Into<String>) -> Self {
                 self.table_prefix = s.into();
                 self
             }
 
-            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_suffix(mut self, s: impl Into<String>) -> Self {
                 self.table_suffix = s.into();
                 self
             }
@@ -359,17 +359,17 @@ pub(crate) fn expand_transact_write(
         }
 
         impl #delete_builder {
-            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_prefix(mut self, s: impl Into<String>) -> Self {
                 self.table_prefix = s.into();
                 self
             }
 
-            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_suffix(mut self, s: impl Into<String>) -> Self {
                 self.table_suffix = s.into();
                 self
             }
 
-            fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
                     self.input.expression_attribute_names = Some(attr_names);
@@ -398,17 +398,17 @@ pub(crate) fn expand_transact_write(
         }
 
         impl #condition_check_builder {
-            fn table_prefix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_prefix(mut self, s: impl Into<String>) -> Self {
                 self.table_prefix = s.into();
                 self
             }
 
-            fn table_suffix(mut self, s: impl Into<String>) -> Self {
+            pub fn table_suffix(mut self, s: impl Into<String>) -> Self {
                 self.table_suffix = s.into();
                 self
             }
 
-            fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
                     self.input.expression_attribute_names = Some(attr_names);
