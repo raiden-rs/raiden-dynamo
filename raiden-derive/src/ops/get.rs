@@ -84,12 +84,12 @@ pub(crate) fn expand_get_item(
         }
 
         impl<'a> #builder_name<'a> {
-            fn consistent(mut self) -> Self {
+            pub fn consistent(mut self) -> Self {
                 self.input.consistent_read = Some(true);
                 self
             }
 
-            async fn run(self) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
+            pub async fn run(self) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
                 let policy: ::raiden::RetryPolicy = self.policy.into();
                 let client = self.client;
                 let input = self.input;

@@ -166,12 +166,12 @@ pub(crate) fn expand_put_item(
 
         impl<'a> #builder_name<'a> {
 
-            fn raw_input(mut self, input: ::raiden::PutItemInput) -> Self {
+            pub fn raw_input(mut self, input: ::raiden::PutItemInput) -> Self {
                 self.input = input;
                 self
             }
 
-            fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
+            pub fn condition(mut self, cond: impl ::raiden::condition::ConditionBuilder<#condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_names.is_empty() {
                     self.input.expression_attribute_names = Some(attr_names);
@@ -183,7 +183,7 @@ pub(crate) fn expand_put_item(
                 self
             }
 
-            async fn run(self) -> Result<::raiden::put::PutOutput<#item_output_name>, ::raiden::RaidenError> {
+            pub async fn run(self) -> Result<::raiden::put::PutOutput<#item_output_name>, ::raiden::RaidenError> {
                 let res = self.client.put_item(self.input).await?;
                 Ok(::raiden::put::PutOutput {
                     item: self.item,
