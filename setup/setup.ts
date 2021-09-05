@@ -1,4 +1,4 @@
-import { DynamoDBClient } from "https://cdn.skypack.dev/@aws-sdk/client-dynamodb@3.22.0?dts";
+import { DynamoDBClient } from "./deps.ts";
 import { createTableAndPutItems, getCredFromEnv } from "./dynamo_util.ts";
 import { user } from "./fixtures/user.ts";
 import { floatTest } from "./fixtures/float_test.ts";

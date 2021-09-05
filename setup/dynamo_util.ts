@@ -1,15 +1,11 @@
 import {
-  AttributeDefinition,
   AttributeValue,
   CreateTableCommand,
   CreateTableCommandInput,
   DynamoDBClient,
-  GlobalSecondaryIndex,
-  KeySchemaElement,
-  ProvisionedThroughput,
   PutItemCommand,
   PutItemCommandInput,
-} from "https://cdn.skypack.dev/@aws-sdk/client-dynamodb@3.22.0?dts";
+} from "./deps.ts";
 
 export type CreateAndPut = {
   table: CreateTableCommandInput;
