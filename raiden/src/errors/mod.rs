@@ -117,24 +117,24 @@ impl From<RusotoError<QueryError>> for RaidenError {
 }
 
 impl From<RusotoError<ScanError>> for RaidenError {
-  fn from(error: RusotoError<ScanError>) -> Self {
-      match error {
-          RusotoError::Service(error) => match error {
-              ScanError::InternalServerError(msg) => RaidenError::InternalServerError(msg),
-              ScanError::ProvisionedThroughputExceeded(msg) => {
-                  RaidenError::ProvisionedThroughputExceeded(msg)
-              }
-              ScanError::RequestLimitExceeded(msg) => RaidenError::RequestLimitExceeded(msg),
-              ScanError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
-          },
-          RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
-          RusotoError::Credentials(e) => RaidenError::Credentials(e),
-          RusotoError::Validation(msg) => RaidenError::Validation(msg),
-          RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
-          RusotoError::Unknown(res) => RaidenError::Unknown(res),
-          RusotoError::Blocking => RaidenError::Blocking,
-      }
-  }
+    fn from(error: RusotoError<ScanError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                ScanError::InternalServerError(msg) => RaidenError::InternalServerError(msg),
+                ScanError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                ScanError::RequestLimitExceeded(msg) => RaidenError::RequestLimitExceeded(msg),
+                ScanError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
+            },
+            RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
+            RusotoError::Credentials(e) => RaidenError::Credentials(e),
+            RusotoError::Validation(msg) => RaidenError::Validation(msg),
+            RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
+            RusotoError::Unknown(res) => RaidenError::Unknown(res),
+            RusotoError::Blocking => RaidenError::Blocking,
+        }
+    }
 }
 
 impl From<RusotoError<PutItemError>> for RaidenError {

@@ -19,7 +19,12 @@ fn main() {
         let set_expression = Example::update_expression()
             .set(Example::name())
             .value("updated!!");
-        let res = client.update("id0").set(set_expression).run().await.unwrap();
+        let res = client
+            .update("id0")
+            .set(set_expression)
+            .run()
+            .await
+            .unwrap();
         dbg!(res.item);
     }
     rt.block_on(example());
