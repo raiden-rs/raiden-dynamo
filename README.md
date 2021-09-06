@@ -74,19 +74,17 @@ async fn main() {
 ### Requirements
 
 - Rust
-- Node.js
-- yarn
+- Deno (1.13.2+)
 - GNU Make
 - Docker Engine
 
 ### Setup
 
 ```
-cd setup
-yarn install
-cd ..
 make dynamo
 ```
+
+This starts up DynamoDB on Docker container, and then arranges test fixtures.
 
 ### Test
 
