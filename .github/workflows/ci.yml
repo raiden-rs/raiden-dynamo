@@ -24,8 +24,13 @@ jobs:
         with:
           path: ~/.cargo/git
           key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install clippy
-        run: rustup component add clippy
+      - name: Install clippy and rustfmt
+        run: rustup component add clippy rustfmt
+      - name: Run rustfmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
       - name: Run clippy
         uses: actions-rs/cargo@v1
         with:

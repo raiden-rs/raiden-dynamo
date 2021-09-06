@@ -158,9 +158,7 @@ mod tests {
 
     #[test]
     fn test_cmp_eq_attr_attr_condition() {
-        let cond = User::condition()
-            .attr(User::name())
-            .eq_attr(User::name());
+        let cond = User::condition().attr(User::name()).eq_attr(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
@@ -172,9 +170,7 @@ mod tests {
     #[test]
     fn test_cmp_eq_value_attr_condition() {
         reset_value_id();
-        let cond = User::condition()
-            .value("bokuweb")
-            .eq_attr(User::name());
+        let cond = User::condition().value("bokuweb").eq_attr(User::name());
         let (condition_expression, attribute_names, attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();

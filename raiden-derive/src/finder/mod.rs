@@ -116,9 +116,7 @@ pub(crate) fn is_option(ty: &syn::Type) -> bool {
         syn::Type::Path(syn::TypePath {
             path: syn::Path { segments, .. },
             ..
-        }) => {
-            segments.iter().any(|s| s.ident == "Option")
-        }
+        }) => segments.iter().any(|s| s.ident == "Option"),
         _ => false,
     }
 }
