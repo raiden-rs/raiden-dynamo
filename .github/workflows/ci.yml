@@ -46,4 +46,4 @@ jobs:
           port: 8000
           cors: "*"
       - name: test
-        run: make test
+        run: AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy make test
