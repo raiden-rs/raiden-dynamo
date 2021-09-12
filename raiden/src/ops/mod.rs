@@ -1,3 +1,4 @@
+pub mod batch_delete;
 pub mod batch_get;
 pub mod get;
 pub mod put;
