@@ -100,6 +100,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
     let delete_item = ops::expand_delete_item(&partition_key, &sort_key, &struct_name);
 
+    let batch_delete = ops::expand_batch_delete(&partition_key, &sort_key, &struct_name);
+
     let attr_names =
         attribute::expand_attr_names(&attr_enum_name, &fields, rename_all_type, &struct_name);
 
@@ -163,6 +165,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         #update_item
 
         #delete_item
+
+        #batch_delete
 
         #transact_write
 

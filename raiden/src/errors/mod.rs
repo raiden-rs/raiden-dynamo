@@ -74,6 +74,34 @@ impl From<RusotoError<BatchGetItemError>> for RaidenError {
     }
 }
 
+impl From<RusotoError<BatchWriteItemError>> for RaidenError {
+    fn from(error: RusotoError<BatchWriteItemError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                BatchWriteItemError::InternalServerError(msg) => {
+                    RaidenError::InternalServerError(msg)
+                }
+                BatchWriteItemError::ItemCollectionSizeLimitExceeded(msg) => {
+                    RaidenError::ItemCollectionSizeLimitExceeded(msg)
+                }
+                BatchWriteItemError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                BatchWriteItemError::RequestLimitExceeded(msg) => {
+                    RaidenError::RequestLimitExceeded(msg)
+                }
+                BatchWriteItemError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
+            },
+            RusotoError::HttpDispatch(e) => RaidenError::HttpDispatch(e),
+            RusotoError::Credentials(e) => RaidenError::Credentials(e),
+            RusotoError::Validation(msg) => RaidenError::Validation(msg),
+            RusotoError::ParseError(msg) => RaidenError::ParseError(msg),
+            RusotoError::Unknown(res) => RaidenError::Unknown(res),
+            RusotoError::Blocking => RaidenError::Blocking,
+        }
+    }
+}
+
 impl From<RusotoError<GetItemError>> for RaidenError {
     fn from(error: RusotoError<GetItemError>) -> Self {
         match error {
