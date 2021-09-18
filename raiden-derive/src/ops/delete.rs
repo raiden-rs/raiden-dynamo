@@ -23,9 +23,9 @@ pub(crate) fn expand_delete_item(
             impl #trait_name for #client_name {
                 fn delete(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     let mut input = ::raiden::DeleteItemInput::default();
-                    let pk_attr: AttributeValue = pk.into().into_attr();
-                    let sk_attr: AttributeValue = sk.into().into_attr();
-                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    let pk_attr: ::raiden::AttributeValue = pk.into().into_attr();
+                    let sk_attr: ::raiden::AttributeValue = sk.into().into_attr();
+                    let mut key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key_ident).to_owned(), pk_attr);
                     key_set.insert(stringify!(#sort_key_ident).to_owned(), sk_attr);
                     input.key = key_set;
@@ -46,8 +46,8 @@ pub(crate) fn expand_delete_item(
             impl #trait_name for #client_name {
                 fn delete(&self, key: impl Into<#partition_key_type>) -> #builder_name {
                     let mut input = ::raiden::DeleteItemInput::default();
-                    let key_attr: AttributeValue = key.into().into_attr();
-                    let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                    let key_attr: ::raiden::AttributeValue = key.into().into_attr();
+                    let mut key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::new();
                     key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                     input.key = key_set;
                     input.table_name = self.table_name();

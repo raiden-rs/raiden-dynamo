@@ -97,7 +97,7 @@ pub(crate) fn expand_put_item(
     let default_types = expand_default_type_variables(&required_field_idents);
 
     quote! {
-        #[derive(Debug, Clone, PartialEq, Builder)]
+        #[derive(Debug, Clone, PartialEq, ::raiden::Builder)]
         pub struct #item_input_name {
             #(#input_fields)*
         }

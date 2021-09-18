@@ -33,42 +33,42 @@ pub fn expand_condition_builder(
                 self.not = true;
                 self
             }
-            pub fn attr_exists(self, field: #attr_enum_name) -> ConditionFilledOrWaitConjunction<#condition_token_name> {
+            pub fn attr_exists(self, field: #attr_enum_name) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name> {
                 let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::AttributeExists(field.into_attr_name()));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
                 }
             }
-            pub fn attr_not_exists(self, field: #attr_enum_name) -> ConditionFilledOrWaitConjunction<#condition_token_name> {
+            pub fn attr_not_exists(self, field: #attr_enum_name) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name> {
                 let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::AttributeNotExists(field.into_attr_name()));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
                 }
             }
-            pub fn attr_type(self, field: #attr_enum_name, t: ::raiden::AttributeType) -> ConditionFilledOrWaitConjunction<#condition_token_name> {
+            pub fn attr_type(self, field: #attr_enum_name, t: ::raiden::AttributeType) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name> {
                 let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::AttributeType(field.into_attr_name(), t));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
                 }
             }
-            pub fn begins_with(self, field: #attr_enum_name, s: impl Into<String>) -> ConditionFilledOrWaitConjunction<#condition_token_name> {
+            pub fn begins_with(self, field: #attr_enum_name, s: impl Into<String>) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name> {
                 let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::BeginsWith(field.into_attr_name(), s.into()));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
                 }
             }
 
-            pub fn contains(self, field: #attr_enum_name, s: impl Into<String>) -> ConditionFilledOrWaitConjunction<#condition_token_name> {
+            pub fn contains(self, field: #attr_enum_name, s: impl Into<String>) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name> {
                 let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::Contains(field.into_attr_name(), s.into()));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
@@ -100,10 +100,10 @@ pub fn expand_condition_builder(
         }
 
         impl #wait_attr_op_name {
-            pub fn eq_attr(self, attr: #attr_enum_name) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
+            pub fn eq_attr(self, attr: #attr_enum_name) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name>  {
                 let attr = ::raiden::AttrOrPlaceholder::Attr(attr.into_attr_name());
                 let cond = ::raiden::condition::Cond::Cmp(::raiden::condition::ConditionComparisonExpression::Eq(self.attr_or_placeholder, self.attr_value, attr, None));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,
@@ -111,10 +111,10 @@ pub fn expand_condition_builder(
 
             }
 
-            pub fn eq_value(self, value: impl ::raiden::IntoAttribute) -> ConditionFilledOrWaitConjunction<#condition_token_name>  {
+            pub fn eq_value(self, value: impl ::raiden::IntoAttribute) -> ::raiden::ConditionFilledOrWaitConjunction<#condition_token_name>  {
                 let placeholder = ::raiden::AttrOrPlaceholder::Placeholder(format!("value{}", ::raiden::generate_value_id()));
                 let cond = ::raiden::condition::Cond::Cmp(::raiden::condition::ConditionComparisonExpression::Eq(self.attr_or_placeholder, self.attr_value, placeholder, Some(value.into_attr())));
-                ConditionFilledOrWaitConjunction {
+                ::raiden::ConditionFilledOrWaitConjunction {
                     not: self.not,
                     cond,
                     _token: std::marker::PhantomData,

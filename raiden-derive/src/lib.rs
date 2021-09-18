@@ -55,7 +55,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let client_field = format_ident!("client");
     let n = vec![
         quote! { #table_name_field: &'static str },
-        quote! { #client_field: DynamoDbClient },
+        quote! { #client_field: ::raiden::DynamoDbClient },
     ];
 
     // let struct_fields = fields.named.iter().map(|f| {
@@ -168,7 +168,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
         impl #client_name {
             pub fn new(region: ::raiden::Region) -> Self {
-                let client = DynamoDbClient::new(region);
+                let client = ::raiden::DynamoDbClient::new(region);
                 let names = {
                     let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
                     #(#insertion_attribute_name)*
