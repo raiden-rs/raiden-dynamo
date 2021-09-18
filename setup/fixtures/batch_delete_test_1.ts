@@ -13,7 +13,7 @@ export const batchDeleteTest1: CreateAndPut = {
     ],
     ProvisionedThroughput: { ReadCapacityUnits: 5, WriteCapacityUnits: 5 },
   },
-  items: [...Array(10).keys()].map((i) => {
+  items: [...Array(101).keys()].map((i) => {
     const year = 1999 + i;
     return {
       id: { S: `id${i}` },

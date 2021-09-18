@@ -69,6 +69,24 @@ mod partition_key_tests {
         }
         rt.block_on(example());
     }
+
+    #[test]
+    fn test_batch_delete_over_25_items() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = BatchDeleteTest0::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client
+                .batch_delete((4..=100).map(|i| format!("id{}", i)).collect())
+                .run()
+                .await;
+            assert!(res.is_ok());
+        }
+        rt.block_on(example());
+    }
 }
 
 #[cfg(test)]
@@ -140,6 +158,28 @@ mod partition_key_and_sort_key_tests {
                     ("unstore1", 2000_usize),
                     ("unstored2", 2001_usize),
                 ])
+                .run()
+                .await;
+            assert!(res.is_ok());
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn test_batch_delete_with_sort_key_over_25_items() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = BatchDeleteTest1::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let res = client
+                .batch_delete(
+                    (4..=100)
+                        .map(|i| (format!("id{}", i), 1999_usize + i))
+                        .collect(),
+                )
                 .run()
                 .await;
             assert!(res.is_ok());

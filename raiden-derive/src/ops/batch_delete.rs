@@ -44,20 +44,9 @@ pub(crate) fn expand_batch_delete(
                         write_requests
                     };
 
-                    let request_items = {
-                        let mut map = std::collections::HashMap::new();
-                        map.insert(self.table_name(), write_requests);
-                        map
-                    };
-                    let input = {
-                        let mut input = ::raiden::BatchWriteItemInput::default();
-                        input.request_items = request_items;
-                        input
-                    };
-
                     #builder_name {
                         client: &self.client,
-                        input,
+                        write_requests,
                         table_name: self.table_name(),
                     }
                 }
@@ -93,20 +82,9 @@ pub(crate) fn expand_batch_delete(
                         write_requests
                     };
 
-                    let request_items = {
-                        let mut map = std::collections::HashMap::new();
-                        map.insert(self.table_name(), write_requests);
-                        map
-                    };
-                    let input = {
-                        let mut input = ::raiden::BatchWriteItemInput::default();
-                        input.request_items = request_items;
-                        input
-                    };
-
                     #builder_name {
                         client: &self.client,
-                        input,
+                        write_requests,
                         table_name: self.table_name(),
                     }
                 }
@@ -119,7 +97,7 @@ pub(crate) fn expand_batch_delete(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
-            pub input: ::raiden::BatchWriteItemInput,
+            pub write_requests: std::vec::Vec<::raiden::WriteRequest>,
             pub table_name: String,
         }
 
@@ -127,41 +105,58 @@ pub(crate) fn expand_batch_delete(
             pub async fn run(mut self) -> Result<::raiden::batch_delete::BatchDeleteOutput, ::raiden::RaidenError> {
                 // TODO: set the number of retry to 5 for now, which should be made more flexible
                 const RETRY: usize = 5;
+                const MAX_ITEMS_PER_REQUEST: usize = 25;
 
                 for _ in 0..RETRY {
-                    let result = self.client.batch_write_item(self.input).await?;
-                    let unprocessed_items = match result.unprocessed_items {
-                        None => {
-                            let output = ::raiden::batch_delete::BatchDeleteOutput {
-                                consumed_capacity: result.consumed_capacity,
-                                unprocessed_items: vec![],
-                            };
-                            return Ok(output);
+                    loop {
+                        let len = self.write_requests.len();
+
+                        // len == 0 means there are no items to be processed anymore
+                        if len == 0 {
+                            break;
                         }
-                        Some(unprocessed_items) => {
-                            if unprocessed_items.is_empty() {
-                                let output = ::raiden::batch_delete::BatchDeleteOutput {
-                                    consumed_capacity: result.consumed_capacity,
-                                    unprocessed_items: vec![],
-                                };
-                                return Ok(output);
+
+                        let start = len.saturating_sub(MAX_ITEMS_PER_REQUEST);
+                        let end = std::cmp::min(len, start + MAX_ITEMS_PER_REQUEST);
+                        // take requests up to 25 from the request buffer
+                        let req = self.write_requests.drain(start..end).collect::<std::vec::Vec<_>>();
+                        let request_items = vec![(self.table_name.clone(), req)]
+                            .into_iter()
+                            .collect::<std::collections::HashMap<_, _>>();
+                        let input = ::raiden::BatchWriteItemInput {
+                            request_items,
+                            ..std::default::Default::default()
+                        };
+
+                        let result = self.client.batch_write_item(input).await?;
+                        let mut unprocessed_items = match result.unprocessed_items {
+                            None => {
+                                // move on to the next iteration to check if there are unprocessed
+                                // requests
+                                continue;
                             }
+                            Some(unprocessed_items) => {
+                                if unprocessed_items.is_empty() {
+                                    // move on to the next iteration to check if there are unprocessed
+                                    // requests
+                                    continue;
+                                }
 
-                            unprocessed_items
-                        },
-                    };
+                                unprocessed_items
+                            },
+                        };
 
-                    let next_input = ::raiden::BatchWriteItemInput {
-                        request_items: unprocessed_items,
-                        ..std::default::Default::default()
-                    };
-                    self.input = next_input;
+                        let unprocessed_requests = unprocessed_items
+                            .remove(&self.table_name)
+                            .expect("reqeust_items hashmap must have a value for the table name");
+                        // push unprocessed requests back to the request buffer
+                        self.write_requests.extend(unprocessed_requests);
+                    }
                 }
 
                 // when retry is done the specified times, treat it as success even if there are
                 // still unprocessed items
-                let unprocessed_items = self.input.request_items.remove(&self.table_name)
-                    .expect("reqeust_items hashmap must have a value for the table name")
+                let unprocessed_items = self.write_requests
                     .into_iter()
                     .filter_map(|write_request| write_request.delete_request)
                     .collect::<std::vec::Vec<_>>();
