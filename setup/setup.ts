@@ -15,7 +15,8 @@ import { project } from "./fixtures/project.ts";
 import { batchTest0 } from "./fixtures/batch_test_0.ts";
 import { batchTest1 } from "./fixtures/batch_test_1.ts";
 import { batchTest2 } from "./fixtures/batch_test_2.ts";
-import { batchDeleteTest0 } from "./fixtures/batch_delete.ts";
+import { batchDeleteTest0 } from "./fixtures/batch_delete_test_0.ts";
+import { batchDeleteTest1 } from "./fixtures/batch_delete_test_1.ts";
 import { testUserStaging } from "./fixtures/test_user_staging.ts";
 import { deleteTest0 } from "./fixtures/delete_test_0.ts";
 import { deleteTest1 } from "./fixtures/delete_test_1.ts";
@@ -58,6 +59,7 @@ const data = [
   batchTest1,
   batchTest2,
   batchDeleteTest0,
+  batchDeleteTest1,
   testUserStaging,
   deleteTest0,
   deleteTest1,
