@@ -129,7 +129,6 @@ pub(crate) fn expand_batch_delete(
                 const RETRY: usize = 5;
 
                 for _ in 0..RETRY {
-                    // call a delete request
                     let result = self.client.batch_write_item(self.input).await?;
                     let unprocessed_items = match result.unprocessed_items {
                         None => {
@@ -139,7 +138,17 @@ pub(crate) fn expand_batch_delete(
                             };
                             return Ok(output);
                         }
-                        Some(unprocessed_items) => unprocessed_items,
+                        Some(unprocessed_items) => {
+                            if unprocessed_items.is_empty() {
+                                let output = ::raiden::batch_delete::BatchDeleteOutput {
+                                    consumed_capacity: result.consumed_capacity,
+                                    unprocessed_items: vec![],
+                                };
+                                return Ok(output);
+                            }
+
+                            unprocessed_items
+                        },
                     };
 
                     let next_input = ::raiden::BatchWriteItemInput {
