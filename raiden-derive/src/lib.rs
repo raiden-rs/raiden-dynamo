@@ -134,6 +134,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
+        use ::raiden::IntoAttribute as _;
+        use ::raiden::IntoAttrName as _;
+        use ::raiden::DynamoDb as _;
 
         pub struct #client_name {
             #(
