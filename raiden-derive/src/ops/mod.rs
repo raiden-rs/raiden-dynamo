@@ -1,3 +1,4 @@
+mod batch_delete;
 mod batch_get;
 mod delete;
 mod get;
@@ -8,6 +9,7 @@ mod shared;
 mod transact_write;
 mod update;
 
+pub(crate) use batch_delete::*;
 pub(crate) use batch_get::*;
 pub(crate) use delete::*;
 pub(crate) use get::*;

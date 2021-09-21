@@ -99,8 +99,8 @@ pub(crate) fn expand_transact_write(
             // TODO: Support sort key
             pub fn condition_check(key: impl Into<#partition_key_type>) -> #condition_check_builder {
                 let mut input = ::raiden::ConditionCheck::default();
-                let key_attr: AttributeValue = key.into().into_attr();
-                let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
+                let mut key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::new();
                 key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
                 #condition_check_builder {
@@ -115,8 +115,8 @@ pub(crate) fn expand_transact_write(
             // TODO: Support sort key
             pub fn delete(key: impl Into<#partition_key_type>) -> #delete_builder {
                 let mut input = ::raiden::Delete::default();
-                let key_attr: AttributeValue = key.into().into_attr();
-                let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
+                let mut key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::new();
                 key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
                 #delete_builder {
@@ -132,8 +132,8 @@ pub(crate) fn expand_transact_write(
             pub fn update(key: impl Into<#partition_key_type>) -> #update_builder {
                 let mut input = ::raiden::Update::default();
 
-                let key_attr: AttributeValue = key.into().into_attr();
-                let mut key_set: std::collections::HashMap<String, AttributeValue> = std::collections::HashMap::new();
+                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
+                let mut key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::new();
                 key_set.insert(stringify!(#partition_key_ident).to_owned(), key_attr);
                 input.key = key_set;
 

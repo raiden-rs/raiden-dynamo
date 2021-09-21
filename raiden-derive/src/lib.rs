@@ -55,7 +55,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let client_field = format_ident!("client");
     let n = vec![
         quote! { #table_name_field: &'static str },
-        quote! { #client_field: DynamoDbClient },
+        quote! { #client_field: ::raiden::DynamoDbClient },
     ];
 
     // let struct_fields = fields.named.iter().map(|f| {
@@ -100,6 +100,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
     let delete_item = ops::expand_delete_item(&partition_key, &sort_key, &struct_name);
 
+    let batch_delete = ops::expand_batch_delete(&partition_key, &sort_key, &struct_name);
+
     let attr_names =
         attribute::expand_attr_names(&attr_enum_name, &fields, rename_all_type, &struct_name);
 
@@ -132,6 +134,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     });
 
     let expanded = quote! {
+        use ::raiden::IntoAttribute as _;
+        use ::raiden::IntoAttrName as _;
+        use ::raiden::DynamoDb as _;
 
         pub struct #client_name {
             #(
@@ -164,11 +169,13 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
         #delete_item
 
+        #batch_delete
+
         #transact_write
 
         impl #client_name {
             pub fn new(region: ::raiden::Region) -> Self {
-                let client = DynamoDbClient::new(region);
+                let client = ::raiden::DynamoDbClient::new(region);
                 let names = {
                     let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
                     #(#insertion_attribute_name)*

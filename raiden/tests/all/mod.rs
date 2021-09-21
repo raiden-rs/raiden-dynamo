@@ -1,3 +1,4 @@
+mod batch_delete;
 mod batch_get;
 mod condition;
 mod delete;
