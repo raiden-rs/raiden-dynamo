@@ -458,4 +458,68 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[test]
+    fn should_not_update_with_or_condition_failed() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let set_expression = UpdateWithContainsInSetCondition::update_expression()
+                .set(UpdateWithContainsInSetCondition::name())
+                .value("Changed");
+
+            let cond = UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "Merhaba".to_string(),
+            ).or(UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "Bonjour".to_string()));
+
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .condition(cond)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.is_err(), true);
+        }
+        rt.block_on(example());
+    }
+
+    #[test]
+    fn should_update_with_or_condition() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+
+            let set_expression = UpdateWithContainsInSetCondition::update_expression()
+                .set(UpdateWithContainsInSetCondition::name())
+                .value("Changed");
+
+            let cond = UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "Hello".to_string(),
+            ).or(UpdateWithContainsInSetCondition::condition().contains(
+                UpdateWithContainsInSetCondition::sset(),
+                "Bonjour".to_string()));
+
+            let res = client
+                .update("id0")
+                .set(set_expression)
+                .condition(cond)
+                .return_all_new()
+                .run()
+                .await;
+            assert_eq!(res.is_ok(), true);
+        }
+        rt.block_on(example());
+    }
 }
