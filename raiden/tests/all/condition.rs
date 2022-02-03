@@ -157,6 +157,44 @@ mod tests {
     }
 
     #[test]
+    fn test_or_condition() {
+        let cond = User::condition()
+            .attr_exists(User::name())
+            .or(User::condition().attr_exists(User::id()));
+        let (condition_expression, attribute_names, _attribute_values) = cond.build();
+        let mut expected_names: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        expected_names.insert("#id".to_owned(), "id".to_owned());
+        expected_names.insert("#name".to_owned(), "name".to_owned());
+        assert_eq!(
+            condition_expression,
+            "attribute_exists(#name) OR (attribute_exists(#id))".to_owned(),
+        );
+        assert_eq!(attribute_names, expected_names);
+    }
+
+    #[test]
+    fn test_three_or_condition() {
+        let cond = User::condition()
+            .attr_exists(User::name())
+            .or(User::condition()
+                .attr_exists(User::id())
+                .or(User::condition()
+                    .attr_exists(User::id())
+                    .or(User::condition().attr_exists(User::id()))));
+        let (condition_expression, attribute_names, _attribute_values) = cond.build();
+        let mut expected_names: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        expected_names.insert("#id".to_owned(), "id".to_owned());
+        expected_names.insert("#name".to_owned(), "name".to_owned());
+        assert_eq!(
+            condition_expression,
+            "attribute_exists(#name) OR (attribute_exists(#id) OR (attribute_exists(#id) OR (attribute_exists(#id))))".to_owned(),
+        );
+        assert_eq!(attribute_names, expected_names);
+    }
+
+    #[test]
     fn test_cmp_eq_attr_attr_condition() {
         let cond = User::condition().attr(User::name()).eq_attr(User::name());
         let (condition_expression, attribute_names, _attribute_values) = cond.build();

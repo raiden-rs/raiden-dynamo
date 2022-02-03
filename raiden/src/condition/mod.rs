@@ -48,6 +48,15 @@ impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
             _token: self._token,
         }
     }
+    pub fn or(self, cond: impl ConditionBuilder<T>) -> ConditionFilled<T> {
+        let (condition_string, attr_names, attr_values) = cond.build();
+        ConditionFilled {
+            not: self.not,
+            cond: self.cond,
+            conjunction: Conjunction::Or(condition_string, attr_names, attr_values),
+            _token: self._token,
+        }
+    }
 }
 
 impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
