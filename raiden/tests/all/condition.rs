@@ -175,13 +175,13 @@ mod tests {
 
     #[test]
     fn test_three_or_condition() {
-        let cond = User::condition().attr_exists(User::name()).or(
-            User::condition().attr_exists(User::id()).or(
-                User::condition()
+        let cond = User::condition()
+            .attr_exists(User::name())
+            .or(User::condition()
+                .attr_exists(User::id())
+                .or(User::condition()
                     .attr_exists(User::id())
-                    .or(User::condition().attr_exists(User::id())),
-            ),
-        );
+                    .or(User::condition().attr_exists(User::id()))));
         let (condition_expression, attribute_names, _attribute_values) = cond.build();
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();

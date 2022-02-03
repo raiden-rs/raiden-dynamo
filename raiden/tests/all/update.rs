@@ -472,12 +472,15 @@ mod tests {
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
 
-            let cond = UpdateWithContainsInSetCondition::condition().contains(
-                UpdateWithContainsInSetCondition::sset(),
-                "Merhaba".to_string(),
-            ).or(UpdateWithContainsInSetCondition::condition().contains(
-                UpdateWithContainsInSetCondition::sset(),
-                "Bonjour".to_string()));
+            let cond = UpdateWithContainsInSetCondition::condition()
+                .contains(
+                    UpdateWithContainsInSetCondition::sset(),
+                    "Merhaba".to_string(),
+                )
+                .or(UpdateWithContainsInSetCondition::condition().contains(
+                    UpdateWithContainsInSetCondition::sset(),
+                    "Bonjour".to_string(),
+                ));
 
             let res = client
                 .update("id0")
@@ -504,12 +507,15 @@ mod tests {
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
 
-            let cond = UpdateWithContainsInSetCondition::condition().contains(
-                UpdateWithContainsInSetCondition::sset(),
-                "Hello".to_string(),
-            ).or(UpdateWithContainsInSetCondition::condition().contains(
-                UpdateWithContainsInSetCondition::sset(),
-                "Bonjour".to_string()));
+            let cond = UpdateWithContainsInSetCondition::condition()
+                .contains(
+                    UpdateWithContainsInSetCondition::sset(),
+                    "Hello".to_string(),
+                )
+                .or(UpdateWithContainsInSetCondition::condition().contains(
+                    UpdateWithContainsInSetCondition::sset(),
+                    "Bonjour".to_string(),
+                ));
 
             let res = client
                 .update("id0")
