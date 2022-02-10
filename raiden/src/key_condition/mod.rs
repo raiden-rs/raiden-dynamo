@@ -44,8 +44,8 @@ pub struct KeyCondition<T> {
 
 #[derive(Debug, Clone)]
 pub struct KeyConditionFilledOrWaitConjunction<T> {
-    attr: String,
-    cond: KeyConditionTypes,
+    pub(crate) attr: String,
+    pub(crate) cond: KeyConditionTypes,
     _token: std::marker::PhantomData<T>,
 }
 
@@ -58,6 +58,14 @@ pub struct KeyConditionFilled<T> {
 }
 
 impl<T> KeyConditionFilledOrWaitConjunction<T> {
+    pub(crate) fn new(
+        attr: String,
+        cond: KeyConditionTypes,
+        _token: std::marker::PhantomData<T>,
+    ) -> Self {
+        Self { attr, cond, _token }
+    }
+
     pub fn and(self, cond: impl KeyConditionBuilder<T>) -> KeyConditionFilled<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         KeyConditionFilled {
@@ -289,5 +297,9 @@ impl<T> KeyCondition<T> {
             cond,
             _token: std::marker::PhantomData,
         }
+    }
+
+    pub(crate) fn new(attr: String, _token: std::marker::PhantomData<T>) -> KeyCondition<T> {
+        Self { attr, _token }
     }
 }
