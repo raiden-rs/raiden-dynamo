@@ -96,10 +96,59 @@ impl<T> Into<KeyConditionFilledOrWaitConjunction<T>>
 }
 
 impl<T> FilterExpression<T> {
+    // TODO: commonalize these methods by macro
     pub fn eq(
         self,
         value: impl super::IntoAttribute,
     ) -> FilterExpressionFilledOrWaitConjunction<T> {
         Into::<KeyCondition<_>>::into(self).eq(value).into()
+    }
+
+    pub fn gt(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self).gt(value).into()
+    }
+
+    pub fn ge(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self).ge(value).into()
+    }
+
+    pub fn le(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self).le(value).into()
+    }
+
+    pub fn lt(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self).lt(value).into()
+    }
+
+    pub fn between(
+        self,
+        value1: impl super::IntoAttribute,
+        value2: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self)
+            .between(value1, value2)
+            .into()
+    }
+
+    // We can use `begins_with` only with a range key after specifying an EQ condition for the primary key.
+    pub fn begins_with(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        Into::<KeyCondition<_>>::into(self)
+            .begins_with(value)
+            .into()
     }
 }
