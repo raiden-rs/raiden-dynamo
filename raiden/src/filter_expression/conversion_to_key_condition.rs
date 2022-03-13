@@ -63,6 +63,7 @@ impl From<KeyConditionTypes> for FilterExpressionTypes {
 }
 
 // FIXME: consider using TryInto
+// note: avoid this conversion in case that you don't confirm the FilterExpressionTypes is KeyConditionTypes
 impl Into<KeyConditionTypes> for FilterExpressionTypes {
     fn into(self) -> KeyConditionTypes {
         match self {
