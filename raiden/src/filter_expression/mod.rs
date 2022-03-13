@@ -47,12 +47,29 @@ impl<T> Into<KeyCondition<T>> for FilterExpression<T> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct FilterExpresssionFilled<T> {
+pub struct FilterExpressionFilled<T> {
     attr: String,
     cond: FilterExpressionTypes,
     conjunction: FilterExpressionConjunction,
     _token: std::marker::PhantomData<T>,
+}
+
+impl<T> Into<KeyConditionFilled<T>> for FilterExpressionFilled<T> {
+    fn into(self) -> KeyConditionFilled<T> {
+        let cond = self.cond.into();
+        let conjunction = self.conjunction.into();
+        KeyConditionFilled::new(self.attr, cond, conjunction, std::marker::PhantomData)
+    }
+}
+
+impl Into<KeyConditionConjunction> for FilterExpressionConjunction {
+    fn into(self) -> KeyConditionConjunction {
+        match self {
+            FilterExpressionConjunction::And(s, attr_name, attr_value) => {
+                KeyConditionConjunction::And(s, attr_name, attr_value)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -172,5 +189,29 @@ impl<T> FilterExpression<T> {
         Into::<KeyCondition<_>>::into(self)
             .begins_with(value)
             .into()
+    }
+}
+
+impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
+    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
+        match self.cond {
+            FilterExpressionTypes::KeyConditionTypes(_) => {
+                Into::<KeyConditionFilled<_>>::into(self).build()
+            }
+            FilterExpressionTypes::Not(placeholder, value) => {
+                let attr_name = self.attr;
+                let mut attr_names = super::AttributeNames::new();
+                let mut attr_values = super::AttributeValues::new();
+
+                attr_names.insert(format!("#{}", attr_name), attr_name.clone());
+                attr_values.insert(placeholder.to_string(), value);
+                unimplemented!()(
+                    // FIXME: THIS IS WRONG OPERATOR!!!
+                    format!("#{} = {}", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
+        }
     }
 }
