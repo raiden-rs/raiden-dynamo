@@ -79,10 +79,8 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitConjunction<T
 
                 attr_names.insert(format!("#{}", attr_name), attr_name.clone());
                 attr_values.insert(placeholder.to_string(), value);
-                unimplemented!();
-                // FIXME: THIS IS WRONG OPERATOR!!!
                 (
-                    format!("#{} = {}", attr_name, placeholder),
+                    format!("#{} <> {}", attr_name, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -98,18 +96,20 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
                 Into::<KeyConditionFilled<_>>::into(self).build()
             }
             FilterExpressionTypes::Not(placeholder, value) => {
-                let attr_name = self.attr;
-                let mut attr_names = super::AttributeNames::new();
-                let mut attr_values = super::AttributeValues::new();
+                let (right_str, right_names, right_values) = match self.conjunction {
+                    FilterExpressionConjunction::And(s, m, v) => (format!("AND ({})", s), m, v),
+                };
 
-                attr_names.insert(format!("#{}", attr_name), attr_name.clone());
-                attr_values.insert(placeholder.to_string(), value);
-                unimplemented!();
+                let attr_name = self.attr;
+                let mut left_names = super::AttributeNames::new();
+                let mut left_values = super::AttributeValues::new();
+                left_names.insert(format!("#{}", attr_name), attr_name.clone());
+                left_values.insert(placeholder.clone(), value);
+                let left_str = format!("#{}<> {}", attr_name, placeholder);
                 (
-                    // FIXME: THIS IS WRONG OPERATOR!!!
-                    format!("#{} = {}", attr_name, placeholder),
-                    attr_names,
-                    attr_values,
+                    format!("{} {}", left_str, right_str),
+                    super::merge_map(left_names, right_names),
+                    super::merge_map(left_values, right_values),
                 )
             }
         }
@@ -122,6 +122,19 @@ impl<T> FilterExpression<T> {
         value: impl super::IntoAttribute,
     ) -> FilterExpressionFilledOrWaitConjunction<T> {
         Into::<KeyCondition<_>>::into(self).eq(value).into()
+    }
+
+    pub fn not(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitConjunction<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond = FilterExpressionTypes::Not(placeholder, value.into_attr());
+        FilterExpressionFilledOrWaitConjunction {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
     }
 
     pub fn gt(
