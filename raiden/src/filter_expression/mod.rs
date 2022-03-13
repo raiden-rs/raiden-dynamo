@@ -83,6 +83,29 @@ impl<T> From<KeyConditionFilledOrWaitConjunction<T>>
     }
 }
 
+impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitConjunction<T> {
+    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
+        match self.cond {
+            FilterExpressionTypes::KeyConditionTypes(_) => {
+                Into::<KeyConditionFilledOrWaitConjunction<_>>::into(self).build()
+            }
+            FilterExpressionTypes::Not(placeholder, value) => {
+                let attr_name = self.attr;
+                let mut attr_names = super::AttributeNames::new();
+                let mut attr_values = super::AttributeValues::new();
+
+                attr_names.insert(format!("#{}", attr_name), attr_name.clone());
+                attr_values.insert(placeholder.to_string(), value);
+                (
+                    format!("#{} = {}", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
+        }
+    }
+}
+
 impl<T> Into<KeyConditionFilledOrWaitConjunction<T>>
     for FilterExpressionFilledOrWaitConjunction<T>
 {
@@ -95,60 +118,30 @@ impl<T> Into<KeyConditionFilledOrWaitConjunction<T>>
     }
 }
 
-impl<T> FilterExpression<T> {
-    // TODO: commonalize these methods by macro
-    pub fn eq(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self).eq(value).into()
-    }
-
-    pub fn gt(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self).gt(value).into()
-    }
-
-    pub fn ge(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self).ge(value).into()
-    }
-
-    pub fn le(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self).le(value).into()
-    }
-
-    pub fn lt(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self).lt(value).into()
-    }
-
-    pub fn between(
-        self,
-        value1: impl super::IntoAttribute,
-        value2: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self)
-            .between(value1, value2)
-            .into()
-    }
-
-    // We can use `begins_with` only with a range key after specifying an EQ condition for the primary key.
-    pub fn begins_with(
-        self,
-        value: impl super::IntoAttribute,
-    ) -> FilterExpressionFilledOrWaitConjunction<T> {
-        Into::<KeyCondition<_>>::into(self)
-            .begins_with(value)
-            .into()
-    }
+macro_rules! filter_expression_impl_inner {
+    ($op:ident; $($value:ident),+) => {
+        impl<T> FilterExpression<T> {
+            pub fn $op(
+                self,
+                $($value: impl super::IntoAttribute,)+
+            ) -> FilterExpressionFilledOrWaitConjunction<T> {
+                Into::<KeyCondition<_>>::into(self).$op($($value,)+).into()
+            }
+        }
+    };
+    (@unary $op:ident) => {
+        filter_expression_impl_inner!($op; value1);
+    };
+    (@binary $op:ident) => {
+        filter_expression_impl_inner!($op; value1, value2);
+    };
 }
+
+macro_rules! filter_expression_impl {
+    ($($args:tt),+) => {
+        $(filter_expression_impl_inner!(@unary $args);)+
+    };
+}
+
+filter_expression_impl!(eq, gt, ge, le, lt, begins_with);
+filter_expression_impl_inner!(@binary between);
