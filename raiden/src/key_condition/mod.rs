@@ -57,6 +57,22 @@ pub struct KeyConditionFilled<T> {
     _token: std::marker::PhantomData<T>,
 }
 
+impl<T> KeyConditionFilled<T> {
+    pub(crate) fn new(
+        attr: String,
+        cond: KeyConditionTypes,
+        conjunction: KeyConditionConjunction,
+        _token: std::marker::PhantomData<T>,
+    ) -> Self {
+        Self {
+            attr,
+            cond,
+            conjunction,
+            _token,
+        }
+    }
+}
+
 impl<T> KeyConditionFilledOrWaitConjunction<T> {
     pub(crate) fn new(
         attr: String,
