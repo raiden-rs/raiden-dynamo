@@ -1,5 +1,16 @@
 use super::*;
 
+mod conversion_to_key_condition;
+
+#[derive(Debug, Clone)]
+pub enum FilterExpressionConjunction {
+    And(
+        KeyConditionString,
+        super::AttributeNames,
+        super::AttributeValues,
+    ),
+}
+
 // note: The syntax for a filter expression is identical to that of a key condition expression.
 // Filter expressions can use the same comparators, functions, and logical operators as a key condition expression, with the addition of the not-equals operator (<>).
 // ref: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html
@@ -7,22 +18,6 @@ use super::*;
 pub enum FilterExpressionTypes {
     KeyConditionTypes(KeyConditionTypes),
     Not(super::Placeholder, super::AttributeValue),
-}
-
-impl From<KeyConditionTypes> for FilterExpressionTypes {
-    fn from(v: KeyConditionTypes) -> Self {
-        Self::KeyConditionTypes(v)
-    }
-}
-
-// FIXME: consider using TryInto
-impl Into<KeyConditionTypes> for FilterExpressionTypes {
-    fn into(self) -> KeyConditionTypes {
-        match self {
-            Self::KeyConditionTypes(k) => k,
-            _ => unimplemented!(),
-        }
-    }
 }
 
 pub trait FilterExpressionBuilder<T> {
@@ -41,10 +36,11 @@ pub struct FilterExpression<T> {
     pub _token: std::marker::PhantomData<T>,
 }
 
-impl<T> Into<KeyCondition<T>> for FilterExpression<T> {
-    fn into(self) -> KeyCondition<T> {
-        KeyCondition::new(self.attr, std::marker::PhantomData)
-    }
+#[derive(Debug, Clone)]
+pub struct FilterExpressionFilledOrWaitConjunction<T> {
+    attr: String,
+    cond: FilterExpressionTypes,
+    _token: std::marker::PhantomData<T>,
 }
 
 pub struct FilterExpressionFilled<T> {
@@ -54,48 +50,18 @@ pub struct FilterExpressionFilled<T> {
     _token: std::marker::PhantomData<T>,
 }
 
-impl<T> Into<KeyConditionFilled<T>> for FilterExpressionFilled<T> {
-    fn into(self) -> KeyConditionFilled<T> {
-        let cond = self.cond.into();
-        let conjunction = self.conjunction.into();
-        KeyConditionFilled::new(self.attr, cond, conjunction, std::marker::PhantomData)
-    }
-}
-
-impl Into<KeyConditionConjunction> for FilterExpressionConjunction {
-    fn into(self) -> KeyConditionConjunction {
-        match self {
-            FilterExpressionConjunction::And(s, attr_name, attr_value) => {
-                KeyConditionConjunction::And(s, attr_name, attr_value)
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum FilterExpressionConjunction {
-    And(
-        KeyConditionString,
-        super::AttributeNames,
-        super::AttributeValues,
-    ),
-}
-
-#[derive(Debug, Clone)]
-pub struct FilterExpressionFilledOrWaitConjunction<T> {
-    attr: String,
-    cond: FilterExpressionTypes,
-    _token: std::marker::PhantomData<T>,
-}
-
-impl<T> From<KeyConditionFilledOrWaitConjunction<T>>
-    for FilterExpressionFilledOrWaitConjunction<T>
-{
-    fn from(v: KeyConditionFilledOrWaitConjunction<T>) -> Self {
-        Self {
-            attr: v.attr,
-            cond: FilterExpressionTypes::from(v.cond),
-            _token: std::marker::PhantomData,
+impl<T> FilterExpressionFilledOrWaitConjunction<T> {
+    pub fn and(self, cond: impl FilterExpressionBuilder<T>) -> FilterExpressionFilled<T> {
+        let (condition_string, attr_names, attr_values) = cond.build();
+        FilterExpressionFilled {
+            attr: self.attr,
+            cond: self.cond,
+            conjunction: FilterExpressionConjunction::And(
+                condition_string,
+                attr_names,
+                attr_values,
+            ),
+            _token: self._token,
         }
     }
 }
@@ -113,6 +79,8 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitConjunction<T
 
                 attr_names.insert(format!("#{}", attr_name), attr_name.clone());
                 attr_values.insert(placeholder.to_string(), value);
+                unimplemented!();
+                // FIXME: THIS IS WRONG OPERATOR!!!
                 (
                     format!("#{} = {}", attr_name, placeholder),
                     attr_names,
@@ -123,15 +91,28 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitConjunction<T
     }
 }
 
-impl<T> Into<KeyConditionFilledOrWaitConjunction<T>>
-    for FilterExpressionFilledOrWaitConjunction<T>
-{
-    fn into(self) -> KeyConditionFilledOrWaitConjunction<T> {
-        KeyConditionFilledOrWaitConjunction::new(
-            self.attr,
-            self.cond.into(),
-            std::marker::PhantomData,
-        )
+impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
+    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
+        match self.cond {
+            FilterExpressionTypes::KeyConditionTypes(_) => {
+                Into::<KeyConditionFilled<_>>::into(self).build()
+            }
+            FilterExpressionTypes::Not(placeholder, value) => {
+                let attr_name = self.attr;
+                let mut attr_names = super::AttributeNames::new();
+                let mut attr_values = super::AttributeValues::new();
+
+                attr_names.insert(format!("#{}", attr_name), attr_name.clone());
+                attr_values.insert(placeholder.to_string(), value);
+                unimplemented!();
+                (
+                    // FIXME: THIS IS WRONG OPERATOR!!!
+                    format!("#{} = {}", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
+        }
     }
 }
 
@@ -189,29 +170,5 @@ impl<T> FilterExpression<T> {
         Into::<KeyCondition<_>>::into(self)
             .begins_with(value)
             .into()
-    }
-}
-
-impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
-    fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
-        match self.cond {
-            FilterExpressionTypes::KeyConditionTypes(_) => {
-                Into::<KeyConditionFilled<_>>::into(self).build()
-            }
-            FilterExpressionTypes::Not(placeholder, value) => {
-                let attr_name = self.attr;
-                let mut attr_names = super::AttributeNames::new();
-                let mut attr_values = super::AttributeValues::new();
-
-                attr_names.insert(format!("#{}", attr_name), attr_name.clone());
-                attr_values.insert(placeholder.to_string(), value);
-                unimplemented!()(
-                    // FIXME: THIS IS WRONG OPERATOR!!!
-                    format!("#{} = {}", attr_name, placeholder),
-                    attr_names,
-                    attr_values,
-                )
-            }
-        }
     }
 }
