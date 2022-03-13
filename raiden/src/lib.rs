@@ -15,6 +15,7 @@ pub mod value_id;
 
 pub use condition::*;
 pub use errors::*;
+pub use filter_expression::*;
 pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
