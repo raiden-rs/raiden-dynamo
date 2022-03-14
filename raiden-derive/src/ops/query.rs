@@ -74,7 +74,16 @@ pub(crate) fn expand_query(
                 self
             }
 
-            pub fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<#key_condition_token_name>) -> Self {
+            // pub fn filter_expression(mut self, cond: impl ::raiden::Querium::QueriumBuilder<#key_condition_token_name>) -> Self {
+            //     let (cond_str, attr_names, attr_values) = cond.build();
+            //     if !attr_values.is_empty() {
+            //         self.input.expression_attribute_values = Some(attr_values);
+            //     }
+            //     self.input.filter_expression_expression = Some(cond_str);
+            //     self
+            // }
+
+            pub fn key_condition(mut self, cond: impl ::raiden::Querium::QueriumBuilder<#key_condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_values.is_empty() {
                     self.input.expression_attribute_values = Some(attr_values);

@@ -12,10 +12,7 @@ pub fn expand_filter_expression_builder(
         impl #struct_name {
             pub fn filter_expression(attr: #attr_enum_name) -> ::raiden::FilterExpression<#filter_expression_token_name> {
                 let attr = attr.into_attr_name();
-                ::raiden::FilterExpression {
-                    attr,
-                    _token: std::marker::PhantomData,
-                }
+                ::raiden::FilterExpression::from_attr(attr)
             }
         }
     }
