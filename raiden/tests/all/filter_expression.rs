@@ -111,4 +111,9 @@ mod tests {
             "#id <> :value0 AND (begins_with(#year, :value1))".to_owned(),
         );
     }
+
+    #[test]
+    fn a() {
+        assert!(false);
+    }
 }
