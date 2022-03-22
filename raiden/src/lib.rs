@@ -3,12 +3,10 @@ extern crate serde_derive;
 
 pub mod condition;
 pub mod errors;
-pub mod filter_expression;
 pub mod id_generator;
 pub mod key_condition;
 pub mod next_token;
 pub mod ops;
-pub mod querium;
 pub mod retry;
 pub mod types;
 pub mod update_expression;
@@ -16,14 +14,13 @@ pub mod value_id;
 
 pub use condition::*;
 pub use errors::*;
-pub use filter_expression::*;
-pub use id_generator::*;
 pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
-pub use querium::*;
-pub use raiden_derive::*;
 pub use retry::*;
+
+pub use id_generator::*;
+pub use raiden_derive::*;
 pub use rusoto_credential::*;
 pub use value_id::*;
 
