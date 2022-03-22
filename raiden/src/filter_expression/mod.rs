@@ -1,5 +1,8 @@
 pub type FilterExpressionString = String;
 
+// note: The syntax for a filter expression is identical to that of a key condition expression.
+// Filter expressions can use the same comparators, functions, and logical operators as a key condition expression, with the addition of the not-equals operator (<>).
+// ref: https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html
 #[derive(Debug, Clone)]
 pub enum FilterExpressionConjunction {
     And(
