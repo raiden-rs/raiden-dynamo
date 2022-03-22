@@ -44,9 +44,9 @@ mod tests {
         expected_names.insert("#name".to_owned(), "name".to_owned());
         let mut expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
-        expected_values.insert(":value0".to_owned(), "bokuweb".into_attr());
+        expected_values.insert(":value0".to_owned(), "raiden".into_attr());
 
-        assert_eq!(filter_expression, "#name = :value0".to_owned(),);
+        assert_eq!(filter_expression, "#name <> :value0".to_owned(),);
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }

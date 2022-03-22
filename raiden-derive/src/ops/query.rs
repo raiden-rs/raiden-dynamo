@@ -9,6 +9,7 @@ pub(crate) fn expand_query(
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
 
+    let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
 
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
@@ -71,6 +72,15 @@ pub(crate) fn expand_query(
 
             pub fn limit(mut self, limit: usize) -> Self {
                 self.limit = Some(limit as i64);
+                self
+            }
+
+            pub fn filter_expression(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_values.is_empty() {
+                    self.input.expression_attribute_values = Some(attr_values);
+                }
+                self.input.filter_expression = Some(cond_str);
                 self
             }
 
