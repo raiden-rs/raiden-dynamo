@@ -5,6 +5,7 @@ use syn::*;
 
 mod attribute;
 mod condition;
+mod filter_expression;
 mod finder;
 mod helpers;
 mod key;
@@ -111,6 +112,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let key_condition_builder =
         key_condition::expand_key_condition_builder(&attr_enum_name, &struct_name);
 
+    let filter_expression_builder =
+        filter_expression::expand_filter_expression_builder(&attr_enum_name, &struct_name);
+
     let transact_write = ops::expand_transact_write(
         &struct_name,
         &partition_key,
@@ -154,6 +158,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         #condition_builder
 
         #key_condition_builder
+
+        #filter_expression_builder
 
         #get_item
 

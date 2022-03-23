@@ -2,6 +2,7 @@ mod batch_delete;
 mod batch_get;
 mod condition;
 mod delete;
+mod filter_expression;
 mod get;
 mod key_condition;
 mod put;

@@ -3,6 +3,7 @@ extern crate serde_derive;
 
 pub mod condition;
 pub mod errors;
+pub mod filter_expression;
 pub mod id_generator;
 pub mod key_condition;
 pub mod next_token;
@@ -14,6 +15,7 @@ pub mod value_id;
 
 pub use condition::*;
 pub use errors::*;
+pub use filter_expression::*;
 pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
