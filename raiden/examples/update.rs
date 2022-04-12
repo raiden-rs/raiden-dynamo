@@ -2,6 +2,7 @@ use raiden::*;
 
 #[derive(Raiden, Debug)]
 #[raiden(table_name = "UpdateTestData0")]
+#[allow(dead_code)]
 pub struct Example {
     #[raiden(partition_key)]
     id: String,

@@ -27,7 +27,7 @@ pub enum ConditionComparisonExpression {
 pub struct ConditionFilledOrWaitConjunction<T: Clone> {
     pub not: bool,
     pub cond: Cond,
-    pub _token: std::marker::PhantomData<T>,
+    pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -35,7 +35,7 @@ pub struct ConditionFilled<T: Clone> {
     pub not: bool,
     pub cond: Cond,
     pub conjunction: Conjunction,
-    pub _token: std::marker::PhantomData<T>,
+    pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
@@ -108,11 +108,9 @@ impl std::string::ToString for ConditionFunctionExpression {
         match self {
             Self::AttributeExists(path) => format!("attribute_exists(#{})", path),
             Self::AttributeNotExists(path) => format!("attribute_not_exists(#{})", path),
-            Self::AttributeType(path, attribute_type) => format!(
-                "attribute_type(#{}, :type{})",
-                path,
-                attribute_type.to_string()
-            ),
+            Self::AttributeType(path, attribute_type) => {
+                format!("attribute_type(#{}, :type{})", path, attribute_type)
+            }
             Self::BeginsWith(path, s) => {
                 let mut md5 = Md5::new();
                 md5.input(s.as_bytes());
@@ -155,7 +153,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
         match self {
             Self::AttributeType(_path, t) => {
                 m.insert(
-                    format!(":type{}", t.to_string()),
+                    format!(":type{}", t),
                     super::AttributeValue {
                         s: Some(t.to_string()),
                         ..super::AttributeValue::default()

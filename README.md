@@ -81,7 +81,7 @@ async fn main() {
 ### Setup
 
 ```
-make dynamo
+AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy make dynamo
 ```
 
 This starts up DynamoDB on Docker container, and then arranges test fixtures.
@@ -89,10 +89,16 @@ This starts up DynamoDB on Docker container, and then arranges test fixtures.
 ### Test
 
 ```
-make test
+AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy make test
 ```
 
 NOTE: Don't recommend to use `cargo test` because our test suite doesn't support running tests in parallel. Use `cargo test -- --test-threads=1` instead of it.
+
+### Example
+
+```
+AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy  cargo run --example EXAMPLE_NAME
+```
 
 ### Utility
 
