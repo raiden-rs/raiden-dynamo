@@ -46,7 +46,7 @@ pub struct KeyCondition<T> {
 pub struct KeyConditionFilledOrWaitConjunction<T> {
     attr: String,
     cond: KeyConditionTypes,
-    _token: std::marker::PhantomData<T>,
+    _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
@@ -54,7 +54,7 @@ pub struct KeyConditionFilled<T> {
     attr: String,
     cond: KeyConditionTypes,
     conjunction: KeyConditionConjunction,
-    _token: std::marker::PhantomData<T>,
+    _token: std::marker::PhantomData<fn() -> T>,
 }
 
 impl<T> KeyConditionFilledOrWaitConjunction<T> {

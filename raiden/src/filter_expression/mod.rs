@@ -43,14 +43,14 @@ pub trait FilterExpressionBuilder<T> {
 #[derive(Debug, Clone)]
 pub struct FilterExpression<T> {
     pub attr: String,
-    pub _token: std::marker::PhantomData<T>,
+    pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilledOrWaitConjunction<T> {
     attr: String,
     cond: FilterExpressionTypes,
-    _token: std::marker::PhantomData<T>,
+    _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
@@ -58,7 +58,7 @@ pub struct FilterExpressionFilled<T> {
     attr: String,
     cond: FilterExpressionTypes,
     conjunction: FilterExpressionConjunction,
-    _token: std::marker::PhantomData<T>,
+    _token: std::marker::PhantomData<fn() -> T>,
 }
 
 impl<T> FilterExpressionFilledOrWaitConjunction<T> {

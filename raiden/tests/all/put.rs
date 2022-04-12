@@ -8,6 +8,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct User {
         #[raiden(partition_key)]
         id: String,
@@ -17,6 +18,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct UserWithUuid {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -105,6 +107,7 @@ mod tests {
     }
 
     #[derive(Raiden, Debug, Clone)]
+    #[allow(dead_code)]
     pub struct PutItemConditionData0 {
         #[raiden(partition_key)]
         id: String,
@@ -131,6 +134,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -155,6 +159,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_put_user_id_not_exists_expression() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -179,6 +184,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_put_user_id_exists_expression() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -198,6 +204,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(dead_code)]
     fn test_put_user_with_uuid() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
@@ -217,6 +224,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct UserVecTest {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -246,6 +254,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct UserSetTest {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -293,6 +302,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct UserDefinedSetTest {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -325,6 +335,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]
+    #[allow(dead_code)]
     pub struct UserEmptySetTest {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -350,6 +361,7 @@ mod tests {
     }
 
     #[derive(Raiden, Debug, Clone)]
+    #[allow(dead_code)]
     pub struct EmptyStringTestData0 {
         #[raiden(partition_key)]
         #[raiden(uuid)]
@@ -375,6 +387,7 @@ mod tests {
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
+    #[allow(dead_code)]
     pub struct EmptyPutTestData0 {
         #[raiden(partition_key)]
         id: String,

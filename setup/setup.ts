@@ -21,6 +21,7 @@ import { testUserStaging } from "./fixtures/test_user_staging.ts";
 import { deleteTest0 } from "./fixtures/delete_test_0.ts";
 import { deleteTest1 } from "./fixtures/delete_test_1.ts";
 import { scanTestData0 } from "./fixtures/scan_test_data_0.ts";
+import { scanWithFilterTestData0 } from "./fixtures/scan_with_filter_test_data_0.ts";
 import { emptySetTestData0 } from "./fixtures/empty_set_test_data_0.ts";
 import { emptyStringTestData0 } from "./fixtures/empty_string_test_data_0.ts";
 import { updateDeleteTestData0 } from "./fixtures/update_delete_test_data_0.ts";
@@ -64,6 +65,7 @@ const data = [
   deleteTest0,
   deleteTest1,
   scanTestData0,
+  scanWithFilterTestData0,
   emptySetTestData0,
   emptyStringTestData0,
   updateDeleteTestData0,

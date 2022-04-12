@@ -9,6 +9,7 @@ pub(crate) fn expand_scan(
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}ScanBuilder", struct_name);
 
+    let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
 
     quote! {
@@ -47,6 +48,19 @@ pub(crate) fn expand_scan(
 
             pub fn consistent(mut self) -> Self {
                 self.input.consistent_read = Some(true);
+                self
+            }
+
+            pub fn filter(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
+                let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_values.is_empty() {
+                    if let Some(v) = self.input.expression_attribute_values {
+                        self.input.expression_attribute_values = Some(::raiden::merge_map(attr_values, v));
+                    } else {
+                        self.input.expression_attribute_values = Some(attr_values);
+                    }
+                }
+                self.input.filter_expression = Some(cond_str);
                 self
             }
 

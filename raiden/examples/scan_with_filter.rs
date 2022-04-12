@@ -1,9 +1,9 @@
 use raiden::*;
 
 #[derive(Raiden, Debug)]
-#[raiden(table_name = "ScanTestData0")]
+#[raiden(table_name = "ScanWithFilterTestData0")]
 #[allow(dead_code)]
-pub struct ScanTestData0 {
+pub struct Scan {
     #[raiden(partition_key)]
     id: String,
     name: String,
@@ -13,10 +13,11 @@ pub struct ScanTestData0 {
 
 #[tokio::main]
 async fn main() {
-    let client = ScanTestData0::client(Region::Custom {
+    let client = Scan::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),
         name: "ap-northeast-1".into(),
     });
-    let res = client.scan().run().await;
-    dbg!(&res);
+    let filter = Scan::filter_expression(Scan::num()).eq(1000);
+    let res = client.scan().filter(filter).run().await.unwrap();
+    assert_eq!(res.items.len(), 50);
 }

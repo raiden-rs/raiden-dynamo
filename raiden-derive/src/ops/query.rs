@@ -75,10 +75,14 @@ pub(crate) fn expand_query(
                 self
             }
 
-            pub fn filter_expression(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
+            pub fn filter(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_values.is_empty() {
-                    self.input.expression_attribute_values = Some(attr_values);
+                    if let Some(v) = self.input.expression_attribute_values {
+                        self.input.expression_attribute_values = Some(::raiden::merge_map(attr_values, v));
+                    } else {
+                        self.input.expression_attribute_values = Some(attr_values);
+                    }
                 }
                 self.input.filter_expression = Some(cond_str);
                 self
@@ -87,7 +91,11 @@ pub(crate) fn expand_query(
             pub fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<#key_condition_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
                 if !attr_values.is_empty() {
-                    self.input.expression_attribute_values = Some(attr_values);
+                    if let Some(v) = self.input.expression_attribute_values {
+                        self.input.expression_attribute_values = Some(::raiden::merge_map(attr_values, v));
+                    } else {
+                        self.input.expression_attribute_values = Some(attr_values);
+                    }
                 }
                 self.input.key_condition_expression = Some(cond_str);
                 self

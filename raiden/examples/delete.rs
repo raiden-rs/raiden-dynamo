@@ -3,6 +3,7 @@ use raiden::*;
 #[derive(Raiden)]
 #[raiden(table_name = "QueryTestData0")]
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Test {
     #[raiden(partition_key)]
     id: String,
