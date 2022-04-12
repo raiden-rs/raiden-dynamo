@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Support `filter` expression for query and scan.
   You can pass `filter_expression` like following.
+- Use tokio@1.17.0
 
 ``` rust
 let filter = Scan::filter_expression(Scan::num()).eq(1000);
