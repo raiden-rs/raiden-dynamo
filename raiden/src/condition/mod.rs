@@ -24,7 +24,7 @@ pub enum ConditionComparisonExpression {
 }
 
 #[derive(Clone, PartialEq)]
-pub struct ConditionFilledOrWaitConjunction<T: Clone> {
+pub struct ConditionFilledOrWaitOperator<T: Clone> {
     pub not: bool,
     pub cond: Cond,
     pub _token: std::marker::PhantomData<fn() -> T>,
@@ -34,17 +34,17 @@ pub struct ConditionFilledOrWaitConjunction<T: Clone> {
 pub struct ConditionFilled<T: Clone> {
     pub not: bool,
     pub cond: Cond,
-    pub conjunction: Conjunction,
+    pub operator: Operator,
     pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
-impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
+impl<T: Clone> ConditionFilledOrWaitOperator<T> {
     pub fn and(self, cond: impl ConditionBuilder<T>) -> ConditionFilled<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         ConditionFilled {
             not: self.not,
             cond: self.cond,
-            conjunction: Conjunction::And(condition_string, attr_names, attr_values),
+            operator: Operator::And(condition_string, attr_names, attr_values),
             _token: self._token,
         }
     }
@@ -53,13 +53,13 @@ impl<T: Clone> ConditionFilledOrWaitConjunction<T> {
         ConditionFilled {
             not: self.not,
             cond: self.cond,
-            conjunction: Conjunction::Or(condition_string, attr_names, attr_values),
+            operator: Operator::Or(condition_string, attr_names, attr_values),
             _token: self._token,
         }
     }
 }
 
-impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
+impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitOperator<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         if self.not {
             (
@@ -78,9 +78,9 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitConjunction<T> {
 }
 impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
-        let (right_str, right_names, right_values) = match self.conjunction {
-            super::condition::Conjunction::And(s, m, v) => (format!("AND ({})", s), m, v),
-            super::condition::Conjunction::Or(s, m, v) => (format!("OR ({})", s), m, v),
+        let (right_str, right_names, right_values) = match self.operator {
+            super::condition::Operator::And(s, m, v) => (format!("AND ({})", s), m, v),
+            super::condition::Operator::Or(s, m, v) => (format!("OR ({})", s), m, v),
         };
         let left_str = self.cond.to_string();
         let left_names = self.cond.to_attr_names();
@@ -249,7 +249,7 @@ impl std::string::ToString for AttrOrPlaceholder {
 pub type ConditionString = String;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Conjunction {
+pub enum Operator {
     And(
         ConditionString,
         super::AttributeNames,
