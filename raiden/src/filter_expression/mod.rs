@@ -1,3 +1,5 @@
+use crate::IntoAttribute;
+
 pub type FilterExpressionString = String;
 
 // note: The syntax for a filter expression is identical to that of a key condition expression.
@@ -33,6 +35,11 @@ pub enum FilterExpressionTypes {
         super::AttributeValue,
     ),
     BeginsWith(super::Placeholder, super::AttributeValue),
+    AttributeExists(),
+    AttributeNotExists(),
+    AttributeType(super::Placeholder, super::AttributeType),
+    Contains(super::Placeholder, super::AttributeValue),
+    Size(),
 }
 
 pub trait FilterExpressionBuilder<T> {
@@ -163,6 +170,35 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                     attr_values,
                 )
             }
+            FilterExpressionTypes::AttributeExists() => (
+                format!("attribute_exists(#{})", attr_name),
+                attr_names,
+                attr_values,
+            ),
+            FilterExpressionTypes::AttributeNotExists() => (
+                format!("attribute_not_exists(#{})", attr_name),
+                attr_names,
+                attr_values,
+            ),
+            FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
+                attr_values.insert(placeholder.to_string(), attribute_type.into_attr());
+                (
+                    format!("attribute_type(#{}, {})", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
+            FilterExpressionTypes::Contains(placeholder, value) => {
+                attr_values.insert(placeholder.to_string(), value);
+                (
+                    format!("contains(#{}, {})", attr_name, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
+            FilterExpressionTypes::Size() => {
+                (format!("size(#{})", attr_name), attr_names, attr_values)
+            }
         }
     }
 }
@@ -215,6 +251,23 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
                 format!("begins_with(#{}, {})", attr_name, placeholder)
+            }
+            FilterExpressionTypes::AttributeExists() => {
+                format!("attribute_exists(#{})", attr_name)
+            }
+            FilterExpressionTypes::AttributeNotExists() => {
+                format!("attribute_not_exists(#{})", attr_name)
+            }
+            FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
+                left_values.insert(placeholder.clone(), attribute_type.into_attr());
+                format!("attribute_type(#{}, {})", attr_name, placeholder)
+            }
+            FilterExpressionTypes::Contains(placeholder, value) => {
+                left_values.insert(placeholder.clone(), value);
+                format!("contains(#{}, {})", attr_name, placeholder)
+            }
+            FilterExpressionTypes::Size() => {
+                format!("size(#{})", attr_name)
             }
         };
         (
@@ -312,6 +365,59 @@ impl<T> FilterExpression<T> {
     ) -> FilterExpressionFilledOrWaitOperator<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = FilterExpressionTypes::BeginsWith(placeholder, value.into_attr());
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn attribute_exists(self) -> FilterExpressionFilledOrWaitOperator<T> {
+        let cond = FilterExpressionTypes::AttributeExists();
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn attribute_not_exists(self) -> FilterExpressionFilledOrWaitOperator<T> {
+        let cond = FilterExpressionTypes::AttributeNotExists();
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn attribute_type(
+        self,
+        attribute_type: super::AttributeType,
+    ) -> FilterExpressionFilledOrWaitOperator<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond = FilterExpressionTypes::AttributeType(placeholder, attribute_type);
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn contains(
+        self,
+        value: impl super::IntoAttribute,
+    ) -> FilterExpressionFilledOrWaitOperator<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond = FilterExpressionTypes::Contains(placeholder, value.into_attr());
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn size(self) -> FilterExpressionFilledOrWaitOperator<T> {
+        let cond = FilterExpressionTypes::Size();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
             cond,
