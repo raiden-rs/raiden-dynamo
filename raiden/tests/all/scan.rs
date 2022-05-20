@@ -201,6 +201,7 @@ mod tests {
         name: String,
         year: usize,
         num: usize,
+        option: Option<String>,
     }
 
     #[tokio::test]
@@ -210,6 +211,53 @@ mod tests {
             name: "ap-northeast-1".into(),
         });
         let filter = Scan::filter_expression(Scan::num()).eq(1000);
+        let res = client.scan().filter(filter).run().await.unwrap();
+        assert_eq!(res.items.len(), 50);
+    }
+
+    #[tokio::test]
+    async fn test_or_with_contain_filter() {
+        let client = Scan::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let filter = Scan::filter_expression(Scan::num())
+            .eq(1000)
+            .or(Scan::filter_expression(Scan::id()).contains("scanId50"));
+        let res = client.scan().filter(filter).run().await.unwrap();
+        assert_eq!(res.items.len(), 51);
+    }
+
+    #[tokio::test]
+    async fn test_attribute_exists_filter() {
+        let client = Scan::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let filter = Scan::filter_expression(Scan::option()).attribute_exists();
+        let res = client.scan().filter(filter).run().await.unwrap();
+        assert_eq!(res.items.len(), 50);
+    }
+
+    #[tokio::test]
+    async fn test_attribute_not_exists_filter() {
+        let client = Scan::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let filter = Scan::filter_expression(Scan::option()).attribute_not_exists();
+        let res = client.scan().filter(filter).run().await.unwrap();
+        assert_eq!(res.items.len(), 50);
+    }
+
+    #[tokio::test]
+    async fn test_attribute_type_filter() {
+        let client = Scan::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let filter =
+            Scan::filter_expression(Scan::option()).attribute_type(raiden::AttributeType::S);
         let res = client.scan().filter(filter).run().await.unwrap();
         assert_eq!(res.items.len(), 50);
     }

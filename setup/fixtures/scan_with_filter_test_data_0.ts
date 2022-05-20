@@ -19,6 +19,7 @@ export const scanWithFilterTestData0: CreateAndPut = {
       name: { S: "scanAlice${i}" },
       year: { N: "2001" },
       num: { N: i % 2 ? "1000" : "2000" },
+      option: i % 2 ? { S: "option${i}" } : null,
     };
   }),
 };

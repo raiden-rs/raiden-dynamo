@@ -57,6 +57,15 @@ pub enum AttributeType {
     M,    // Map
 }
 
+impl IntoAttribute for AttributeType {
+    fn into_attr(self) -> AttributeValue {
+        AttributeValue {
+            s: Some(self.to_string()),
+            ..AttributeValue::default()
+        }
+    }
+}
+
 impl std::fmt::Display for AttributeType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{:?}", self)
