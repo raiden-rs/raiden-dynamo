@@ -39,7 +39,6 @@ pub enum FilterExpressionTypes {
     AttributeNotExists(),
     AttributeType(super::Placeholder, super::AttributeType),
     Contains(super::Placeholder, super::AttributeValue),
-    Size(),
 }
 
 pub trait FilterExpressionBuilder<T> {
@@ -196,9 +195,6 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                     attr_values,
                 )
             }
-            FilterExpressionTypes::Size() => {
-                (format!("size(#{})", attr_name), attr_names, attr_values)
-            }
         }
     }
 }
@@ -265,9 +261,6 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
             FilterExpressionTypes::Contains(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
                 format!("contains(#{}, {})", attr_name, placeholder)
-            }
-            FilterExpressionTypes::Size() => {
-                format!("size(#{})", attr_name)
             }
         };
         (
@@ -409,15 +402,6 @@ impl<T> FilterExpression<T> {
     ) -> FilterExpressionFilledOrWaitOperator<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = FilterExpressionTypes::Contains(placeholder, value.into_attr());
-        FilterExpressionFilledOrWaitOperator {
-            attr: self.attr,
-            cond,
-            _token: std::marker::PhantomData,
-        }
-    }
-
-    pub fn size(self) -> FilterExpressionFilledOrWaitOperator<T> {
-        let cond = FilterExpressionTypes::Size();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
             cond,

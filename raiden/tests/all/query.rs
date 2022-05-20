@@ -12,6 +12,7 @@ mod tests {
         name: String,
         year: usize,
         num: usize,
+        option: Option<String>,
     }
 
     #[test]
@@ -36,12 +37,14 @@ mod tests {
                             name: "john".to_owned(),
                             year: 1999,
                             num: 1000,
+                            option: None,
                         },
                         QueryTestData0 {
                             id: "id0".to_owned(),
                             name: "john".to_owned(),
                             year: 2000,
                             num: 2000,
+                            option: None,
                         },
                     ],
                     next_token: None,
@@ -75,6 +78,7 @@ mod tests {
                         name: "john".to_owned(),
                         year: 1999,
                         num: 1000,
+                        option: None,
                     },],
                     next_token: None,
                     scanned_count: Some(1),
@@ -82,6 +86,118 @@ mod tests {
             )
         }
         rt.block_on(example());
+    }
+
+    #[tokio::test]
+    async fn test_query_with_simple_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
+        let filter = QueryTestData0::filter_expression(QueryTestData0::num()).eq(4000);
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_query_with_or_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
+        let filter = QueryTestData0::filter_expression(QueryTestData0::name())
+            .eq("bar0")
+            .or(QueryTestData0::filter_expression(QueryTestData0::name()).eq("bar1"));
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_query_with_attribute_exists_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+        let filter = QueryTestData0::filter_expression(QueryTestData0::option()).attribute_exists();
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_query_with_attribute_not_exists_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+        let filter =
+            QueryTestData0::filter_expression(QueryTestData0::option()).attribute_not_exists();
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_query_with_attribute_type_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+        let filter = QueryTestData0::filter_expression(QueryTestData0::option())
+            .attribute_type(raiden::AttributeType::S);
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_query_with_contains_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+        let filter = QueryTestData0::filter_expression(QueryTestData0::name()).contains("bar");
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 2);
     }
 
     #[derive(Raiden)]

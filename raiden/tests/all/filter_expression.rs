@@ -210,20 +210,4 @@ mod tests {
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
-
-    #[test]
-    fn test_size_filter_expression() {
-        reset_value_id();
-
-        let cond = User::filter_expression(User::name()).size();
-        let (filter_expression, attribute_names, attribute_values) = cond.build();
-        let mut expected_names: std::collections::HashMap<String, String> =
-            std::collections::HashMap::new();
-        expected_names.insert("#name".to_owned(), "name".to_owned());
-        let expected_values: std::collections::HashMap<String, AttributeValue> =
-            std::collections::HashMap::new();
-        assert_eq!(filter_expression, "size(#name)".to_owned(),);
-        assert_eq!(attribute_names, expected_names);
-        assert_eq!(attribute_values, expected_values);
-    }
 }
