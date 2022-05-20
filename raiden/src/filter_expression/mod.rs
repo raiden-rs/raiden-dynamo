@@ -10,6 +10,11 @@ pub enum FilterExpressionOperator {
         super::AttributeNames,
         super::AttributeValues,
     ),
+    Or(
+        FilterExpressionString,
+        super::AttributeNames,
+        super::AttributeValues,
+    ),
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -68,6 +73,15 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
             attr: self.attr,
             cond: self.cond,
             operator: FilterExpressionOperator::And(condition_string, attr_names, attr_values),
+            _token: self._token,
+        }
+    }
+    pub fn or(self, cond: impl FilterExpressionBuilder<T>) -> FilterExpressionFilled<T> {
+        let (condition_string, attr_names, attr_values) = cond.build();
+        FilterExpressionFilled {
+            attr: self.attr,
+            cond: self.cond,
+            operator: FilterExpressionOperator::Or(condition_string, attr_names, attr_values),
             _token: self._token,
         }
     }
@@ -157,6 +171,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let (right_str, right_names, right_values) = match self.operator {
             FilterExpressionOperator::And(s, m, v) => (format!("AND ({})", s), m, v),
+            FilterExpressionOperator::Or(s, m, v) => (format!("OR ({})", s), m, v),
         };
 
         let attr_name = self.attr;
