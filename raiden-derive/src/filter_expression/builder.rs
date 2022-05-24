@@ -17,6 +17,9 @@ pub fn expand_filter_expression_builder(
                     _token: std::marker::PhantomData,
                 }
             }
+            pub fn filter_expression_with_not(builder: impl ::raiden::FilterExpressionBuilder<#filter_expression_token_name>) -> ::raiden::FilterExpressionNotWrapper<#filter_expression_token_name> {
+                ::raiden::FilterExpressionNotWrapper::new(builder)
+            }
         }
     }
 }

@@ -107,6 +107,26 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_query_with_not_function_filter() {
+        let client = QueryTestData0::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
+        let filter = QueryTestData0::filter_expression_with_not(
+            QueryTestData0::filter_expression(QueryTestData0::name()).eq("bar1"),
+        );
+        let res = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.items.len(), 2);
+    }
+
+    #[tokio::test]
     async fn test_query_with_or_filter() {
         let client = QueryTestData0::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
