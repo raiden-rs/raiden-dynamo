@@ -18,13 +18,7 @@ pub fn expand_filter_expression_builder(
                 }
             }
             pub fn filter_expression_with_not(builder: impl ::raiden::FilterExpressionBuilder<#filter_expression_token_name>) -> ::raiden::FilterExpressionNotWrapper<#filter_expression_token_name> {
-                let (str, names, values) = builder.build();
-                ::raiden::FilterExpressionNotWrapper{
-                    condition_string: str,
-                    attr_names: names,
-                    attr_values: values,
-                    _token: std::marker::PhantomData,
-                }
+                ::raiden::FilterExpressionNotWrapper::new(builder)
             }
         }
     }
