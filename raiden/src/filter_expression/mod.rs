@@ -59,10 +59,10 @@ pub struct FilterExpression<T> {
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionNotWrapper<T> {
-    pub condition_string: String,
-    pub attr_names: std::collections::HashMap<String, String>,
-    pub attr_values: std::collections::HashMap<String, rusoto_dynamodb_default::AttributeValue>,
-    pub _token: std::marker::PhantomData<fn() -> T>,
+    condition_string: String,
+    attr_names: std::collections::HashMap<String, String>,
+    attr_values: std::collections::HashMap<String, rusoto_dynamodb_default::AttributeValue>,
+    _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
@@ -78,6 +78,18 @@ pub struct FilterExpressionFilled<T> {
     cond: FilterExpressionTypes,
     operator: FilterExpressionOperator,
     _token: std::marker::PhantomData<fn() -> T>,
+}
+
+impl<T> FilterExpressionNotWrapper<T> {
+    pub fn new(builder: impl FilterExpressionBuilder<T>) -> FilterExpressionNotWrapper<T> {
+        let (str, names, values) = builder.build();
+        FilterExpressionNotWrapper{
+            condition_string: str,
+            attr_names: names,
+            attr_values: values,
+            _token: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<T> FilterExpressionFilledOrWaitOperator<T> {
