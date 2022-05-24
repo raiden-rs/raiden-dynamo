@@ -83,7 +83,7 @@ pub struct FilterExpressionFilled<T> {
 impl<T> FilterExpressionNotWrapper<T> {
     pub fn new(builder: impl FilterExpressionBuilder<T>) -> FilterExpressionNotWrapper<T> {
         let (str, names, values) = builder.build();
-        FilterExpressionNotWrapper{
+        FilterExpressionNotWrapper {
             condition_string: str,
             attr_names: names,
             attr_values: values,
