@@ -54,14 +54,14 @@ pub trait FilterExpressionBuilder<T> {
 #[derive(Debug, Clone)]
 pub struct FilterExpression<T> {
     pub attr: String,
-    pub size_attr: bool,
+    pub is_size: bool,
     pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilledOrWaitOperator<T> {
     attr: String,
-    size_attr: bool,
+    is_size: bool,
     cond: FilterExpressionTypes,
     _token: std::marker::PhantomData<fn() -> T>,
 }
@@ -69,7 +69,7 @@ pub struct FilterExpressionFilledOrWaitOperator<T> {
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilled<T> {
     attr: String,
-    size_attr: bool,
+    is_size: bool,
     cond: FilterExpressionTypes,
     operator: FilterExpressionOperator,
     _token: std::marker::PhantomData<fn() -> T>,
@@ -80,7 +80,7 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         FilterExpressionFilled {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond: self.cond,
             operator: FilterExpressionOperator::And(condition_string, attr_names, attr_values),
             _token: self._token,
@@ -90,7 +90,7 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         FilterExpressionFilled {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond: self.cond,
             operator: FilterExpressionOperator::Or(condition_string, attr_names, attr_values),
             _token: self._token,
@@ -105,7 +105,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
         let mut attr_values: super::AttributeValues = std::collections::HashMap::new();
 
         attr_names.insert(format!("#{}", attr_name), attr_name.clone());
-        let left_cond = if self.size_attr {
+        let left_cond = if self.is_size {
             format!("size(#{})", attr_name)
         } else {
             format!("#{}", attr_name)
@@ -220,7 +220,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
         let mut left_names: super::AttributeNames = std::collections::HashMap::new();
         let mut left_values: super::AttributeValues = std::collections::HashMap::new();
         left_names.insert(format!("#{}", attr_name), attr_name.clone());
-        let left_cond = if self.size_attr {
+        let left_cond = if self.is_size {
             format!("size(#{})", attr_name)
         } else {
             format!("#{}", attr_name)
@@ -288,7 +288,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
 
 impl<T> FilterExpression<T> {
     pub fn size(mut self) -> Self {
-        self.size_attr = true;
+        self.is_size = true;
         self
     }
 
@@ -297,7 +297,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Eq(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -308,7 +308,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Not(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -319,7 +319,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Gt(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -329,7 +329,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Ge(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -340,7 +340,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Le(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -351,7 +351,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Lt(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -372,7 +372,7 @@ impl<T> FilterExpression<T> {
         );
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -387,7 +387,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::BeginsWith(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -397,7 +397,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeExists();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -407,7 +407,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeNotExists();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -421,7 +421,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeType(placeholder, attribute_type);
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -435,7 +435,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Contains(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
-            size_attr: self.size_attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
