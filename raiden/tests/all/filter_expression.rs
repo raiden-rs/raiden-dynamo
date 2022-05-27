@@ -35,6 +35,22 @@ mod tests {
     }
 
     #[test]
+    fn test_size_filter_expression() {
+        reset_value_id();
+        let cond = User::filter_expression(User::name()).size().eq(7);
+        let (filter_expression, attribute_names, attribute_values) = cond.build();
+        let mut expected_names: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        expected_names.insert("#name".to_owned(), "name".to_owned());
+        let mut expected_values: std::collections::HashMap<String, AttributeValue> =
+            std::collections::HashMap::new();
+        expected_values.insert(":value0".to_owned(), 7.into_attr());
+        assert_eq!(filter_expression, "size(#name) = :value0".to_owned(),);
+        assert_eq!(attribute_names, expected_names);
+        assert_eq!(attribute_values, expected_values);
+    }
+
+    #[test]
     fn test_not_filter_expression() {
         reset_value_id();
         let cond = User::filter_expression(User::name()).not("raiden");

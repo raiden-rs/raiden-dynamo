@@ -14,6 +14,7 @@ pub fn expand_filter_expression_builder(
                 let attr = attr.into_attr_name();
                 ::raiden::FilterExpression {
                     attr,
+                    size_attr: false,
                     _token: std::marker::PhantomData,
                 }
             }
