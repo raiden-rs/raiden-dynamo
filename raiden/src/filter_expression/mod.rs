@@ -54,12 +54,14 @@ pub trait FilterExpressionBuilder<T> {
 #[derive(Debug, Clone)]
 pub struct FilterExpression<T> {
     pub attr: String,
+    pub is_size: bool,
     pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilledOrWaitOperator<T> {
     attr: String,
+    is_size: bool,
     cond: FilterExpressionTypes,
     _token: std::marker::PhantomData<fn() -> T>,
 }
@@ -67,6 +69,7 @@ pub struct FilterExpressionFilledOrWaitOperator<T> {
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilled<T> {
     attr: String,
+    is_size: bool,
     cond: FilterExpressionTypes,
     operator: FilterExpressionOperator,
     _token: std::marker::PhantomData<fn() -> T>,
@@ -77,6 +80,7 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         FilterExpressionFilled {
             attr: self.attr,
+            is_size: self.is_size,
             cond: self.cond,
             operator: FilterExpressionOperator::And(condition_string, attr_names, attr_values),
             _token: self._token,
@@ -86,6 +90,7 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
         let (condition_string, attr_names, attr_values) = cond.build();
         FilterExpressionFilled {
             attr: self.attr,
+            is_size: self.is_size,
             cond: self.cond,
             operator: FilterExpressionOperator::Or(condition_string, attr_names, attr_values),
             _token: self._token,
@@ -100,11 +105,16 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
         let mut attr_values: super::AttributeValues = std::collections::HashMap::new();
 
         attr_names.insert(format!("#{}", attr_name), attr_name.clone());
+        let left_cond = if self.is_size {
+            format!("size(#{})", attr_name)
+        } else {
+            format!("#{}", attr_name)
+        };
         match self.cond {
             FilterExpressionTypes::Eq(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} = {}", attr_name, placeholder),
+                    format!("{} = {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -112,7 +122,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Not(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} <> {}", attr_name, placeholder),
+                    format!("{} <> {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -120,7 +130,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Gt(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} > {}", attr_name, placeholder),
+                    format!("{} > {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -128,7 +138,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Ge(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} >= {}", attr_name, placeholder),
+                    format!("{} >= {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -136,7 +146,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Le(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} <= {}", attr_name, placeholder),
+                    format!("{} <= {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -144,7 +154,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Lt(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("#{} < {}", attr_name, placeholder),
+                    format!("{} < {}", left_cond, placeholder),
                     attr_names,
                     attr_values,
                 )
@@ -154,8 +164,8 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                 attr_values.insert(placeholder2.to_string(), value2);
                 (
                     format!(
-                        "#{} BETWEEN {} AND {}",
-                        attr_name, placeholder1, placeholder2
+                        "{} BETWEEN {} AND {}",
+                        left_cond, placeholder1, placeholder2
                     ),
                     attr_names,
                     attr_values,
@@ -210,38 +220,43 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
         let mut left_names: super::AttributeNames = std::collections::HashMap::new();
         let mut left_values: super::AttributeValues = std::collections::HashMap::new();
         left_names.insert(format!("#{}", attr_name), attr_name.clone());
+        let left_cond = if self.is_size {
+            format!("size(#{})", attr_name)
+        } else {
+            format!("#{}", attr_name)
+        };
 
         let left_str = match self.cond {
             FilterExpressionTypes::Eq(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} = {}", attr_name, placeholder)
+                format!("{} = {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Not(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} <> {}", attr_name, placeholder)
+                format!("{} <> {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Gt(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} > {}", attr_name, placeholder)
+                format!("{} > {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Ge(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} >= {}", attr_name, placeholder)
+                format!("{} >= {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Le(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} <= {}", attr_name, placeholder)
+                format!("{} <= {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Lt(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("#{} < {}", attr_name, placeholder)
+                format!("{} < {}", left_cond, placeholder)
             }
             FilterExpressionTypes::Between(placeholder1, value1, placeholder2, value2) => {
                 left_values.insert(placeholder1.clone(), value1);
                 left_values.insert(placeholder2.clone(), value2);
                 format!(
-                    "#{} BETWEEN {} AND {}",
-                    attr_name, placeholder1, placeholder2
+                    "{} BETWEEN {} AND {}",
+                    left_cond, placeholder1, placeholder2
                 )
             }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
@@ -272,11 +287,17 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
 }
 
 impl<T> FilterExpression<T> {
+    pub fn size(mut self) -> Self {
+        self.is_size = true;
+        self
+    }
+
     pub fn eq(self, value: impl super::IntoAttribute) -> FilterExpressionFilledOrWaitOperator<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = FilterExpressionTypes::Eq(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -287,6 +308,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Not(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -297,6 +319,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Gt(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -306,6 +329,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Ge(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -316,6 +340,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Le(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -326,6 +351,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Lt(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -346,6 +372,7 @@ impl<T> FilterExpression<T> {
         );
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -360,6 +387,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::BeginsWith(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -369,6 +397,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeExists();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -378,6 +407,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeNotExists();
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -391,6 +421,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::AttributeType(placeholder, attribute_type);
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
@@ -404,6 +435,7 @@ impl<T> FilterExpression<T> {
         let cond = FilterExpressionTypes::Contains(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
+            is_size: self.is_size,
             cond,
             _token: std::marker::PhantomData,
         }
