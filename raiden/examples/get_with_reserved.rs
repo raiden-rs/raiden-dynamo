@@ -5,8 +5,7 @@ use raiden::*;
 pub struct Reserved {
     #[raiden(partition_key)]
     pub id: String,
-    #[raiden(rename = "type")]
-    pub some_type: String,
+    pub r#type: String,
 }
 
 fn main() {
