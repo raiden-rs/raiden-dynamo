@@ -264,10 +264,15 @@ mod tests {
                 .run()
                 .await;
             assert_eq!(res.is_err(), true,);
-            assert!(matches!(
+            assert_eq!(
                 res.unwrap_err(),
-                RaidenError::TransactionCanceled(_)
-            ),);
+                RaidenError::TransactionCanceled {
+                    reasons: RaidenTransactionCancellationReasons(vec![
+                        RaidenTransactionCancellationReason::NoError,
+                        RaidenTransactionCancellationReason::ConditionalCheckFailed,
+                    ]),
+                }
+            );
         }
         rt.block_on(example());
     }
