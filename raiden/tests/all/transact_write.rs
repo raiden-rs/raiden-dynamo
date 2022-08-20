@@ -268,8 +268,8 @@ mod tests {
                 res.unwrap_err(),
                 RaidenError::TransactionCanceled {
                     reasons: RaidenTransactionCancellationReasons(vec![
-                        RaidenTransactionCancellationReason::NoError,
-                        RaidenTransactionCancellationReason::ConditionalCheckFailed,
+                        None,
+                        Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
                     ]),
                 }
             );

@@ -4,41 +4,62 @@ use thiserror::Error;
 
 const TRANSACTION_CANCELLED_MESSAGE_PREFIX: &str = "Transaction cancelled, please refer cancellation reasons for specific reasons";
 
-#[derive(Debug, PartialEq)]
-pub struct RaidenTransactionCancellationReasons(pub Vec<RaidenTransactionCancellationReason>);
+#[derive(Clone, Debug, PartialEq)]
+pub struct RaidenTransactionCancellationReasons(pub Vec<Option<RaidenTransactionCancellationReason>>);
 
 impl RaidenTransactionCancellationReasons {
     // If `message` is unexcepted format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
     pub fn from_str(message: &str) -> Self {
         if !message.starts_with(TRANSACTION_CANCELLED_MESSAGE_PREFIX) {
-            return RaidenTransactionCancellationReasons(vec![RaidenTransactionCancellationReason::Unknown])
+            return RaidenTransactionCancellationReasons(vec![
+                Some(RaidenTransactionCancellationReason::Unknown)
+            ])
         }
 
         RaidenTransactionCancellationReasons(message[TRANSACTION_CANCELLED_MESSAGE_PREFIX.len()..]
             .trim_matches(|c| char::is_whitespace(c) || c == '[' || c == ']')
             .split(",")
             .map(str::trim)
-            .map(RaidenTransactionCancellationReason::from_str)
+            .map(|reason| {
+                match reason {
+                    "None" => None,
+                    reason => Some(RaidenTransactionCancellationReason::from_str(reason)),
+                }
+            })
             .collect())
+    }
+
+    // as_error returns first error or Unknow
+    pub fn to_error(&self) -> RaidenTransactionCancellationReason {
+        for reason in &self.0 {
+            match reason {
+                Some(reason) => return reason.clone(),
+                None => {}
+            }
+        }
+        RaidenTransactionCancellationReason::Unknown
     }
 }
 
 impl fmt::Display for RaidenTransactionCancellationReasons {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let reasons = self.0.iter()
-            .map(|reason| reason.to_string())
+            .map(|reason| {
+                match reason {
+                    Some(reason) => reason.to_string(),
+                    None => String::from("None"),
+                }
+            })
             .collect::<Vec<_>>()
             .join(", ");
         f.write_fmt(format_args!("[{}]", reasons))
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Clone, Debug, PartialEq)]
 pub enum RaidenTransactionCancellationReason {
     #[error("Unknown")]
     Unknown,
-    #[error("NoError")]
-    NoError,
     #[error("ConditionalCheckFailed")]
     ConditionalCheckFailed,
     #[error("ItemCollectionSizeLimitExceeded")]
@@ -56,7 +77,6 @@ pub enum RaidenTransactionCancellationReason {
 impl RaidenTransactionCancellationReason {
     pub fn from_str(reason: &str) -> Self {
         match reason {
-            "None" => Self::NoError,
             "ConditionalCheckFailed" => Self::ConditionalCheckFailed,
             "ItemCollectionSizeLimitExceeded" => Self::ItemCollectionSizeLimitExceeded,
             "TransactionConflict" => Self::TransactionConflict,
@@ -79,7 +99,7 @@ mod tests {
         let reasons = RaidenTransactionCancellationReasons::from_str(message);
 
         assert_eq!(reasons, RaidenTransactionCancellationReasons(vec![
-            RaidenTransactionCancellationReason::ConditionalCheckFailed,
+            Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
         ]));
     }
 
@@ -89,8 +109,8 @@ mod tests {
         let reasons = RaidenTransactionCancellationReasons::from_str(message);
 
         assert_eq!(reasons, RaidenTransactionCancellationReasons(vec![
-            RaidenTransactionCancellationReason::NoError,
-            RaidenTransactionCancellationReason::ConditionalCheckFailed,
+            None,
+            Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
         ]));
     }
 
@@ -100,7 +120,7 @@ mod tests {
         let reasons = RaidenTransactionCancellationReasons::from_str(message);
 
         assert_eq!(reasons, RaidenTransactionCancellationReasons(vec![
-            RaidenTransactionCancellationReason::Unknown,
+            Some(RaidenTransactionCancellationReason::Unknown),
         ]));
     }
 
@@ -110,7 +130,33 @@ mod tests {
         let reasons = RaidenTransactionCancellationReasons::from_str(message);
 
         assert_eq!(reasons, RaidenTransactionCancellationReasons(vec![
-            RaidenTransactionCancellationReason::Unknown,
+            Some(RaidenTransactionCancellationReason::Unknown),
         ]));
+    }
+
+    #[test]
+    fn to_error() {
+        let results = RaidenTransactionCancellationReasons(vec![
+            None,
+            Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
+        ]);
+        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::ConditionalCheckFailed);
+    }
+
+    #[test]
+    fn to_error_none() {
+        // Usually, AWS doesn't return such results, so to_error should return RaidenTransactionCancellationReason::Unknown
+        let results = RaidenTransactionCancellationReasons(vec![
+            None,
+        ]);
+        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::Unknown);
+    }
+
+    #[test]
+    fn to_error_empty() {
+        // Usually, AWS doesn't return such results, so to_error should return RaidenTransactionCancellationReason::Unknown
+        let results = RaidenTransactionCancellationReasons(vec![
+        ]);
+        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::Unknown);
     }
 }
