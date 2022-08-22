@@ -76,5 +76,26 @@ export const queryTestData0: CreateAndPut = {
       num: { N: "4000" },
       option: { S: "option2" },
     },
+    {
+      id: { S: "id5" },
+      name: { S: "bob" },
+      year: { N: "1999" },
+      num: { N: "4000" },
+      option: { S: "option2" },
+    },
+    {
+      id: { S: "id5" },
+      name: { S: "bob0" },
+      year: { N: "2000" },
+      num: { N: "4000" },
+      option: { S: "option2" },
+    },
+    {
+      id: { S: "id5" },
+      name: { S: "bob1" },
+      year: { N: "3000" },
+      num: { N: "4000" },
+      option: { S: "option2" },
+    },
   ],
 };

@@ -216,6 +216,17 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_size_filter() {
+        let client = Scan::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+        let filter = Scan::filter_expression(Scan::name()).size().eq(10);
+        let res = client.scan().filter(filter).run().await.unwrap();
+        assert_eq!(res.items.len(), 10);
+    }
+
+    #[tokio::test]
     async fn test_or_with_contain_filter() {
         let client = Scan::client(Region::Custom {
             endpoint: "http://localhost:8000".into(),
