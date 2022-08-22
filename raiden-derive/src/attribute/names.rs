@@ -20,7 +20,7 @@ pub fn expand_attr_names(
         let name = if let Some(renamed) = renamed {
             renamed.to_case(Case::Pascal)
         } else {
-            ident.to_string().to_case(Case::Pascal)
+            exclude_raw_ident(&ident.to_string()).to_case(Case::Pascal)
         };
         let name = format_ident!("{}", name);
         quote! {
@@ -33,7 +33,7 @@ pub fn expand_attr_names(
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let basename = create_renamed(ident.to_string(), renamed, rename_all_type);
         let attr_name = basename.to_string();
-        let name = basename.to_case(Case::Pascal);
+        let name = exclude_raw_ident(&basename).to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {
             #attr_enum_name::#name => #attr_name.to_owned()
@@ -50,7 +50,7 @@ pub fn expand_attr_names(
         } else {
             format_ident!("{}", func_name)
         };
-        let name = basename.to_case(Case::Pascal);
+        let name = exclude_raw_ident(&basename).to_case(Case::Pascal);
         let name = format_ident!("{}", name);
         quote! {
             pub fn #func_name() -> #attr_enum_name {
@@ -84,5 +84,13 @@ pub fn expand_attr_names(
             )*
         }
 
+    }
+}
+
+fn exclude_raw_ident(ident: &str) -> String {
+    if &ident[0..2] == "r#" {
+        ident[2..].to_owned()
+    } else {
+        ident.to_owned()
     }
 }

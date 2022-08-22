@@ -442,11 +442,11 @@ mod tests {
         #[raiden(partition_key)]
         id: String,
         #[raiden(rename = "type")]
-        some_type: String,
+        r#type: String,
     }
 
     #[test]
-    fn test_rename_with_reserved() {
+    fn test_reserved_keyword() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
             let client = Reserved::client(Region::Custom {
@@ -458,6 +458,39 @@ mod tests {
                 res.unwrap(),
                 get::GetOutput {
                     item: Reserved {
+                        id: "id0".to_owned(),
+                        r#type: "reserved".to_owned(),
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "ReservedTestData0")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct ReservedWithRename {
+        #[raiden(partition_key)]
+        id: String,
+        #[raiden(rename = "type")]
+        some_type: String,
+    }
+
+    #[test]
+    fn test_rename_with_reserved() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = ReservedWithRename::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("id0").run().await;
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: ReservedWithRename {
                         id: "id0".to_owned(),
                         some_type: "reserved".to_owned(),
                     },
