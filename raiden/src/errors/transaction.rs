@@ -28,17 +28,6 @@ impl RaidenTransactionCancellationReasons {
             })
             .collect())
     }
-
-    // as_error returns first error or Unknow
-    pub fn to_error(&self) -> RaidenTransactionCancellationReason {
-        for reason in &self.0 {
-            match reason {
-                Some(reason) => return reason.clone(),
-                None => {}
-            }
-        }
-        RaidenTransactionCancellationReason::Unknown
-    }
 }
 
 impl fmt::Display for RaidenTransactionCancellationReasons {
