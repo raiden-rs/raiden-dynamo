@@ -28,6 +28,38 @@ impl RaidenTransactionCancellationReasons {
             })
             .collect())
     }
+
+    fn has_error(&self, r: RaidenTransactionCancellationReason) -> bool {
+        return self.0.iter()
+            .any(|reason| match reason {
+                Some(error) if *error == r => return true,
+                _ => return false,
+            })
+    }
+
+    pub fn has_conditional_check_failed(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::ConditionalCheckFailed)
+    }
+
+    pub fn has_item_collection_size_limit_exceeded(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded)
+    }
+
+    pub fn has_transaction_conflict(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::TransactionConflict)
+    }
+
+    pub fn has_provisioned_throughput_exceeded(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::ProvisionedThroughputExceeded)
+    }
+
+    pub fn has_throttling_error(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::ThrottlingError)
+    }
+
+    pub fn has_validation_error(&self) -> bool {
+        return self.has_error(RaidenTransactionCancellationReason::ValidationError)
+    }
 }
 
 impl fmt::Display for RaidenTransactionCancellationReasons {
@@ -124,28 +156,19 @@ mod tests {
     }
 
     #[test]
-    fn to_error() {
+    fn has_error() {
         let results = RaidenTransactionCancellationReasons(vec![
             None,
+            Some(RaidenTransactionCancellationReason::TransactionConflict),
             Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
         ]);
-        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::ConditionalCheckFailed);
-    }
 
-    #[test]
-    fn to_error_none() {
-        // Usually, AWS doesn't return such results, so to_error should return RaidenTransactionCancellationReason::Unknown
-        let results = RaidenTransactionCancellationReasons(vec![
-            None,
-        ]);
-        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::Unknown);
-    }
+        assert!(results.has_error(RaidenTransactionCancellationReason::ConditionalCheckFailed));
+        assert!(results.has_error(RaidenTransactionCancellationReason::TransactionConflict));
 
-    #[test]
-    fn to_error_empty() {
-        // Usually, AWS doesn't return such results, so to_error should return RaidenTransactionCancellationReason::Unknown
-        let results = RaidenTransactionCancellationReasons(vec![
-        ]);
-        assert_eq!(results.to_error(), RaidenTransactionCancellationReason::Unknown);
+        assert!(!results.has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded));
+        assert!(!results.has_error(RaidenTransactionCancellationReason::ProvisionedThroughputExceeded));
+        assert!(!results.has_error(RaidenTransactionCancellationReason::ThrottlingError));
+        assert!(!results.has_error(RaidenTransactionCancellationReason::ValidationError));
     }
 }
