@@ -38,7 +38,7 @@ pub enum RaidenError {
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
     #[error("`transaction canceled error {reasons}`")]
-    TransactionCanceled{
+    TransactionCanceled {
         reasons: RaidenTransactionCancellationReasons,
     },
     #[error("`{0}`")]
