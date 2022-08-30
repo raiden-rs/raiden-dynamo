@@ -12,6 +12,8 @@ pub struct RaidenTransactionCancellationReasons(
 
 impl RaidenTransactionCancellationReasons {
     // If `message` is unexcepted format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
+    // TODO: Fix it later.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(message: &str) -> Self {
         if !message.starts_with(TRANSACTION_CANCELLED_MESSAGE_PREFIX) {
             return RaidenTransactionCancellationReasons(vec![Some(
@@ -22,7 +24,7 @@ impl RaidenTransactionCancellationReasons {
         RaidenTransactionCancellationReasons(
             message[TRANSACTION_CANCELLED_MESSAGE_PREFIX.len()..]
                 .trim_matches(|c| char::is_whitespace(c) || c == '[' || c == ']')
-                .split(",")
+                .split(',')
                 .map(str::trim)
                 .map(|reason| match reason {
                     "None" => None,
@@ -33,35 +35,33 @@ impl RaidenTransactionCancellationReasons {
     }
 
     fn has_error(&self, r: RaidenTransactionCancellationReason) -> bool {
-        return self.0.iter().any(|reason| match reason {
-            Some(error) if *error == r => return true,
-            _ => return false,
-        });
+        self.0
+            .iter()
+            .any(|reason| matches!(reason, Some(error) if *error == r))
     }
 
     pub fn has_conditional_check_failed(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::ConditionalCheckFailed);
+        self.has_error(RaidenTransactionCancellationReason::ConditionalCheckFailed)
     }
 
     pub fn has_item_collection_size_limit_exceeded(&self) -> bool {
-        return self
-            .has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded);
+        self.has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded)
     }
 
     pub fn has_transaction_conflict(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::TransactionConflict);
+        self.has_error(RaidenTransactionCancellationReason::TransactionConflict)
     }
 
     pub fn has_provisioned_throughput_exceeded(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::ProvisionedThroughputExceeded);
+        self.has_error(RaidenTransactionCancellationReason::ProvisionedThroughputExceeded)
     }
 
     pub fn has_throttling_error(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::ThrottlingError);
+        self.has_error(RaidenTransactionCancellationReason::ThrottlingError)
     }
 
     pub fn has_validation_error(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::ValidationError);
+        self.has_error(RaidenTransactionCancellationReason::ValidationError)
     }
 }
 
@@ -99,6 +99,8 @@ pub enum RaidenTransactionCancellationReason {
 }
 
 impl RaidenTransactionCancellationReason {
+    // TODO: Fix it later.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(reason: &str) -> Self {
         match reason {
             "ConditionalCheckFailed" => Self::ConditionalCheckFailed,
