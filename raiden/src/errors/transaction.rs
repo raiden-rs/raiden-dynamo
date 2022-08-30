@@ -44,7 +44,8 @@ impl RaidenTransactionCancellationReasons {
     }
 
     pub fn has_item_collection_size_limit_exceeded(&self) -> bool {
-        return self.has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded);
+        return self
+            .has_error(RaidenTransactionCancellationReason::ItemCollectionSizeLimitExceeded);
     }
 
     pub fn has_transaction_conflict(&self) -> bool {
