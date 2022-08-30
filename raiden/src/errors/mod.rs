@@ -1,5 +1,9 @@
+mod transaction;
+
 use crate::*;
 use thiserror::Error;
+
+pub use transaction::*;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum RaidenError {
@@ -33,8 +37,10 @@ pub enum RaidenError {
     ParseError(String),
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
-    #[error("`{0}`")]
-    TransactionCanceled(String),
+    #[error("`transaction canceled error {reasons}`")]
+    TransactionCanceled{
+        reasons: RaidenTransactionCancellationReasons,
+    },
     #[error("`{0}`")]
     TransactionInProgress(String),
     #[error("`{0}`")]
@@ -273,7 +279,8 @@ impl From<RusotoError<TransactWriteItemsError>> for RaidenError {
                     RaidenError::ResourceNotFound(msg)
                 }
                 TransactWriteItemsError::TransactionCanceled(msg) => {
-                    RaidenError::TransactionCanceled(msg)
+                    let reasons = RaidenTransactionCancellationReasons::from_str(&msg);
+                    RaidenError::TransactionCanceled { reasons }
                 }
                 TransactWriteItemsError::TransactionInProgress(msg) => {
                     RaidenError::TransactionInProgress(msg)
