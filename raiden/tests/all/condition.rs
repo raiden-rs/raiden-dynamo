@@ -55,7 +55,7 @@ mod tests {
     }
 
     #[test]
-    fn test_attribute_not_exists_condition_and_Operator() {
+    fn test_attribute_not_exists_condition_and_operator() {
         let cond = User::condition()
             .attr_not_exists(User::name())
             .and(User::condition().attr_not_exists(User::id()));
