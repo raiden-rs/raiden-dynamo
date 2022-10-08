@@ -1803,11 +1803,11 @@ checksum = "60369ef7a31de49bcb3f6ca728d4ba7300d9a1658f94c727d4cab8c8d9f4aece"
 
 [[package]]
 name = "uuid"
-version = "0.8.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fde2f6a4bea1d6e007c4ad38c6839fa71cbb63b6dbf5b595aa38dc9b1093c11"
+checksum = "93bbc61e655a4833cf400d0d15bf3649313422fa7572886ad6dab16d79886365"
 dependencies = [
- "rand 0.7.3",
+ "getrandom 0.2.1",
 ]
 
 [[package]]
