@@ -12,7 +12,7 @@
 
 ### get_item example
 
-```Rust
+``` rust
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
 pub struct User {
@@ -30,7 +30,7 @@ async fn main() {
 
 ### put_item example
 
-```Rust
+``` rust
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
 pub struct User {
@@ -52,7 +52,7 @@ async fn main() {
 
 ### batch_get_item example
 
-```Rust
+``` rust
 #[derive(Raiden, Debug, PartialEq)]
 pub struct User {
     #[raiden(partition_key)]
