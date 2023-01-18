@@ -16,8 +16,10 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.54.0
+          toolchain: 1.66.1
           override: true
+      - name: Install deps
+        run: sudo apt-get install libssl-dev
       - name: Cache cargo registry
         uses: actions/cache@v2
         with:
