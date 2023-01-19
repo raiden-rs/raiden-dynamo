@@ -8,7 +8,7 @@ impl NextToken {
         Self(token.into())
     }
     pub fn into_attr_values(self) -> Result<super::AttributeValues, super::RaidenError> {
-        let decoded = match base64::decode(&self.0) {
+        let decoded = match base64::decode(self.0) {
             Ok(decoded) => decoded,
             Err(_) => return Err(super::RaidenError::NextTokenDecodeError),
         };
@@ -27,7 +27,7 @@ impl NextToken {
 
     pub fn from_attr(key: &super::AttributeValues) -> Self {
         let serialized = serde_json::to_string(key).expect("should serialize");
-        Self(base64::encode(&serialized))
+        Self(base64::encode(serialized))
     }
 }
 
