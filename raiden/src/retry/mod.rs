@@ -56,7 +56,7 @@ impl Default for RetryCondition {
     }
 }
 
-impl<'a> Condition<super::RaidenError> for &RetryCondition {
+impl Condition<super::RaidenError> for &RetryCondition {
     fn is_retryable(&mut self, error: &RaidenError) -> bool {
         use std::sync::atomic::Ordering;
         let count = self.count.load(Ordering::Relaxed);
