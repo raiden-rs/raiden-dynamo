@@ -1,5 +1,4 @@
 pub use again::{Condition, RetryPolicy};
-use std::sync::atomic::AtomicUsize;
 use std::time::Duration;
 
 use super::RaidenError;
@@ -37,7 +36,6 @@ impl Into<RetryPolicy> for Policy {
 }
 
 pub struct RetryCondition {
-    pub count: std::sync::Arc<AtomicUsize>,
     pub strategy: Box<dyn RetryStrategy + Send + Sync>,
 }
 
@@ -50,7 +48,6 @@ impl RetryCondition {
 impl Default for RetryCondition {
     fn default() -> Self {
         Self {
-            count: std::sync::Arc::new(AtomicUsize::new(0)),
             strategy: Box::new(DefaultRetryStrategy),
         }
     }
@@ -58,16 +55,12 @@ impl Default for RetryCondition {
 
 impl Condition<super::RaidenError> for &RetryCondition {
     fn is_retryable(&mut self, error: &RaidenError) -> bool {
-        use std::sync::atomic::Ordering;
-        let count = self.count.load(Ordering::Relaxed);
-        let retryable = self.strategy.should_retry(error, count);
-        self.count.store(count.wrapping_add(1), Ordering::Relaxed);
-        retryable
+        self.strategy.should_retry(error)
     }
 }
 
 pub trait RetryStrategy {
-    fn should_retry(&self, error: &RaidenError, count: usize) -> bool;
+    fn should_retry(&self, error: &RaidenError) -> bool;
     fn policy(&self) -> Policy;
 }
 
@@ -75,8 +68,7 @@ pub trait RetryStrategy {
 pub struct DefaultRetryStrategy;
 
 impl RetryStrategy for DefaultRetryStrategy {
-    fn should_retry(&self, error: &RaidenError, count: usize) -> bool {
-        log::debug!("request count is {}", count);
+    fn should_retry(&self, error: &RaidenError) -> bool {
         matches!(
             error,
             RaidenError::InternalServerError(_)
