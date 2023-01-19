@@ -24,6 +24,7 @@ import { scanTestData0 } from "./fixtures/scan_test_data_0.ts";
 import { scanWithFilterTestData0 } from "./fixtures/scan_with_filter_test_data_0.ts";
 import { emptySetTestData0 } from "./fixtures/empty_set_test_data_0.ts";
 import { emptyStringTestData0 } from "./fixtures/empty_string_test_data_0.ts";
+import { useDefaultForNull } from "./fixtures/use_default_for_null_data.ts";
 import { updateDeleteTestData0 } from "./fixtures/update_delete_test_data_0.ts";
 import { updateAddTestData0 } from "./fixtures/update_add_test_data_0.ts";
 import { emptyPutTestData0 } from "./fixtures/empty_put_test_data_0.ts";
@@ -80,6 +81,7 @@ const data = [
   updateWithContainsInSetCondition,
   queryLargeDataTest,
   scanLargeDataTest,
+  useDefaultForNull,
 ];
 
 // NOTE: Running these operations concurrently with `Promise.all` would lead to running out of write buffer.

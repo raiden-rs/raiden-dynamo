@@ -351,6 +351,35 @@ mod tests {
         rt.block_on(example());
     }
 
+    #[derive(Raiden, Debug, Clone, PartialEq)]
+    pub struct UseDefaultForNull {
+        #[raiden(partition_key)]
+        #[raiden(uuid)]
+        id: String,
+        #[raiden(use_default)]
+        flag: bool,
+    }
+
+    #[tokio::test]
+    async fn test_use_default_for_null() {
+        let client = UseDefaultForNull::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+
+        let res = client.get("id0").run().await;
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UseDefaultForNull {
+                    id: "id0".to_owned(),
+                    flag: false,
+                },
+                consumed_capacity: None,
+            }
+        );
+    }
+
     use std::sync::atomic::{AtomicUsize, Ordering};
 
     static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
