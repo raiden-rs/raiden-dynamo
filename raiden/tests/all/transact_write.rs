@@ -98,12 +98,12 @@ mod tests {
 
     use std::sync::atomic::{AtomicUsize, Ordering};
 
-    static RETRY_COUNT: AtomicUsize = AtomicUsize::new(1);
+    static RETRY_COUNT: AtomicUsize = AtomicUsize::new(0);
     struct MyRetryStrategy;
 
     impl RetryStrategy for MyRetryStrategy {
-        fn should_retry(&self, _error: &RaidenError, retry_count: usize) -> bool {
-            RETRY_COUNT.store(retry_count, Ordering::Relaxed);
+        fn should_retry(&self, _error: &RaidenError) -> bool {
+            RETRY_COUNT.fetch_add(1, Ordering::Relaxed);
             true
         }
 
@@ -134,7 +134,7 @@ mod tests {
             )
         }
         rt.block_on(example());
-        assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 3)
+        assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 4)
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]

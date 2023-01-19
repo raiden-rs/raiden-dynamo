@@ -10,8 +10,7 @@ pub struct User {
 struct MyRetryStrategy;
 
 impl RetryStrategy for MyRetryStrategy {
-    fn should_retry(&self, _error: &RaidenError, request_count: usize) -> bool {
-        log::info!("request count {}", request_count);
+    fn should_retry(&self, _error: &RaidenError) -> bool {
         true
     }
 
