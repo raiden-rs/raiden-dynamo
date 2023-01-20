@@ -8,6 +8,7 @@ pub(crate) fn expand_query(
     let trait_name = format_ident!("{}Query", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
+    let builder_name_output = format_ident!("{}Output", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
@@ -23,7 +24,17 @@ pub(crate) fn expand_query(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::QueryInput,
             pub next_token: Option<::raiden::NextToken>,
-            pub limit: Option<i64>
+            pub limit: Option<i64>,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
+        }
+
+        struct #builder_name_output {
+            consumed_capacity: Option<::raiden::ConsumedCapacity>,
+            count: Option<i64>,
+            items: Option<Vec<::std::collections::HashMap<String, AttributeValue>>>,
+            last_evaluated_key: Option<::std::collections::HashMap<String, AttributeValue>>,
+            scanned_count: Option<i64>,
         }
 
         impl #trait_name for #client_name {
@@ -40,6 +51,8 @@ pub(crate) fn expand_query(
                     input,
                     next_token: None,
                     limit: None,
+                    policy: self.retry_condition.strategy.policy(),
+                    condition: &self.retry_condition,
                 }
             }
         }
@@ -116,10 +129,13 @@ pub(crate) fn expand_query(
                     }
 
                     let input = self.input.clone();
-                    let res = policy.retry_if(move || {
+                    let client = self.client.clone();
+
+                    let res: #builder_name_output = policy.retry_if(move || {
+                        let input = input.clone();
                         let client = client.clone();
                         async {
-                            client.query(input).await
+                            #builder_name::inner_run(client, input).await
                         }
                     }, self.condition).await?;
 
@@ -155,6 +171,20 @@ pub(crate) fn expand_query(
                     }
                     self.input.exclusive_start_key = res.last_evaluated_key;
                 }
+            }
+
+            async fn inner_run(
+                client: ::raiden::DynamoDbClient,
+                input: ::raiden::QueryInput,
+            ) -> Result<#builder_name_output, ::raiden::RaidenError> {
+                let res = client.query(input).await?;
+                Ok(#builder_name_output {
+                    consumed_capacity: res.consumed_capacity,
+                    count: res.count,
+                    items: res.items,
+                    last_evaluated_key: res.last_evaluated_key,
+                    scanned_count: res.scanned_count,
+                })
             }
         }
     }
