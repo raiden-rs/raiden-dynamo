@@ -107,13 +107,22 @@ pub(crate) fn expand_query(
                 }
 
                 let mut items: Vec<#struct_name> = vec![];
+                let policy: ::raiden::RetryPolicy = self.policy.into();
+                let client = self.client;
 
                 loop {
                     if let Some(limit) = self.limit {
                         self.input.limit = Some(limit);
                     }
 
-                    let res = self.client.query(self.input.clone()).await?;
+                    let input = self.input.clone();
+                    let res = policy.retry_if(move || {
+                        let client = client.clone();
+                        async {
+                            client.query(input).await
+                        }
+                    }, self.condition).await?;
+
                     if let Some(res_items) = res.items {
                         for res_item in res_items.iter() {
                             items.push(#struct_name {
