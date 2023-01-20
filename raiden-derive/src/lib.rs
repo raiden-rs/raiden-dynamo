@@ -180,8 +180,18 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         #transact_write
 
         impl #client_name {
+
             pub fn new(region: ::raiden::Region) -> Self {
                 let client = ::raiden::DynamoDbClient::new(region);
+                Self::new_with_dynamo_db_client(client)
+            }
+
+            pub fn new_with_client(client: ::raiden::Client, region: ::raiden::Region) -> Self {
+                let client = ::raiden::DynamoDbClient::new_with_client(client, region);
+                Self::new_with_dynamo_db_client(client)
+            }
+
+            fn new_with_dynamo_db_client(client: ::raiden::DynamoDbClient) -> Self {
                 let names = {
                     let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
                     #(#insertion_attribute_name)*
@@ -223,6 +233,9 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         impl #struct_name {
             pub fn client(region: ::raiden::Region) -> #client_name {
                 #client_name::new(region)
+            }
+            pub fn client_with(client: ::raiden::Client, region: ::raiden::Region) -> #client_name {
+                #client_name::new_with_client(client, region)
             }
         }
 
