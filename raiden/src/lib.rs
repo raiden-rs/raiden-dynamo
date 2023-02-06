@@ -335,7 +335,7 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
     }
 }
 
-macro_rules! default_number_set_convertor {
+macro_rules! default_number_hash_set_convertor {
     ($to: ty) => {
         impl IntoAttribute for std::collections::HashSet<$to> {
             fn into_attr(self) -> AttributeValue {
@@ -372,17 +372,66 @@ macro_rules! default_number_set_convertor {
     };
 }
 
-default_number_set_convertor!(usize);
-default_number_set_convertor!(u64);
-default_number_set_convertor!(u32);
-default_number_set_convertor!(u16);
-default_number_set_convertor!(u8);
+default_number_hash_set_convertor!(usize);
+default_number_hash_set_convertor!(u64);
+default_number_hash_set_convertor!(u32);
+default_number_hash_set_convertor!(u16);
+default_number_hash_set_convertor!(u8);
 
-default_number_set_convertor!(isize);
-default_number_set_convertor!(i64);
-default_number_set_convertor!(i32);
-default_number_set_convertor!(i16);
-default_number_set_convertor!(i8);
+default_number_hash_set_convertor!(isize);
+default_number_hash_set_convertor!(i64);
+default_number_hash_set_convertor!(i32);
+default_number_hash_set_convertor!(i16);
+default_number_hash_set_convertor!(i8);
+
+macro_rules! default_number_btree_set_convertor {
+    ($to: ty) => {
+        impl IntoAttribute for std::collections::BTreeSet<$to> {
+            fn into_attr(self) -> AttributeValue {
+                if self.is_empty() {
+                    // See. https://github.com/raiden-rs/raiden/issues/57
+                    //      https://github.com/raiden-rs/raiden-dynamo/issues/64
+                    return AttributeValue::default();
+                }
+                AttributeValue {
+                    ns: Some(self.into_iter().map(|s| s.to_string()).collect()),
+                    ..AttributeValue::default()
+                }
+            }
+        }
+
+        impl FromAttribute for std::collections::BTreeSet<$to> {
+            fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
+                if value.is_none() {
+                    return Ok(std::collections::BTreeSet::new());
+                }
+                let value = value.unwrap();
+                if let Some(true) = value.null {
+                    // See. https://github.com/raiden-rs/raiden/issues/57
+                    return Ok(std::collections::BTreeSet::new());
+                }
+                let mut nums = value.ns.ok_or(ConversionError::ValueIsNone)?;
+                let mut results: Vec<Result<$to, ConversionError>> = nums
+                    .drain(..)
+                    .map(|ns| ns.parse().map_err(|_| ConversionError::ParseInt))
+                    .collect();
+                results.drain(..).collect()
+            }
+        }
+    };
+}
+
+default_number_btree_set_convertor!(usize);
+default_number_btree_set_convertor!(u64);
+default_number_btree_set_convertor!(u32);
+default_number_btree_set_convertor!(u16);
+default_number_btree_set_convertor!(u8);
+
+default_number_btree_set_convertor!(isize);
+default_number_btree_set_convertor!(i64);
+default_number_btree_set_convertor!(i32);
+default_number_btree_set_convertor!(i16);
+default_number_btree_set_convertor!(i8);
 
 impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for std::collections::HashSet<A> {
     fn into_attr(self) -> AttributeValue {
@@ -409,6 +458,35 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute
         if let Some(true) = value.null {
             // See. https://github.com/raiden-rs/raiden/issues/57
             return Ok(std::collections::HashSet::new());
+        }
+        let mut ss = value.ss.ok_or(ConversionError::ValueIsNone)?;
+        ss.drain(..).map(A::from_ss_item).collect()
+    }
+}
+
+impl<A: std::cmp::Ord + IntoStringSetItem> IntoAttribute for std::collections::BTreeSet<A> {
+    fn into_attr(self) -> AttributeValue {
+        if self.is_empty() {
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            //      https://github.com/raiden-rs/raiden-dynamo/issues/64
+            return AttributeValue::default();
+        }
+        AttributeValue {
+            ss: Some(self.into_iter().map(|s| s.into_ss_item()).collect()),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+impl<A: std::cmp::Ord + FromStringSetItem> FromAttribute for std::collections::BTreeSet<A> {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
+        if value.is_none() {
+            return Ok(std::collections::BTreeSet::new());
+        }
+        let value = value.unwrap();
+        if let Some(true) = value.null {
+            // See. https://github.com/raiden-rs/raiden/issues/57
+            return Ok(std::collections::BTreeSet::new());
         }
         let mut ss = value.ss.ok_or(ConversionError::ValueIsNone)?;
         ss.drain(..).map(A::from_ss_item).collect()

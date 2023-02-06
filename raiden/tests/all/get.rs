@@ -231,6 +231,42 @@ mod tests {
         rt.block_on(example());
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone, PartialEq)]
+    pub struct UserWithStringBTreeSet {
+        #[raiden(partition_key)]
+        id: String,
+        name: String,
+        string_set: std::collections::BTreeSet<String>,
+    }
+
+    #[test]
+    fn test_get_btree_stringset() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        async fn example() {
+            let client = UserWithStringBTreeSet::client(Region::Custom {
+                endpoint: "http://localhost:8000".into(),
+                name: "ap-northeast-1".into(),
+            });
+            let res = client.get("user_primary_key").consistent().run().await;
+            let mut set = std::collections::BTreeSet::new();
+            set.insert("Hello".to_owned());
+            assert_eq!(
+                res.unwrap(),
+                get::GetOutput {
+                    item: UserWithStringBTreeSet {
+                        id: "user_primary_key".to_owned(),
+                        name: "bokuweb".to_owned(),
+                        string_set: set,
+                    },
+                    consumed_capacity: None,
+                }
+            );
+        }
+        rt.block_on(example());
+    }
+
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
     pub struct CustomSSItem(String);
 
