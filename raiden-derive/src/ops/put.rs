@@ -23,7 +23,7 @@ pub(crate) fn expand_put_item(
             let ident = &f.ident.clone().unwrap();
             let ty = &f.ty;
             quote! {
-                #ident: #ty,
+                pub #ident: #ty,
             }
         });
 
