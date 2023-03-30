@@ -275,8 +275,9 @@ pub(crate) fn expand_update_item(
                 let has_return_values = self.input.return_values.is_some();
                 let input = self.input.clone();
                 let client = self.client.clone();
+                let policy: ::raiden::RetryPolicy = self.policy.into();
 
-                let res: ::raiden::update::UpdateOutput = policy.retry_if(move || {
+                let res = policy.retry_if(move || {
                     let input = input.clone();
                     let client = client.clone();
                     async {
@@ -305,7 +306,8 @@ pub(crate) fn expand_update_item(
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::UpdateItemInput,
             ) -> Result<::raiden::UpdateItemOutput, ::raiden::RaidenError> {
-                Ok(self.client.update_item(input).await?)
+                let res = client.update_item(input).await?;
+                Ok(res)
             }
         }
 

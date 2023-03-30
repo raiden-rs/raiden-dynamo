@@ -8,7 +8,7 @@ pub(crate) fn expand_query(
     let trait_name = format_ident!("{}Query", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
-    let builder_name_output = format_ident!("{}Output", struct_name);
+    let query_output_item = format_ident!("{}QueryOutput", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
@@ -29,7 +29,7 @@ pub(crate) fn expand_query(
             pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
-        struct #builder_name_output {
+        struct #query_output_item {
             consumed_capacity: Option<::raiden::ConsumedCapacity>,
             count: Option<i64>,
             items: Option<Vec<::std::collections::HashMap<String, AttributeValue>>>,
@@ -131,7 +131,7 @@ pub(crate) fn expand_query(
                     let input = self.input.clone();
                     let client = self.client.clone();
 
-                    let res: #builder_name_output = policy.retry_if(move || {
+                    let res: #query_output_item = policy.retry_if(move || {
                         let input = input.clone();
                         let client = client.clone();
                         async {
@@ -176,9 +176,9 @@ pub(crate) fn expand_query(
             async fn inner_run(
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::QueryInput,
-            ) -> Result<#builder_name_output, ::raiden::RaidenError> {
+            ) -> Result<#query_output_item, ::raiden::RaidenError> {
                 let res = client.query(input).await?;
-                Ok(#builder_name_output {
+                Ok(#query_output_item {
                     consumed_capacity: res.consumed_capacity,
                     count: res.count,
                     items: res.items,
