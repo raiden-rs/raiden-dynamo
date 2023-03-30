@@ -154,6 +154,8 @@ pub(crate) fn expand_put_item(
                     client: &self.client,
                     input,
                     item: output_item,
+                    policy: self.retry_condition.strategy.policy(),
+                    condition: &self.retry_condition,
                 }
             }
         }
@@ -162,6 +164,8 @@ pub(crate) fn expand_put_item(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::PutItemInput,
             pub item: #item_output_name,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
@@ -184,11 +188,30 @@ pub(crate) fn expand_put_item(
             }
 
             pub async fn run(self) -> Result<::raiden::put::PutOutput<#item_output_name>, ::raiden::RaidenError> {
-                let res = self.client.put_item(self.input).await?;
+                let input = self.input.clone();
+                let client = self.client.clone();
+                let policy: ::raiden::RetryPolicy = self.policy.into();
+
+                let res = policy.retry_if(move || {
+                    let input = input.clone();
+                    let client = client.clone();
+                    async {
+                        #builder_name::inner_run(client, input).await
+                    }
+                }, self.condition).await?;
+
                 Ok(::raiden::put::PutOutput {
                     item: self.item,
                     consumed_capacity: res.consumed_capacity,
                 })
+            }
+
+            async fn inner_run(
+                client: ::raiden::DynamoDbClient,
+                input: ::raiden::PutItemInput,
+            ) -> Result<::raiden::PutItemOutput, ::raiden::RaidenError> {
+                let res = client.put_item(input).await?;
+                Ok(res)
             }
         }
     }
