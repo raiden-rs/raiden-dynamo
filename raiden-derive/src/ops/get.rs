@@ -12,7 +12,7 @@ pub(crate) fn expand_get_item(
     let trait_name = format_ident!("{}GetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}GetItemBuilder", struct_name);
-    let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
     let (partition_key_ident, partition_key_type) = partition_key;
 
     let client_trait = if let Some(sort_key) = sort_key {
@@ -107,7 +107,7 @@ pub(crate) fn expand_get_item(
                 if res.item.is_none() {
                     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
                 };
-                let res_item = &res.item.unwrap();
+                let mut res_item = res.item.unwrap();
                 let item = #struct_name {
                     #(#from_item)*
                 };

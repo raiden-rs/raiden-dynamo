@@ -1,7 +1,7 @@
 use quote::*;
 
 pub(crate) fn expand_attr_to_item(
-    item_ident: &proc_macro2::Ident,
+    item_ident: proc_macro2::Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
 ) -> Vec<proc_macro2::TokenStream> {
@@ -19,11 +19,11 @@ pub(crate) fn expand_attr_to_item(
         if crate::finder::is_option(&f.ty) {
             quote! {
               #ident: {
-                let item = #item_ident.get(#attr_key);
+                let item = (&mut #item_ident).remove(#attr_key);
                 if item.is_none() {
                     None
                 } else {
-                    let converted = ::raiden::FromAttribute::from_attr(item.cloned());
+                    let converted = ::raiden::FromAttribute::from_attr(item);
                     if converted.is_err() {
                         return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
                     }
@@ -35,15 +35,16 @@ pub(crate) fn expand_attr_to_item(
             let ty = &f.ty;
             quote! {
               #ident: {
-                let item = #item_ident.get(#attr_key);
+                let item = (&mut #item_ident).remove(#attr_key);
                 if item.is_none() {
                     #ty::default()
                 } else {
+                  let item = item.unwrap();
                   // If null is true, use default value.
-                  if let Some(true) = item.unwrap().null {
+                  if let Some(true) = item.null {
                     #ty::default()
                   } else {
-                    let converted = ::raiden::FromAttribute::from_attr(item.cloned());
+                    let converted = ::raiden::FromAttribute::from_attr(Some(item));
                     if converted.is_err() {
                       // TODO: improve error handling.
                         return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
@@ -56,8 +57,8 @@ pub(crate) fn expand_attr_to_item(
         } else {
             quote! {
                 #ident: {
-                  let item = #item_ident.get(#attr_key);
-                  let converted = ::raiden::FromAttribute::from_attr(item.cloned());
+                  let item = (&mut #item_ident).remove(#attr_key);
+                  let converted = ::raiden::FromAttribute::from_attr(item);
                   if converted.is_err() {
                     // TODO: improve error handling.
                       return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
