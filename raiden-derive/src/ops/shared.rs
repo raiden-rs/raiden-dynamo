@@ -16,10 +16,15 @@ pub(crate) fn expand_attr_to_item(
         } else {
             ident.to_string()
         };
-        if crate::finder::is_option(&f.ty) {
+        let ty = &f.ty;
+
+        let item = quote! {
+          let item = <#ty as ResolveAttribute>::resolve_attr(&#attr_key, &mut #item_ident);
+        };
+        if crate::finder::is_option(ty) {
             quote! {
               #ident: {
-                let item = (&mut #item_ident).remove(#attr_key);
+                #item
                 if item.is_none() {
                     None
                 } else {
@@ -32,10 +37,9 @@ pub(crate) fn expand_attr_to_item(
               },
             }
         } else if use_default {
-            let ty = &f.ty;
             quote! {
               #ident: {
-                let item = (&mut #item_ident).remove(#attr_key);
+                #item
                 if item.is_none() {
                     #ty::default()
                 } else {
@@ -57,7 +61,7 @@ pub(crate) fn expand_attr_to_item(
         } else {
             quote! {
                 #ident: {
-                  let item = (&mut #item_ident).remove(#attr_key);
+                  #item
                   let converted = ::raiden::FromAttribute::from_attr(item);
                   if converted.is_err() {
                     // TODO: improve error handling.
