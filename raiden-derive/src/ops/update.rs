@@ -15,7 +15,7 @@ pub(crate) fn expand_update_item(
     let update_expression_name = format_ident!("{}UpdateExpression", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}UpdateItemBuilder", struct_name);
-    let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
     let (partition_key_ident, partition_key_type) = partition_key;
 
@@ -287,7 +287,7 @@ pub(crate) fn expand_update_item(
 
 
                 let item = if has_return_values {
-                    let res_item = &res.attributes.unwrap();
+                    let mut res_item = res.attributes.unwrap();
                     Some(#struct_name {
                         #(#from_item)*
                     })

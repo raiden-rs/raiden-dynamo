@@ -33,13 +33,13 @@ dependencies = [
 
 [[package]]
 name = "async-trait"
-version = "0.1.61"
+version = "0.1.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705339e0e4a9690e2908d2b3d049d85682cf19fbd5782494498fbf7003a6a282"
+checksum = "b9ccdd8f2a161be9bd5c023df56f1b2a0bd1d83872ae53b71a84a12c9bf6e842"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 1.0.107",
+ "syn 2.0.10",
 ]
 
 [[package]]
@@ -671,9 +671,9 @@ dependencies = [
 
 [[package]]
 name = "insta"
-version = "1.26.0"
+version = "1.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6f0f08b46e4379744de2ab67aa8f7de3ffd1da3e275adc41fcc82053ede46ff"
+checksum = "9a28d25139df397cbca21408bb742cf6837e04cdbebf1b07b760caf971d6a972"
 dependencies = [
  "console",
  "lazy_static",
