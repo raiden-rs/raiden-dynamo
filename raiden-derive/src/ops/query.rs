@@ -13,7 +13,7 @@ pub(crate) fn expand_query(
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
 
-    let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
 
     quote! {
         pub trait #trait_name {
@@ -140,7 +140,8 @@ pub(crate) fn expand_query(
                     }, self.condition).await?;
 
                     if let Some(res_items) = res.items {
-                        for res_item in res_items.iter() {
+                        for res_item in res_items.into_iter() {
+                            let mut res_item = res_item;
                             items.push(#struct_name {
                                 #(#from_item)*
                             })

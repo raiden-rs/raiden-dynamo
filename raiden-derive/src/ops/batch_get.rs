@@ -14,7 +14,7 @@ pub(crate) fn expand_batch_get(
     let trait_name = format_ident!("{}BatchGetItem", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}BatchGetItemBuilder", struct_name);
-    let from_item = super::expand_attr_to_item(&format_ident!("res_item"), fields, rename_all_type);
+    let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
     let (partition_key_ident, partition_key_type) = partition_key;
 
     let builder_keys_type = if sort_key.is_none() {
@@ -156,9 +156,11 @@ pub(crate) fn expand_batch_get(
                         unprocessed_retry -= 1;
                     }
 
-                    if let Some(res_responses) = &res.responses {
-                        if let Some(res_items) = res_responses.get(&self.table_name) {
-                            for res_item in res_items.iter() {
+                    if let Some(res_responses) = res.responses {
+                        let mut res_responses = res_responses;
+                        if let Some(res_items) = (&mut res_responses).remove(&self.table_name) {
+                            for res_item in res_items.into_iter() {
+                                let mut res_item = res_item;
                                 items.push(#struct_name {
                                     #(#from_item)*
                                 })
