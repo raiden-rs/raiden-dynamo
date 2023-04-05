@@ -123,6 +123,8 @@ pub trait FromAttribute: Sized {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError>;
 }
 
+impl<T: FromAttribute> ResolveAttribute for T {}
+
 pub trait FromStringSetItem: Sized {
     fn from_ss_item(value: String) -> Result<Self, ConversionError>;
 }
@@ -490,6 +492,15 @@ impl<A: std::cmp::Ord + FromStringSetItem> FromAttribute for std::collections::B
         }
         let mut ss = value.ss.ok_or(ConversionError::ValueIsNone)?;
         ss.drain(..).map(A::from_ss_item).collect()
+    }
+}
+
+pub trait ResolveAttribute: Sized + FromAttribute {
+    fn resolve_attr(
+        key: &str,
+        map: &mut std::collections::HashMap<String, AttributeValue>,
+    ) -> Option<AttributeValue> {
+        map.remove(key)
     }
 }
 
