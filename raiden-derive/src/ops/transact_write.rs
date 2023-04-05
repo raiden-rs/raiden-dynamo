@@ -38,17 +38,17 @@ pub(crate) fn expand_transact_write(
     // });
 
     let mut concatenated = TokenStream::new();
-    let mut iter = fields.named.clone().into_iter();
-    if let Some(f) = iter.next() {
-        let ident = f.ident.expect("Expected a named field");
-        if !crate::finder::include_unary_attr(&f.attrs, "uuid") {
-            concatenated.append_all(quote! {#ident });
-        }
-    }
+    let iter = fields.named.clone().into_iter();
+    let mut i = 0;
     for f in iter {
         let ident = f.ident.expect("Expected a named field");
         if !crate::finder::include_unary_attr(&f.attrs, "uuid") {
-            concatenated.append_all(quote! {, #ident});
+            if i == 0 {
+                concatenated.append_all(quote! {#ident});
+            } else {
+                concatenated.append_all(quote! {, #ident});
+            }
+            i += 1
         }
     }
 

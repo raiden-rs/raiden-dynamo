@@ -67,23 +67,6 @@ pub(crate) fn expand_put_item(
                         id,
                     );
                 }
-                // This is undocumented experimental feature.
-                // Don't use it...
-            } else if crate::finder::include_unary_attr(&f.attrs, "auto_chunk") {
-                quote! {
-                    // TODO: into_attrsを作成してdefault実装を用意、suffixをあわせて返すようにしたらよいか
-                    let value = item.#ident.clone().into_attr();
-                    if !::raiden::is_attr_value_empty(&value) {
-                        if value.b.is_empty() {
-                            input_item.insert(
-                                #attr_key.to_string(),
-                                value,
-                            );
-                        } else {
-                            // TODO:
-                        }
-                    }
-                }
             } else {
                 quote! {
                     let value = item.#ident.clone().into_attr();
