@@ -14,6 +14,14 @@ impl WriteTx {
             retry_condition: crate::RetryCondition::new(),
         }
     }
+    pub fn new_with_client(client: crate::Client, region: crate::Region) -> Self {
+        let client = crate::DynamoDbClient::new_with_client(client, region);
+        Self {
+            items: vec![],
+            client,
+            retry_condition: crate::RetryCondition::new(),
+        }
+    }
 
     pub fn with_retries(mut self, s: Box<dyn crate::retry::RetryStrategy + Send + Sync>) -> Self {
         self.retry_condition.strategy = s;
