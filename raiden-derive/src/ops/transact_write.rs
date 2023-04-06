@@ -37,25 +37,6 @@ pub(crate) fn expand_transact_write(
     //     }
     // });
 
-    let mut concatenated = TokenStream::new();
-    let iter = fields.named.clone().into_iter();
-    let mut i = 0;
-    for f in iter {
-        let ident = f.ident.expect("Expected a named field");
-        if !crate::finder::include_unary_attr(&f.attrs, "uuid") {
-            if i == 0 {
-                concatenated.append_all(quote! {#ident});
-            } else {
-                concatenated.append_all(quote! {, #ident});
-            }
-            i += 1
-        }
-    }
-
-    let bound = quote! {
-        let #item_input_name { #concatenated } = item;
-    };
-
     let input_items = {
         let insertion = fields.named.iter().map(|f| {
             let ident = &f.ident.clone().unwrap();
@@ -75,7 +56,7 @@ pub(crate) fn expand_transact_write(
                 }
             } else {
                 quote! {
-                    let value = #ident.into_attr();
+                    let value = item.#ident.into_attr();
                     if !::raiden::is_attr_value_empty(&value) {
                         input_item.insert(
                             #attr_key.to_string(),
@@ -87,7 +68,6 @@ pub(crate) fn expand_transact_write(
         });
 
         quote! {
-            #bound
             let mut input_item: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
             #(#insertion)*
         }
