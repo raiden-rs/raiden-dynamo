@@ -34,6 +34,7 @@ pub enum FilterExpressionTypes {
         super::Placeholder,
         super::AttributeValue,
     ),
+    In(super::Placeholder, super::AttributeValue),
     BeginsWith(super::Placeholder, super::AttributeValue),
     AttributeExists(),
     AttributeNotExists(),
@@ -171,6 +172,14 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                     attr_values,
                 )
             }
+            FilterExpressionTypes::In(placeholder, value) => {
+                attr_values.insert(placeholder.to_string(), value);
+                (
+                    format!("{} IN ({})", left_cond, placeholder),
+                    attr_names,
+                    attr_values,
+                )
+            }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
@@ -258,6 +267,10 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
                     "{} BETWEEN {} AND {}",
                     left_cond, placeholder1, placeholder2
                 )
+            }
+            FilterExpressionTypes::In(placeholder, value) => {
+                left_values.insert(placeholder.clone(), value);
+                format!("{} IN ({})", attr_name, placeholder)
             }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
@@ -370,6 +383,17 @@ impl<T> FilterExpression<T> {
             placeholder2,
             value2.into_attr(),
         );
+        FilterExpressionFilledOrWaitOperator {
+            attr: self.attr,
+            is_size: self.is_size,
+            cond,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    pub fn r#in(self, value: impl super::IntoAttribute) -> FilterExpressionFilledOrWaitOperator<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond = FilterExpressionTypes::In(placeholder, value.into_attr());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
             is_size: self.is_size,

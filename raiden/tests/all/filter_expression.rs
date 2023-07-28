@@ -128,6 +128,23 @@ mod tests {
     }
 
     #[test]
+    fn test_in_filter_expression() {
+        reset_value_id();
+
+        let cond = User::filter_expression(User::name()).r#in(vec!["user1", "user2"]);
+        let (filter_expression, attribute_names, attribute_values) = cond.build();
+        let mut expected_names: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        expected_names.insert("#name".to_owned(), "name".to_owned());
+        let mut expected_values: std::collections::HashMap<String, AttributeValue> =
+            std::collections::HashMap::new();
+        expected_values.insert(":value0".to_owned(), vec!["user1", "user2"].into_attr());
+        assert_eq!(filter_expression, "#name IN (:value0)".to_owned());
+        assert_eq!(attribute_names, expected_names);
+        assert_eq!(attribute_values, expected_values);
+    }
+
+    #[test]
     fn test_begins_with_filter_expression() {
         reset_value_id();
 
