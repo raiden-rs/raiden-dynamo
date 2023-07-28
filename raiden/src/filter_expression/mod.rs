@@ -34,7 +34,7 @@ pub enum FilterExpressionTypes {
         super::Placeholder,
         super::AttributeValue,
     ),
-    In(super::Placeholder, super::AttributeValue),
+    In(Vec<(super::Placeholder, super::AttributeValue)>),
     BeginsWith(super::Placeholder, super::AttributeValue),
     AttributeExists(),
     AttributeNotExists(),
@@ -172,10 +172,17 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                     attr_values,
                 )
             }
-            FilterExpressionTypes::In(placeholder, value) => {
-                attr_values.insert(placeholder.to_string(), value);
+            FilterExpressionTypes::In(attributes) => {
+                let placeholders = attributes
+                    .iter()
+                    .map(|(placeholder, _)| placeholder.clone())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                for (placeholder, value) in attributes {
+                    attr_values.insert(placeholder, value);
+                }
                 (
-                    format!("{} IN ({})", left_cond, placeholder),
+                    format!("{} IN ({})", left_cond, placeholders),
                     attr_names,
                     attr_values,
                 )
@@ -268,9 +275,16 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
                     left_cond, placeholder1, placeholder2
                 )
             }
-            FilterExpressionTypes::In(placeholder, value) => {
-                left_values.insert(placeholder.clone(), value);
-                format!("{} IN ({})", attr_name, placeholder)
+            FilterExpressionTypes::In(attributes) => {
+                let placeholders = attributes
+                    .iter()
+                    .map(|(placeholder, _)| placeholder.clone())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                for (placeholder, value) in attributes {
+                    left_values.insert(placeholder, value);
+                }
+                format!("{} IN ({})", attr_name, placeholders)
             }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
@@ -391,9 +405,15 @@ impl<T> FilterExpression<T> {
         }
     }
 
-    pub fn r#in(self, value: impl super::IntoAttribute) -> FilterExpressionFilledOrWaitOperator<T> {
-        let placeholder = format!(":value{}", super::generate_value_id());
-        let cond = FilterExpressionTypes::In(placeholder, value.into_attr());
+    pub fn r#in(
+        self,
+        values: Vec<impl super::IntoAttribute>,
+    ) -> FilterExpressionFilledOrWaitOperator<T> {
+        let attributes = values.into_iter().map(|value| {
+            let placeholder = format!(":value{}", super::generate_value_id());
+            (placeholder, value.into_attr())
+        });
+        let cond = FilterExpressionTypes::In(attributes.collect());
         FilterExpressionFilledOrWaitOperator {
             attr: self.attr,
             is_size: self.is_size,
