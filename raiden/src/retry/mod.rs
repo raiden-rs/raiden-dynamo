@@ -74,6 +74,10 @@ impl RetryStrategy for DefaultRetryStrategy {
             RaidenError::InternalServerError(_)
                 | RaidenError::ProvisionedThroughputExceeded(_)
                 | RaidenError::RequestLimitExceeded(_)
+                // Sometimes I ran into `HttpDispatchError { message: "Error during dispatch: connection closed before message completed" }` and
+                // CredentialsError { message: "Request ID: Some(\"xxx\") Body: <ErrorResponse xmlns=\"https://sts.amazonaws.com/doc/2011-06-15/\">\n  <Error>\n    <Type>Sender</Type>\n    <Code>Throttling</Code>\n    <Message>Rate exceeded</Message>\n  </Error>\n  <RequestId>xxx</RequestId>\n</ErrorResponse>\n" }
+                | RaidenError::HttpDispatch(_)
+                | RaidenError::Credentials(_)
                 // INFO: For now, return true, when unknown error detected.
                 //       This is because, sometimes throttlingException is included in unknown error.
                 //       please make more rigorous classification of errors.
