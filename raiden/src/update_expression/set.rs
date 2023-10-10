@@ -126,7 +126,14 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
                 let set_attr_name = format!("#{}", set_attr);
-                let expression = format!("{} = {}", attr_name, set_attr_name);
+                let expression = if self.if_not_exists {
+                    format!(
+                        "{} = if_not_exists({}, {})",
+                        attr_name, attr_name, set_attr_name
+                    )
+                } else {
+                    format!("{} = {}", attr_name, set_attr_name)
+                };
                 names.insert(set_attr_name, set_attr);
                 SetOrRemove::Set(expression, names, values)
             }
@@ -137,7 +144,14 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
                     // Use remove instead of set
                     return SetOrRemove::Remove(attr_name, names);
                 }
-                let expression = format!("{} = {}", attr_name, placeholder);
+                let expression = if self.if_not_exists {
+                    format!(
+                        "{} = if_not_exists({}, {})",
+                        attr_name, attr_name, placeholder
+                    )
+                } else {
+                    format!("{} = {}", attr_name, placeholder)
+                };
                 values.insert(placeholder, value);
                 SetOrRemove::Set(expression, names, values)
             }
@@ -222,6 +236,29 @@ mod tests {
             expected_names.insert("#name".to_owned(), "name".to_owned());
             expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
             assert_eq!(expression, "#name = :value0".to_owned(),);
+            assert_eq!(names, expected_names);
+            assert_eq!(values, expected_values);
+            return;
+        }
+        panic!("should not pass");
+    }
+
+    #[test]
+    fn test_set_if_not_exists() {
+        crate::value_id::reset_value_id();
+        if let SetOrRemove::Set(expression, names, values) = Set::new(UserAttrNames::Name)
+            .value("updated!!")
+            .if_not_exists()
+            .build()
+        {
+            let mut expected_names = std::collections::HashMap::new();
+            let mut expected_values = std::collections::HashMap::new();
+            expected_names.insert("#name".to_owned(), "name".to_owned());
+            expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
+            assert_eq!(
+                expression,
+                "#name = if_not_exists(#name, :value0)".to_owned()
+            );
             assert_eq!(names, expected_names);
             assert_eq!(values, expected_values);
             return;

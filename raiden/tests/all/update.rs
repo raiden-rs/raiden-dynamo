@@ -528,4 +528,67 @@ mod tests {
         }
         rt.block_on(example());
     }
+
+    #[tokio::test]
+    async fn should_set_if_attr_not_exists() {
+        let client = User::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+
+        let set_name_expression = User::update_expression()
+            .set(User::name())
+            .value("updated")
+            .if_not_exists();
+        let set_age_expression = User::update_expression().set(User::age()).value(12);
+
+        let res = client
+            .update("if_not_exists#0")
+            .set(set_name_expression)
+            .set(set_age_expression)
+            .return_all_new()
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(
+            res.item,
+            Some(User {
+                id: "if_not_exists#0".into(),
+                name: "updated".into(),
+                age: 12
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn should_not_set_if_attr_exists() {
+        let client = User::client(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        });
+
+        let set_name_expression = User::update_expression().set(User::name()).value("created");
+        let set_age_expression = User::update_expression().set(User::age()).value(12);
+
+        client
+            .update("if_not_exists#1")
+            .set(set_name_expression)
+            .set(set_age_expression)
+            .run()
+            .await
+            .unwrap();
+
+        let set_name_expression = User::update_expression()
+            .set(User::name())
+            .value("updated")
+            .if_not_exists(); // update only if attribute not exists
+        let res = client
+            .update("if_not_exists#1")
+            .set(set_name_expression)
+            .return_all_new()
+            .run()
+            .await
+            .unwrap();
+        assert_eq!(res.item.map(|u| u.name), Some("created".into()));
+    }
 }
