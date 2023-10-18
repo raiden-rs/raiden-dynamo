@@ -109,6 +109,8 @@ pub(crate) fn expand_batch_get(
         }
     };
 
+    let tracing_span = super::tracing_inner_run_span!("batch_get_item");
+
     quote! {
         #client_trait
 
@@ -150,7 +152,10 @@ pub(crate) fn expand_batch_get(
                         .request_items
                         .insert(self.table_name.to_string(), item);
 
-                    let res = self.client.batch_get_item(input).await?;
+                    #[cfg(feature = "tracing")]
+                    let res = #builder_name::inner_run(&self.table_name, &self.client, input).await?;
+                    #[cfg(not(feature = "tracing"))]
+                    let res = #builder_name::inner_run(&self.client, input).await?;
 
                     if self.keys.is_empty() {
                         unprocessed_retry -= 1;
@@ -189,6 +194,15 @@ pub(crate) fn expand_batch_get(
                         })
                     }
                 }
+            }
+
+            async fn inner_run(
+                #[cfg(feature = "tracing")]
+                table_name: &str,
+                client: &::raiden::DynamoDbClient,
+                input: ::raiden::BatchGetItemInput,
+            ) -> Result<::raiden::BatchGetItemOutput, ::raiden::RaidenError> {
+                Ok(#tracing_span?)
             }
         }
     }

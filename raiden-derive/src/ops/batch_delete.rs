@@ -92,6 +92,8 @@ pub(crate) fn expand_batch_delete(
         }
     };
 
+    let tracing_span = super::tracing_inner_run_span!("batch_write_item");
+
     quote! {
         #client_trait
 
@@ -128,7 +130,11 @@ pub(crate) fn expand_batch_delete(
                             ..std::default::Default::default()
                         };
 
-                        let result = self.client.batch_write_item(input).await?;
+                        #[cfg(feature = "tracing")]
+                        let result = #builder_name::inner_run(&self.table_name, &self.client, input).await?;
+                        #[cfg(not(feature = "tracing"))]
+                        let result = #builder_name::inner_run(&self.client, input).await?;
+
                         let mut unprocessed_items = match result.unprocessed_items {
                             None => {
                                 // move on to the next iteration to check if there are unprocessed
@@ -164,6 +170,15 @@ pub(crate) fn expand_batch_delete(
                     consumed_capacity: None,
                     unprocessed_items,
                 })
+            }
+
+            async fn inner_run(
+                #[cfg(feature = "tracing")]
+                table_name: &str,
+                client: &::raiden::DynamoDbClient,
+                input: ::raiden::BatchWriteItemInput,
+            ) -> Result<::raiden::BatchWriteItemOutput, ::raiden::RaidenError> {
+                Ok(#tracing_span?)
             }
         }
     }

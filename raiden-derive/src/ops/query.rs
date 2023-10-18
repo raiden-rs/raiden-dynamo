@@ -14,6 +14,7 @@ pub(crate) fn expand_query(
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
 
     let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
+    let tracing_span = super::tracing_inner_run_span!("query");
 
     quote! {
         pub trait #trait_name {
@@ -132,10 +133,17 @@ pub(crate) fn expand_query(
                     let client = self.client.clone();
 
                     let res: #query_output_item = policy.retry_if(move || {
+                        #[cfg(feature = "tracing")]
+                        let table_name = input.table_name.clone();
                         let input = input.clone();
                         let client = client.clone();
                         async {
-                            #builder_name::inner_run(client, input).await
+                            #[cfg(feature = "tracing")]
+                            let res = #builder_name::inner_run(table_name, client, input).await;
+                            #[cfg(not(feature = "tracing"))]
+                            let res = #builder_name::inner_run(client, input).await;
+
+                            res
                         }
                     }, self.condition).await?;
 
@@ -175,10 +183,12 @@ pub(crate) fn expand_query(
             }
 
             async fn inner_run(
+                #[cfg(feature = "tracing")]
+                table_name: String,
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::QueryInput,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
-                let res = client.query(input).await?;
+                let res = #tracing_span?;
                 Ok(#query_output_item {
                     consumed_capacity: res.consumed_capacity,
                     count: res.count,

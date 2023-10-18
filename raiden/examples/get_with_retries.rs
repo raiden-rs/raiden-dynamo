@@ -1,4 +1,8 @@
 use raiden::*;
+use tracing_subscriber::{
+    fmt::{format::FmtSpan, time::UtcTime},
+    EnvFilter,
+};
 
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
@@ -20,8 +24,15 @@ impl RetryStrategy for MyRetryStrategy {
 }
 
 fn main() {
-    std::env::set_var("RUST_LOG", "info");
-    pretty_env_logger::init();
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new("get_with_retries=debug,info"))
+        .with_file(true)
+        .with_line_number(true)
+        .with_span_events(FmtSpan::CLOSE)
+        .with_target(true)
+        .with_timer(UtcTime::rfc_3339())
+        .init();
+
     let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = User::client(Region::Custom {

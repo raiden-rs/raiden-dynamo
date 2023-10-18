@@ -1,0 +1,28 @@
+name: "raiden-rs-raiden-dynamo"
+
+services:
+  dynamodb:
+    image: "amazon/dynamodb-local"
+    command: [
+      "-jar",
+      "DynamoDBLocal.jar",
+      "-sharedDb",
+      "-dbPath",
+      ".",
+      "-delayTransientStatuses",
+      "-port",
+      "8000",
+    ]
+    ports:
+      - "127.0.0.1:8000:8000"
+    working_dir: "/home/dynamodblocal"
+
+  dynamodb-admin:
+    image: "aaronshaf/dynamodb-admin"
+    depends_on:
+      dynamodb:
+        condition: "service_started"
+    environment:
+      DYNAMO_ENDPOINT: "http://dynamodb:8000"
+    ports:
+      - "127.0.0.1:8001:8001"

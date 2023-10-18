@@ -73,3 +73,32 @@ pub(crate) fn expand_attr_to_item(
         }
     }).collect()
 }
+
+macro_rules! tracing_inner_run_span {
+    ($operation: literal) => {
+        $crate::ops::tracing_inner_run_span!("table_name", "client", $operation, "input")
+    };
+    ($table_name: literal, $client: literal, $operation: literal, $input: literal) => {{
+        let table_name = ::quote::format_ident!($table_name);
+        let client = ::quote::format_ident!($client);
+        let operation = ::quote::format_ident!($operation);
+        let input = ::quote::format_ident!($input);
+
+        quote! {{
+            let fut = #client.#operation(#input);
+
+            #[cfg(feature = "tracing")]
+            use tracing::Instrument;
+            #[cfg(feature = "tracing")]
+            let fut = fut.instrument(::tracing::debug_span!(
+                "dynamodb::action",
+                table = #table_name,
+                api = std::stringify!(#operation),
+            ));
+
+            fut.await
+        }}
+    }};
+}
+
+pub(super) use tracing_inner_run_span;

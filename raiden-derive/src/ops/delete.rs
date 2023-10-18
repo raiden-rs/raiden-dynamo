@@ -60,6 +60,8 @@ pub(crate) fn expand_delete_item(
         }
     };
 
+    let tracing_span = super::tracing_inner_run_span!("delete_item");
+
     quote! {
         #client_trait
 
@@ -87,7 +89,22 @@ pub(crate) fn expand_delete_item(
             }
 
             pub async fn run(self) -> Result<(), ::raiden::RaidenError> {
-                let res = self.client.delete_item(self.input).await?;
+                #[cfg(feature = "tracing")]
+                #builder_name::inner_run(&self.input.table_name.clone(), &self.client, self.input).await?;
+                #[cfg(not(feature = "tracing"))]
+                #builder_name::inner_run(&self.client, self.input).await?;
+
+                Ok(())
+            }
+
+            async fn inner_run(
+                #[cfg(feature = "tracing")]
+                table_name: &str,
+                client: &::raiden::DynamoDbClient,
+                input: ::raiden::DeleteItemInput,
+            ) -> Result<(), ::raiden::RaidenError> {
+                #tracing_span?;
+
                 Ok(())
             }
         }
