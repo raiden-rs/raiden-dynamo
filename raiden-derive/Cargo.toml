@@ -15,3 +15,7 @@ ident_case = "^1.0.1"
 proc-macro2 = "^1.0.67"
 quote = "^1.0.33"
 syn = "^2.0.37"
+
+[features]
+default = []
+tracing = []

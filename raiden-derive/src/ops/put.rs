@@ -96,7 +96,18 @@ pub(crate) fn expand_put_item(
         .collect();
     let default_types = expand_default_type_variables(&required_field_idents);
 
-    let tracing_span = super::tracing_inner_run_span!("put_item");
+    let api_call_token = super::api_call_token!("put_item");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(client, input).await },
+            quote! {},
+        )
+    };
 
     quote! {
         #[derive(Debug, Clone, PartialEq, ::raiden::Builder)]
@@ -195,18 +206,9 @@ pub(crate) fn expand_put_item(
                 let policy: ::raiden::RetryPolicy = self.policy.into();
 
                 let res = policy.retry_if(move || {
-                    #[cfg(feature = "tracing")]
-                    let table_name = input.table_name.clone();
                     let input = input.clone();
                     let client = client.clone();
-                    async {
-                        #[cfg(feature = "tracing")]
-                        let res = #builder_name::inner_run(table_name, client, input).await;
-                        #[cfg(not(feature = "tracing"))]
-                        let res = #builder_name::inner_run(client, input).await;
-
-                        res
-                    }
+                    async { #call_inner_run }
                 }, self.condition).await?;
 
                 Ok(::raiden::put::PutOutput {
@@ -216,12 +218,11 @@ pub(crate) fn expand_put_item(
             }
 
             async fn inner_run(
-                #[cfg(feature = "tracing")]
-                table_name: String,
+                #inner_run_args
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::PutItemInput,
             ) -> Result<::raiden::PutItemOutput, ::raiden::RaidenError> {
-                Ok(#tracing_span?)
+                Ok(#api_call_token?)
             }
         }
     }

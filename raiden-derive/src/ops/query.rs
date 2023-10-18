@@ -14,7 +14,18 @@ pub(crate) fn expand_query(
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
 
     let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
-    let tracing_span = super::tracing_inner_run_span!("query");
+    let api_call_token = super::api_call_token!("query");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(client, input).await },
+            quote! {},
+        )
+    };
 
     quote! {
         pub trait #trait_name {
@@ -133,18 +144,9 @@ pub(crate) fn expand_query(
                     let client = self.client.clone();
 
                     let res: #query_output_item = policy.retry_if(move || {
-                        #[cfg(feature = "tracing")]
-                        let table_name = input.table_name.clone();
                         let input = input.clone();
                         let client = client.clone();
-                        async {
-                            #[cfg(feature = "tracing")]
-                            let res = #builder_name::inner_run(table_name, client, input).await;
-                            #[cfg(not(feature = "tracing"))]
-                            let res = #builder_name::inner_run(client, input).await;
-
-                            res
-                        }
+                        async { #call_inner_run }
                     }, self.condition).await?;
 
                     if let Some(res_items) = res.items {
@@ -183,12 +185,11 @@ pub(crate) fn expand_query(
             }
 
             async fn inner_run(
-                #[cfg(feature = "tracing")]
-                table_name: String,
+                #inner_run_args
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::QueryInput,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
-                let res = #tracing_span?;
+                let res = #api_call_token?;
                 Ok(#query_output_item {
                     consumed_capacity: res.consumed_capacity,
                     count: res.count,

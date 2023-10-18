@@ -73,7 +73,18 @@ pub(crate) fn expand_get_item(
         }
     };
 
-    let tracing_span = super::tracing_inner_run_span!("get_item");
+    let api_call_token = super::api_call_token!("get_item");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(client, input).await },
+            quote! {},
+        )
+    };
 
     quote! {
         #client_trait
@@ -96,28 +107,18 @@ pub(crate) fn expand_get_item(
                 let client = self.client;
                 let input = self.input;
                 policy.retry_if(move || {
-                    #[cfg(feature = "tracing")]
-                    let table_name = input.table_name.clone();
                     let client = client.clone();
                     let input = input.clone();
-                    async {
-                        #[cfg(feature = "tracing")]
-                        let res = #builder_name::inner_run(table_name, client, input).await;
-                        #[cfg(not(feature = "tracing"))]
-                        let res = #builder_name::inner_run(client, input).await;
-
-                        res
-                    }
+                    async { #call_inner_run }
                 }, self.condition).await
             }
 
             async fn inner_run(
-                #[cfg(feature = "tracing")]
-                table_name: String,
+                #inner_run_args
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::GetItemInput,
             ) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
-                let res = #tracing_span?;
+                let res = #api_call_token?;
                 if res.item.is_none() {
                     return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
                 };

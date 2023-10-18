@@ -41,4 +41,4 @@ tracing-subscriber = { version = "0.3.17", features = ["env-filter", "time"] }
 [features]
 default = ["rusoto_core_default", "rusoto_dynamodb_default"]
 rustls = ["rusoto_core_rustls", "rusoto_dynamodb_rustls"]
-tracing = ["dep:tracing"]
+tracing = ["dep:tracing", "raiden-derive/tracing"]

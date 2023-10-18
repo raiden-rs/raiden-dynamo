@@ -11,7 +11,18 @@ pub(crate) fn expand_scan(
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
-    let tracing_span = super::tracing_inner_run_span!("scan");
+    let api_call_token = super::api_call_token!("scan");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(&self.input.table_name, &self.client, self.input.clone()).await? },
+            quote! { table_name: &str, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(&self.client, self.input.clone()).await? },
+            quote! {},
+        )
+    };
 
     quote! {
         pub trait #trait_name {
@@ -81,18 +92,13 @@ pub(crate) fn expand_scan(
                 }
 
                 let mut items: Vec<#struct_name> = vec![];
-                #[cfg(feature = "tracing")]
-                let table_name = self.input.table_name.clone();
 
                 loop {
                     if let Some(limit) = self.limit {
                         self.input.limit = Some(limit);
                     }
 
-                    #[cfg(feature = "tracing")]
-                    let res = #builder_name::inner_run(&table_name, &self.client, self.input.clone()).await?;
-                    #[cfg(not(feature = "tracing"))]
-                    let res = #builder_name::inner_run(&self.client, self.input.clone()).await?;
+                    let res = #call_inner_run;
 
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
@@ -124,12 +130,11 @@ pub(crate) fn expand_scan(
             }
 
             async fn inner_run(
-                #[cfg(feature = "tracing")]
-                table_name: &str,
+                #inner_run_args
                 client: &::raiden::DynamoDbClient,
                 input: ::raiden::ScanInput,
             ) -> Result<::raiden::ScanOutput, ::raiden::RaidenError> {
-                Ok(#tracing_span?)
+                Ok(#api_call_token?)
             }
         }
     }
