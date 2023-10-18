@@ -1,7 +1,8 @@
 .PHONY: dynamo
 dynamo:
-	- docker compose down --volumes
-	- docker compose up -d --wait
+	- docker rm -f dynamodb
+	- docker stop dynamodb
+	docker run --rm -d --name dynamodb -p 8000:8000 amazon/dynamodb-local:latest
 	deno run --allow-net=localhost:8000 --allow-env --no-check ./setup/setup.ts
 
 .PHONY: test
