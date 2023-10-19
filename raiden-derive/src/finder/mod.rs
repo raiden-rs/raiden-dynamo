@@ -1,51 +1,48 @@
-use syn::{punctuated::Punctuated, Expr, ExprLit, Lit, Meta, MetaNameValue, Token};
-
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
-    match attr.meta {
-        Meta::List(ref list) => {
-            match list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {
-                Ok(parsed) if parsed.is_empty() => None,
-                Ok(parsed) if parsed.len() > 1 => panic!("TODO: should unary"),
-                Ok(parsed) => {
-                    let meta = parsed.first().expect("should get meta");
-
-                    if meta.path().segments[0].ident == name {
-                        Some(meta.path().segments[0].ident.clone())
-                    } else {
-                        None
-                    }
-                }
-                _ => None,
-            }
-        }
-        _ => None,
+    let mut tokens = match attr.tokens.clone().into_iter().next() {
+        Some(proc_macro2::TokenTree::Group(g)) => g.stream().into_iter(),
+        _ => return None,
+    };
+    let ident = match tokens.next() {
+        Some(proc_macro2::TokenTree::Ident(ref ident)) if *ident == name => ident.clone(),
+        _ => return None,
+    };
+    if tokens.next().is_none() {
+        return Some(ident);
     }
+    panic!("TODO: should unaray");
 }
 
 pub(crate) fn find_eq_string_from(attr: &syn::Attribute, name: &str) -> Option<String> {
-    match attr.meta {
-        Meta::List(ref list) => {
-            match list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated) {
-                Ok(parsed) => {
-                    for meta in parsed.iter() {
-                        match meta {
-                            Meta::NameValue(MetaNameValue {
-                                value:
-                                    Expr::Lit(ExprLit {
-                                        lit: Lit::Str(lit), ..
-                                    }),
-                                ..
-                            }) if meta.path().segments[0].ident == name => {
-                                return Some(lit.value());
-                            }
-                            _ => continue,
-                        }
-                    }
+    let mut tokens = match attr.tokens.clone().into_iter().next() {
+        Some(proc_macro2::TokenTree::Group(g)) => g.stream().into_iter(),
+        _ => return None,
+    };
 
-                    None
-                }
-                _ => None,
-            }
+    match tokens.next() {
+        Some(proc_macro2::TokenTree::Ident(ref ident)) if *ident == name => {}
+        _ => return None,
+    };
+
+    // #[raiden(name = )]
+    match tokens.next() {
+        Some(proc_macro2::TokenTree::Punct(ref punct)) if punct.as_char() == '=' => {}
+        _ => return None,
+    };
+
+    // #[raiden(name = value)]
+    let lit = match tokens.next() {
+        Some(proc_macro2::TokenTree::Literal(lit)) => syn::Lit::new(lit),
+        _ => return None,
+    };
+
+    match &lit {
+        syn::Lit::Str(lit_str) => {
+            let value = lit_str.value();
+            if value.trim().is_empty() {
+                panic!()
+            };
+            Some(value)
         }
         _ => None,
     }
@@ -53,50 +50,35 @@ pub(crate) fn find_eq_string_from(attr: &syn::Attribute, name: &str) -> Option<S
 
 pub(crate) fn find_table_name(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if attr.path().segments[0].ident != "raiden" {
-            continue;
-        }
-
         if let Some(lit) = find_eq_string_from(attr, "table_name") {
             return Some(lit);
         }
     }
-
     None
 }
 
 pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if attr.path().segments[0].ident != "raiden" {
-            continue;
-        }
-
         if let Some(lit) = find_eq_string_from(attr, "rename_all") {
             return Some(lit);
         }
     }
-
     None
 }
 
 pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
-        if attr.path().segments[0].ident != "raiden" {
-            continue;
-        }
-
         if let Some(lit) = find_eq_string_from(attr, "rename") {
             return Some(lit);
         }
     }
-
     None
 }
 
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
     !attrs.is_empty()
         && attrs.iter().any(|attr| {
-            attr.path().segments[0].ident == "raiden" && find_unary_attr(attr, name).is_some()
+            attr.path.segments[0].ident == "raiden" && find_unary_attr(attr, name).is_some()
         })
 }
 
