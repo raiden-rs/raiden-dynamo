@@ -6,6 +6,7 @@ mod tests {
     use raiden::condition::*;
     use raiden::*;
 
+    #[allow(dead_code)]
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]

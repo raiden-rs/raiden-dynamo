@@ -96,6 +96,19 @@ pub(crate) fn expand_put_item(
         .collect();
     let default_types = expand_default_type_variables(&required_field_idents);
 
+    let api_call_token = super::api_call_token!("put_item");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(client, input).await },
+            quote! {},
+        )
+    };
+
     quote! {
         #[derive(Debug, Clone, PartialEq, ::raiden::Builder)]
         pub struct #item_input_name {
@@ -195,9 +208,7 @@ pub(crate) fn expand_put_item(
                 let res = policy.retry_if(move || {
                     let input = input.clone();
                     let client = client.clone();
-                    async {
-                        #builder_name::inner_run(client, input).await
-                    }
+                    async { #call_inner_run }
                 }, self.condition).await?;
 
                 Ok(::raiden::put::PutOutput {
@@ -207,11 +218,11 @@ pub(crate) fn expand_put_item(
             }
 
             async fn inner_run(
+                #inner_run_args
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::PutItemInput,
             ) -> Result<::raiden::PutItemOutput, ::raiden::RaidenError> {
-                let res = client.put_item(input).await?;
-                Ok(res)
+                Ok(#api_call_token?)
             }
         }
     }

@@ -80,7 +80,7 @@ mod partition_key_tests {
             });
 
             let res = client
-                .batch_delete((4..=100).map(|i| format!("id{}", i)).collect())
+                .batch_delete((4..=100).map(|i| format!("id{i}")).collect())
                 .run()
                 .await;
             assert!(res.is_ok());
@@ -177,7 +177,7 @@ mod partition_key_and_sort_key_tests {
             let res = client
                 .batch_delete(
                     (4..=100)
-                        .map(|i| (format!("id{}", i), 1999_usize + i))
+                        .map(|i| (format!("id{i}"), 1999_usize + i))
                         .collect(),
                 )
                 .run()

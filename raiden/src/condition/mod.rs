@@ -79,21 +79,21 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitOperator<T> {
 impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let (right_str, right_names, right_values) = match self.operator {
-            super::condition::Operator::And(s, m, v) => (format!("AND ({})", s), m, v),
-            super::condition::Operator::Or(s, m, v) => (format!("OR ({})", s), m, v),
+            super::condition::Operator::And(s, m, v) => (format!("AND ({s})"), m, v),
+            super::condition::Operator::Or(s, m, v) => (format!("OR ({s})"), m, v),
         };
         let left_str = self.cond.to_string();
         let left_names = self.cond.to_attr_names();
         let left_values = self.cond.into_attr_values();
         if self.not {
             (
-                format!("NOT ({}) {}", left_str, right_str),
+                format!("NOT ({left_str}) {right_str}"),
                 super::merge_map(left_names, right_names),
                 super::merge_map(left_values, right_values),
             )
         } else {
             (
-                format!("{} {}", left_str, right_str),
+                format!("{left_str} {right_str}"),
                 super::merge_map(left_names, right_names),
                 super::merge_map(left_values, right_values),
             )
@@ -106,10 +106,10 @@ impl std::string::ToString for ConditionFunctionExpression {
         use crypto::digest::Digest;
         use crypto::md5::Md5;
         match self {
-            Self::AttributeExists(path) => format!("attribute_exists(#{})", path),
-            Self::AttributeNotExists(path) => format!("attribute_not_exists(#{})", path),
+            Self::AttributeExists(path) => format!("attribute_exists(#{path})"),
+            Self::AttributeNotExists(path) => format!("attribute_not_exists(#{path})"),
             Self::AttributeType(path, attribute_type) => {
-                format!("attribute_type(#{}, :type{})", path, attribute_type)
+                format!("attribute_type(#{path}, :type{attribute_type})")
             }
             Self::BeginsWith(path, s) => {
                 let mut md5 = Md5::new();
@@ -137,7 +137,7 @@ impl super::ToAttrNames for ConditionFunctionExpression {
             | Self::AttributeType(path, _)
             | Self::AttributeExists(path)
             | Self::AttributeNotExists(path) => {
-                m.insert(format!("#{}", path), path.clone());
+                m.insert(format!("#{path}"), path.clone());
             }
             _ => {}
         }
@@ -153,7 +153,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
         match self {
             Self::AttributeType(_path, t) => {
                 m.insert(
-                    format!(":type{}", t),
+                    format!(":type{t}"),
                     super::AttributeValue {
                         s: Some(t.to_string()),
                         ..super::AttributeValue::default()
@@ -240,8 +240,8 @@ pub enum AttrOrPlaceholder {
 impl std::string::ToString for AttrOrPlaceholder {
     fn to_string(&self) -> String {
         match self {
-            Self::Placeholder(p) => format!(":{}", p),
-            Self::Attr(a) => format!("#{}", a),
+            Self::Placeholder(p) => format!(":{p}"),
+            Self::Attr(a) => format!("#{a}"),
         }
     }
 }

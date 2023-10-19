@@ -69,6 +69,22 @@ async fn main() {
 }
 ```
 
+## Support `tokio-rs/tracing`
+
+`raiden` supports making span for Tracing ( span name is `dynamodb::action` with table name and api name in field ).  
+To activate this feature, you need to specify `tracing` feature in your `Cargo.toml`. And your crate needs `tracing` .
+
+```toml
+# Example
+[dependencies]
+raiden = {
+    tag = "0.0.76",
+    git = "https://github.com/raiden-rs/raiden-dynamo.git",
+    features = [ "tracing"]
+}
+tracing = "0.1"
+```
+
 ## Development
 
 ### Requirements

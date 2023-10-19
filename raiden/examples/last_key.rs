@@ -1,4 +1,8 @@
 use raiden::*;
+use tracing_subscriber::{
+    fmt::{format::FmtSpan, time::UtcTime},
+    EnvFilter,
+};
 
 #[derive(Raiden)]
 #[raiden(table_name = "LastEvaluateKeyData")]
@@ -10,6 +14,15 @@ pub struct Test {
 }
 
 fn main() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::new("last_key=debug,info"))
+        .with_file(true)
+        .with_line_number(true)
+        .with_span_events(FmtSpan::CLOSE)
+        .with_target(true)
+        .with_timer(UtcTime::rfc_3339())
+        .init();
+
     let rt = tokio::runtime::Runtime::new().unwrap();
     async fn example() {
         let client = Test::client(Region::Custom {

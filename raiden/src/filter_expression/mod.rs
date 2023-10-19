@@ -105,17 +105,17 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
         let mut attr_names: super::AttributeNames = std::collections::HashMap::new();
         let mut attr_values: super::AttributeValues = std::collections::HashMap::new();
 
-        attr_names.insert(format!("#{}", attr_name), attr_name.clone());
+        attr_names.insert(format!("#{attr_name}"), attr_name.clone());
         let left_cond = if self.is_size {
-            format!("size(#{})", attr_name)
+            format!("size(#{attr_name})")
         } else {
-            format!("#{}", attr_name)
+            format!("#{attr_name}")
         };
         match self.cond {
             FilterExpressionTypes::Eq(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} = {}", left_cond, placeholder),
+                    format!("{left_cond} = {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -123,7 +123,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Not(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} <> {}", left_cond, placeholder),
+                    format!("{left_cond} <> {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -131,7 +131,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Gt(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} > {}", left_cond, placeholder),
+                    format!("{left_cond} > {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -139,7 +139,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Ge(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} >= {}", left_cond, placeholder),
+                    format!("{left_cond} >= {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -147,7 +147,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Le(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} <= {}", left_cond, placeholder),
+                    format!("{left_cond} <= {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -155,7 +155,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Lt(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("{} < {}", left_cond, placeholder),
+                    format!("{left_cond} < {placeholder}"),
                     attr_names,
                     attr_values,
                 )
@@ -164,10 +164,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                 attr_values.insert(placeholder1.to_string(), value1);
                 attr_values.insert(placeholder2.to_string(), value2);
                 (
-                    format!(
-                        "{} BETWEEN {} AND {}",
-                        left_cond, placeholder1, placeholder2
-                    ),
+                    format!("{left_cond} BETWEEN {placeholder1} AND {placeholder2}"),
                     attr_names,
                     attr_values,
                 )
@@ -182,7 +179,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
                     attr_values.insert(placeholder, value);
                 }
                 (
-                    format!("{} IN ({})", left_cond, placeholders),
+                    format!("{left_cond} IN ({placeholders})"),
                     attr_names,
                     attr_values,
                 )
@@ -190,25 +187,25 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("begins_with(#{}, {})", attr_name, placeholder),
+                    format!("begins_with(#{attr_name}, {placeholder})"),
                     attr_names,
                     attr_values,
                 )
             }
             FilterExpressionTypes::AttributeExists() => (
-                format!("attribute_exists(#{})", attr_name),
+                format!("attribute_exists(#{attr_name})"),
                 attr_names,
                 attr_values,
             ),
             FilterExpressionTypes::AttributeNotExists() => (
-                format!("attribute_not_exists(#{})", attr_name),
+                format!("attribute_not_exists(#{attr_name})"),
                 attr_names,
                 attr_values,
             ),
             FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
                 attr_values.insert(placeholder.to_string(), attribute_type.into_attr());
                 (
-                    format!("attribute_type(#{}, {})", attr_name, placeholder),
+                    format!("attribute_type(#{attr_name}, {placeholder})"),
                     attr_names,
                     attr_values,
                 )
@@ -216,7 +213,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Contains(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("contains(#{}, {})", attr_name, placeholder),
+                    format!("contains(#{attr_name}, {placeholder})"),
                     attr_names,
                     attr_values,
                 )
@@ -228,52 +225,49 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
 impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let (right_str, right_names, right_values) = match self.operator {
-            FilterExpressionOperator::And(s, m, v) => (format!("AND ({})", s), m, v),
-            FilterExpressionOperator::Or(s, m, v) => (format!("OR ({})", s), m, v),
+            FilterExpressionOperator::And(s, m, v) => (format!("AND ({s})"), m, v),
+            FilterExpressionOperator::Or(s, m, v) => (format!("OR ({s})"), m, v),
         };
 
         let attr_name = self.attr;
         let mut left_names: super::AttributeNames = std::collections::HashMap::new();
         let mut left_values: super::AttributeValues = std::collections::HashMap::new();
-        left_names.insert(format!("#{}", attr_name), attr_name.clone());
+        left_names.insert(format!("#{attr_name}"), attr_name.clone());
         let left_cond = if self.is_size {
-            format!("size(#{})", attr_name)
+            format!("size(#{attr_name})")
         } else {
-            format!("#{}", attr_name)
+            format!("#{attr_name}")
         };
 
         let left_str = match self.cond {
             FilterExpressionTypes::Eq(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} = {}", left_cond, placeholder)
+                format!("{left_cond} = {placeholder}")
             }
             FilterExpressionTypes::Not(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} <> {}", left_cond, placeholder)
+                format!("{left_cond} <> {placeholder}")
             }
             FilterExpressionTypes::Gt(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} > {}", left_cond, placeholder)
+                format!("{left_cond} > {placeholder}")
             }
             FilterExpressionTypes::Ge(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} >= {}", left_cond, placeholder)
+                format!("{left_cond} >= {placeholder}")
             }
             FilterExpressionTypes::Le(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} <= {}", left_cond, placeholder)
+                format!("{left_cond} <= {placeholder}")
             }
             FilterExpressionTypes::Lt(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("{} < {}", left_cond, placeholder)
+                format!("{left_cond} < {placeholder}")
             }
             FilterExpressionTypes::Between(placeholder1, value1, placeholder2, value2) => {
                 left_values.insert(placeholder1.clone(), value1);
                 left_values.insert(placeholder2.clone(), value2);
-                format!(
-                    "{} BETWEEN {} AND {}",
-                    left_cond, placeholder1, placeholder2
-                )
+                format!("{left_cond} BETWEEN {placeholder1} AND {placeholder2}")
             }
             FilterExpressionTypes::In(attributes) => {
                 let placeholders = attributes
@@ -284,29 +278,29 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
                 for (placeholder, value) in attributes {
                     left_values.insert(placeholder, value);
                 }
-                format!("{} IN ({})", attr_name, placeholders)
+                format!("{attr_name} IN ({placeholders})")
             }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("begins_with(#{}, {})", attr_name, placeholder)
+                format!("begins_with(#{attr_name}, {placeholder})")
             }
             FilterExpressionTypes::AttributeExists() => {
-                format!("attribute_exists(#{})", attr_name)
+                format!("attribute_exists(#{attr_name})")
             }
             FilterExpressionTypes::AttributeNotExists() => {
-                format!("attribute_not_exists(#{})", attr_name)
+                format!("attribute_not_exists(#{attr_name})")
             }
             FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
                 left_values.insert(placeholder.clone(), attribute_type.into_attr());
-                format!("attribute_type(#{}, {})", attr_name, placeholder)
+                format!("attribute_type(#{attr_name}, {placeholder})")
             }
             FilterExpressionTypes::Contains(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("contains(#{}, {})", attr_name, placeholder)
+                format!("contains(#{attr_name}, {placeholder})")
             }
         };
         (
-            format!("{} {}", left_str, right_str),
+            format!("{left_str} {right_str}"),
             super::merge_map(left_names, right_names),
             super::merge_map(left_values, right_values),
         )
