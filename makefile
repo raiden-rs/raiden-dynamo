@@ -12,3 +12,10 @@ test:
 
 lint:
 	cargo clippy --all-targets -- -D warnings
+	cargo clippy --all-targets --no-default-features --features rustls -- -D warnings
+
+.PHONY: check-deps
+check-deps:
+	cargo machete || echo
+	cargo +nightly udeps --all-targets
+	cargo +nightly udeps --all-targets --no-default-features --features rustls
