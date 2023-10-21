@@ -8,6 +8,8 @@ edition = "2018"
 
 [dependencies]
 again = "0.1"
+aws-sdk-dynamodb = { version = "0.33.0", optional = true }
+aws-smithy-types = { version = "0.56.1", optional = true }
 base64 = "^0.21"
 raiden-derive = { version = "*", path = "../raiden-derive" }
 rusoto_core_default = { package = "rusoto_core", version = "0.48", optional = true }
@@ -39,6 +41,9 @@ tokio = "1.33.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "time"] }
 
 [features]
-default = ["rusoto_core_default", "rusoto_dynamodb_default"]
-rustls = ["rusoto_core_rustls", "rusoto_dynamodb_rustls"]
+default = ["rusoto"]
+aws-sdk = ["dep:aws-sdk-dynamodb", "dep:aws-smithy-types"]
+rusoto = ["rusoto_core_default", "rusoto_dynamodb_default"]
+rusoto_rustls = ["rusoto_core_rustls", "rusoto_dynamodb_rustls"]
+rustls = ["rusoto_rustls"]
 tracing = ["dep:tracing", "raiden-derive/tracing"]
