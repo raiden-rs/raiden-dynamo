@@ -69,7 +69,8 @@ pub struct DefaultRetryStrategy;
 
 impl RetryStrategy for DefaultRetryStrategy {
     fn should_retry(&self, error: &RaidenError) -> bool {
-        matches!(
+        #[cfg(any(feature = "rusoto", feature = "rustls"))]
+        return matches!(
             error,
             RaidenError::InternalServerError(_)
                 | RaidenError::ProvisionedThroughputExceeded(_)
@@ -82,7 +83,21 @@ impl RetryStrategy for DefaultRetryStrategy {
                 //       This is because, sometimes throttlingException is included in unknown error.
                 //       please make more rigorous classification of errors.
                 | RaidenError::Unknown(_)
-        )
+        );
+
+        #[cfg(feature = "aws-sdk")]
+        return matches!(
+            error,
+            RaidenError::InternalServerError(_)
+                | RaidenError::ProvisionedThroughputExceeded(_)
+                | RaidenError::RequestLimitExceeded(_)
+                | RaidenError::HttpDispatch(_)
+                | RaidenError::Timeout(_)
+                // INFO: For now, return true, when unknown error detected.
+                //       This is because, sometimes throttlingException is included in unknown error.
+                //       please make more rigorous classification of errors.
+                | RaidenError::Unknown(_)
+        );
     }
 
     fn policy(&self) -> Policy {

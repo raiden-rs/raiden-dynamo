@@ -1,7 +1,5 @@
 use std::fmt;
 
-use thiserror::Error;
-
 const TRANSACTION_CANCELLED_MESSAGE_PREFIX: &str =
     "Transaction cancelled, please refer cancellation reasons for specific reasons";
 
@@ -80,7 +78,7 @@ impl fmt::Display for RaidenTransactionCancellationReasons {
     }
 }
 
-#[derive(Error, Clone, Debug, PartialEq)]
+#[derive(thiserror::Error, Clone, Debug, PartialEq)]
 pub enum RaidenTransactionCancellationReason {
     #[error("Unknown")]
     Unknown,

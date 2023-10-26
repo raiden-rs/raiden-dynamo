@@ -137,7 +137,7 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
             SetValue::Value(placeholder, value) => {
                 // See. https://github.com/raiden-rs/raiden/issues/57
                 //      https://github.com/raiden-rs/raiden/issues/58
-                if value == AttributeValue::default() {
+                if crate::is_attr_value_empty(&value) {
                     // Use remove instead of set
                     return SetOrRemove::Remove(attr_name, names);
                 }

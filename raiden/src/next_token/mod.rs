@@ -19,16 +19,11 @@ impl NextToken {
             Err(_) => return Err(super::RaidenError::NextTokenDecodeError),
         };
 
-        let deserialized: std::collections::HashMap<String, super::AttributeValue> =
-            match serde_json::from_str(s) {
-                Ok(deserialized) => deserialized,
-                Err(_) => return Err(super::RaidenError::NextTokenDecodeError),
-            };
-        Ok(deserialized)
+        crate::deserialize_attr_value(s)
     }
 
     pub fn from_attr(key: &super::AttributeValues) -> Self {
-        let serialized = serde_json::to_string(key).expect("should serialize");
+        let serialized = crate::serialize_attr_values(key);
         Self(STANDARD.encode(serialized))
     }
 }
