@@ -151,7 +151,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
         use crypto::md5::Md5;
         let mut m: super::AttributeValues = std::collections::HashMap::new();
 
-        #[cfg(any(feature = "rusoto", feature = "rustls"))]
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         match self {
             Self::AttributeType(_path, t) => {
                 m.insert(

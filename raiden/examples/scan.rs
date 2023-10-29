@@ -15,8 +15,35 @@ pub struct ScanTestData0 {
     num: usize,
 }
 
-#[tokio::main]
-async fn main() {
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+async fn example() {
+    let client = ScanTestData0::client(Region::Custom {
+        endpoint: "http://localhost:8000".into(),
+        name: "ap-northeast-1".into(),
+    });
+    let res = client.scan().run().await;
+    dbg!(&res);
+}
+
+#[cfg(feature = "aws-sdk")]
+async fn example() {
+    let sdk_config = aws_config::SdkConfig::builder()
+        .endpoint_url("http://localhost:8000")
+        .region(raiden::Region::from_static("ap-northeast-1"))
+        .credentials_provider(
+            aws_credential_types::provider::SharedCredentialsProvider::new(
+                aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
+            ),
+        )
+        .build();
+    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+
+    let client = ScanTestData0::client_with(sdk_client);
+    let res = client.scan().run().await;
+    dbg!(&res);
+}
+
+fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::new("scan=debug,info"))
         .with_file(true)
@@ -26,10 +53,5 @@ async fn main() {
         .with_timer(UtcTime::rfc_3339())
         .init();
 
-    let client = ScanTestData0::client(Region::Custom {
-        endpoint: "http://localhost:8000".into(),
-        name: "ap-northeast-1".into(),
-    });
-    let res = client.scan().run().await;
-    dbg!(&res);
+    tokio::runtime::Runtime::new().unwrap().block_on(example());
 }

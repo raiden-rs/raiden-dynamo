@@ -15,7 +15,7 @@ aws-smithy-runtime-api = { version = "0.56.1", optional = true }
 aws-smithy-types = { version = "0.56.1", optional = true }
 base64 = "^0.21"
 paste = "1.0.14"
-raiden-derive = { version = "*", path = "../raiden-derive" }
+raiden-derive = { version = "*", path = "../raiden-derive", default_features = false }
 rusoto_core_default = { package = "rusoto_core", version = "0.48", optional = true }
 rusoto_core_rustls = { package = "rusoto_core", version = "0.48", default_features = false, features = [
     "rustls",
@@ -38,14 +38,20 @@ tracing = { version = "0.1", optional = true }
 uuid = { version = "^1.4.1", features = ["v4"] }
 
 [dev-dependencies]
+aws-credential-types = "0.56.1"
+aws-smithy-client = "0.56.1"
+hyper-rustls = { version = "0.24.2", default-features = false, features = [
+    "http1",
+    "http2",
+    "native-tokio",
+] }
 pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default_features = false }
 time = "0.3.30"
-tokio = "1.33.0"
+tokio = { version = "1.33.0", features = ["rt-multi-thread"] }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "time"] }
 
 [features]
-# default = ["aws-sdk"]
 default = ["rusoto"]
 aws-sdk = [
     "dep:aws-config",
@@ -53,8 +59,17 @@ aws-sdk = [
     "dep:aws-smithy-http",
     "dep:aws-smithy-runtime-api",
     "dep:aws-smithy-types",
+    "raiden-derive/aws-sdk",
 ]
-rusoto = ["dep:rusoto_core_default", "dep:rusoto_dynamodb_default"]
-rusoto_rustls = ["dep:rusoto_core_rustls", "dep:rusoto_dynamodb_rustls"]
+rusoto = [
+    "dep:rusoto_core_default",
+    "dep:rusoto_dynamodb_default",
+    "raiden-derive/rusoto",
+]
+rusoto_rustls = [
+    "dep:rusoto_core_rustls",
+    "dep:rusoto_dynamodb_rustls",
+    "raiden-derive/rusoto",
+]
 rustls = ["rusoto_rustls"]
 tracing = ["dep:tracing", "raiden-derive/tracing"]

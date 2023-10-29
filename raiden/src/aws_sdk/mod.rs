@@ -1,13 +1,29 @@
 mod errors;
-pub(crate) mod ops;
+mod ops;
 pub(crate) mod serialize;
 
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+pub use self::{errors::*, ops::*};
 pub use aws_sdk_dynamodb::{
-    client::*, config::*, error::*, meta::*, operation::*, primitives::*, types::*,
+    client::*,
+    config::*,
+    error::*,
+    meta::*,
+    operation::{
+        batch_get_item::{builders::*, *},
+        batch_write_item::{builders::*, *},
+        delete_item::{builders::*, *},
+        get_item::{builders::*, *},
+        put_item::{builders::*, *},
+        query::{builders::*, *},
+        scan::{builders::*, *},
+        transact_write_items::{builders::*, *},
+        update_item::{builders::*, *},
+    },
+    primitives::*,
+    types::{builders::*, *},
 };
-pub use errors::*;
 
 use crate::{
     AttributeType, AttributeValues, ConversionError, FromAttribute, FromStringSetItem,

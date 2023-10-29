@@ -2,13 +2,9 @@ use aws_smithy_http::result::SdkError;
 use aws_smithy_runtime_api::client::orchestrator::HttpResponse;
 
 use crate::{
-    aws_sdk::{
-        batch_get_item::BatchGetItemError, batch_write_item::BatchWriteItemError,
-        delete_item::DeleteItemError, get_item::GetItemError, put_item::PutItemError,
-        query::QueryError, scan::ScanError, transact_write_items::TransactWriteItemsError,
-        update_item::UpdateItemError,
-    },
-    RaidenError, RaidenTransactionCancellationReasons,
+    BatchGetItemError, BatchWriteItemError, DeleteItemError, GetItemError, PutItemError,
+    QueryError, RaidenError, RaidenTransactionCancellationReasons, ScanError,
+    TransactWriteItemsError, UpdateItemError,
 };
 
 type AwsSdkError<E> = SdkError<E, HttpResponse>;

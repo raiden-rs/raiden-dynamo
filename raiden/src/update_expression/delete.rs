@@ -33,7 +33,7 @@ impl<T: super::IntoAttrName> UpdateDeleteExpressionBuilder for DeleteExpressionF
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58
-        #[cfg(any(feature = "rusoto", feature = "rustls"))]
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         let is_null = value.null.is_some();
         #[cfg(feature = "aws-sdk")]
         let is_null = value.is_null();

@@ -85,12 +85,13 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let res = client.get("not_exist_key").consistent().run().await;
-            assert_eq!(
-                res,
-                Err(RaidenError::ResourceNotFound(
-                    "resource not found".to_owned()
-                )),
-            );
+            assert!(res.is_err());
+
+            if let RaidenError::ResourceNotFound(msg) = res.unwrap_err() {
+                assert_eq!("resource not found", msg);
+            } else {
+                panic!("err should be RaidenError::ResourceNotFound");
+            }
         }
         rt.block_on(example());
     }
@@ -114,15 +115,13 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let res = client.get("user_primary_key").consistent().run().await;
-            assert_eq!(
-                res,
-                // Err(RaidenError::AttributeValueNotFoundError {
-                //     attr_name: "unstored".to_owned(),
-                // }),
-                Err(RaidenError::AttributeConvertError {
-                    attr_name: "unstored".to_owned(),
-                }),
-            );
+            assert!(res.is_err());
+
+            if let RaidenError::AttributeConvertError { attr_name } = res.unwrap_err() {
+                assert_eq!("unstored", attr_name);
+            } else {
+                panic!("err should be RaidenError::AttributeConvertError");
+            }
         }
         rt.block_on(example());
     }

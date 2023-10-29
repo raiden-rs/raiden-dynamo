@@ -1,0 +1,19 @@
+name: "raiden-rs-raiden-dynamo"
+
+services:
+  dynamodb:
+    image: "amazon/dynamodb-local:latest"
+    command: "-jar DynamoDBLocal.jar -sharedDb"
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  aws-cli:
+    image: "amazon/aws-cli:latest"
+    command: "dynamodb list-tables --endpoint-url http://dynamodb:8000"
+    depends_on:
+      - "dynamodb"
+    environment:
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
+      AWS_REGION: "ap-northeast-1"
+    restart: "on-failure"

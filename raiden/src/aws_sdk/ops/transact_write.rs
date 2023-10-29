@@ -1,11 +1,8 @@
 // DynamoDb, DynamoDbClient, TransactWriteItem, TransactWriteItemsInput
 use crate::{
-    aws_sdk::{
-        transact_write_items::builders::TransactWriteItemsFluentBuilder, Client, Config, Region,
-        TransactWriteItem,
-    },
-    RaidenError, RetryCondition, RetryStrategy, TransactWriteConditionCheckBuilder,
-    TransactWriteDeleteBuilder, TransactWritePutBuilder, TransactWriteUpdateBuilder,
+    Client, Config, RaidenError, Region, RetryCondition, RetryStrategy,
+    TransactWriteConditionCheckBuilder, TransactWriteDeleteBuilder, TransactWriteItem,
+    TransactWriteItemsFluentBuilder, TransactWritePutBuilder, TransactWriteUpdateBuilder,
 };
 
 pub struct WriteTx {

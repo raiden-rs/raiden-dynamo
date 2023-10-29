@@ -7,10 +7,10 @@ pub use rusoto_dynamodb_default::*;
 #[cfg(feature = "rusoto")]
 pub use rusoto_core_default::*;
 
-#[cfg(feature = "rustls")]
+#[cfg(feature = "rusoto_rustls")]
 pub use rusoto_dynamodb_rustls::*;
 
-#[cfg(feature = "rustls")]
+#[cfg(feature = "rusoto_rustls")]
 pub use rusoto_core_rustls::*;
 
 pub use self::{errors::*, ops::*};

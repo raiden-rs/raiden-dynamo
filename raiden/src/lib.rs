@@ -1,3 +1,14 @@
+#[cfg(all(feature = "rusoto", feature = "rusoto_rustls"))]
+compile_error!("feature \"rusoto\" and \"rusoto_rustls\" cannot be enabled at the same time.");
+
+#[cfg(any(
+    all(feature = "aws-sdk", feature = "rusoto"),
+    all(feature = "aws-sdk", feature = "rusoto_rustls")
+))]
+compile_error!(
+    "feature \"aws-sdk\" and \"rusoto\" or \"rusoto_rustls\" cannot be enabled at the same time."
+);
+
 #[macro_use]
 extern crate serde_derive;
 
@@ -13,21 +24,10 @@ pub mod types;
 pub mod update_expression;
 pub mod value_id;
 
-#[cfg(all(feature = "rusoto", feature = "rusoto_rustls"))]
-compile_error!("feature \"rusoto\" and \"rusoto_rustls\" cannot be enabled at the same time.");
-
-#[cfg(any(
-    all(feature = "aws-sdk", feature = "rusoto"),
-    all(feature = "aws-sdk", feature = "rusoto_rustls")
-))]
-compile_error!(
-    "feature \"aws-sdk\" and \"rusoto\" or \"rusoto_rustls\" cannot be enabled at the same time."
-);
-
-#[cfg(any(feature = "rusoto", feature = "rustls"))]
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
 mod rusoto;
 
-#[cfg(any(feature = "rusoto", feature = "rustls"))]
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
 pub use rusoto::*;
 
 #[cfg(feature = "aws-sdk")]
@@ -46,9 +46,8 @@ pub use retry::*;
 
 pub use id_generator::*;
 pub use raiden_derive::*;
+pub use types::*;
 pub use value_id::*;
-
-pub type Placeholder = String;
 
 pub use safe_builder::Builder;
 

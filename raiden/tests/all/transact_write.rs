@@ -171,10 +171,14 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
             let res = client.get("id0").run().await;
-            assert_eq!(
-                res.unwrap_err(),
-                RaidenError::ResourceNotFound("resource not found".to_owned())
-            );
+            assert!(res.is_err());
+
+            if let RaidenError::ResourceNotFound(msg) = res.unwrap_err() {
+                assert_eq!("resource not found", msg);
+            } else {
+                panic!("err should be RaidenError::ResourceNotFound");
+            }
+
             let res = client.get("testId").run().await;
             assert_eq!(
                 res.unwrap().item,
@@ -264,16 +268,19 @@ mod tests {
                 )
                 .run()
                 .await;
-            assert_eq!(res.is_err(), true,);
-            assert_eq!(
-                res.unwrap_err(),
-                RaidenError::TransactionCanceled {
-                    reasons: RaidenTransactionCancellationReasons(vec![
+            assert!(res.is_err());
+
+            if let RaidenError::TransactionCanceled { reasons, .. } = res.unwrap_err() {
+                assert_eq!(
+                    RaidenTransactionCancellationReasons(vec![
                         None,
                         Some(RaidenTransactionCancellationReason::ConditionalCheckFailed),
                     ]),
-                }
-            );
+                    reasons
+                );
+            } else {
+                panic!("err should be RaidenError::TransactionCanceled");
+            }
         }
         rt.block_on(example());
     }

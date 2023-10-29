@@ -1,3 +1,6 @@
+#[cfg(all(feature = "aws-sdk", feature = "rusoto"))]
+compile_error!("feature \"aws-sdk\" and \"rusoto\" cannot be enabled at the same time.");
+
 use proc_macro::TokenStream;
 use quote::*;
 
@@ -10,8 +13,17 @@ mod finder;
 mod helpers;
 mod key;
 mod key_condition;
-mod ops;
 mod rename;
+
+#[cfg(feature = "rusoto")]
+mod rusoto;
+#[cfg(feature = "rusoto")]
+use rusoto::{client, ops};
+
+#[cfg(feature = "aws-sdk")]
+mod aws_sdk;
+#[cfg(feature = "aws-sdk")]
+use aws_sdk::{client, ops};
 
 use crate::rename::*;
 use std::str::FromStr;
@@ -19,6 +31,17 @@ use std::str::FromStr;
 #[proc_macro_derive(Raiden, attributes(raiden))]
 pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
+
+    let (dynamodb_client_name, use_dynamodb_trait) = if cfg!(feature = "rusoto") {
+        (
+            format_ident!("DynamoDbClient"),
+            Some(quote! { use ::raiden::DynamoDb as _; }),
+        )
+    } else if cfg!(feature = "aws-sdk") {
+        (format_ident!("Client"), None)
+    } else {
+        unreachable!();
+    };
 
     let struct_name = input.ident;
 
@@ -56,7 +79,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let client_field = format_ident!("client");
     let n = vec![
         quote! { #table_name_field: &'static str },
-        quote! { #client_field: ::raiden::DynamoDbClient },
+        quote! { #client_field: ::raiden::#dynamodb_client_name },
     ];
 
     // let struct_fields = fields.named.iter().map(|f| {
@@ -125,22 +148,19 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         &table_name,
     );
 
-    let insertion_attribute_name = fields.named.iter().map(|f| {
-        let ident = &f.ident.clone().unwrap();
-        let renamed = crate::finder::find_rename_value(&f.attrs);
-        let result = create_renamed(ident.to_string(), renamed, rename_all_type);
-        quote! {
-            names.insert(
-                format!("#{}", #result.clone()),
-                #result.to_string(),
-            );
-        }
-    });
+    let client_constructor = client::expand_client_constructor(
+        &struct_name,
+        &client_name,
+        &dynamodb_client_name,
+        &table_name,
+        &fields,
+        &rename_all_type,
+    );
 
     let expanded = quote! {
         use ::raiden::IntoAttribute as _;
         use ::raiden::IntoAttrName as _;
-        use ::raiden::DynamoDb as _;
+        #use_dynamodb_trait
 
         pub struct #client_name {
             #(
@@ -179,103 +199,10 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
         #transact_write
 
-        impl #client_name {
-
-            pub fn new(region: ::raiden::Region) -> Self {
-                let client = ::raiden::DynamoDbClient::new(region);
-                Self::new_with_dynamo_db_client(client)
-            }
-
-            pub fn new_with_client(client: ::raiden::Client, region: ::raiden::Region) -> Self {
-                let client = ::raiden::DynamoDbClient::new_with_client(client, region);
-                Self::new_with_dynamo_db_client(client)
-            }
-
-            fn new_with_dynamo_db_client(client: ::raiden::DynamoDbClient) -> Self {
-                let names = {
-                    let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
-                    #(#insertion_attribute_name)*
-                    names
-                };
-                let projection_expression = Some(names.keys().map(|v| v.to_string()).collect::<Vec<String>>().join(", "));
-
-                Self {
-                    table_name: #table_name,
-                    table_prefix: "".to_owned(),
-                    table_suffix: "".to_owned(),
-                    client,
-                    retry_condition: ::raiden::RetryCondition::new(),
-                    attribute_names: Some(names),
-                    projection_expression
-                }
-            }
-
-            pub fn with_retries(mut self, s: Box<dyn ::raiden::retry::RetryStrategy + Send + Sync>) -> Self {
-                self.retry_condition.strategy = s;
-                self
-            }
-
-            pub fn table_prefix(mut self, prefix: impl Into<String>) -> Self {
-                self.table_prefix = prefix.into();
-                self
-            }
-
-            pub fn table_suffix(mut self, suffix: impl Into<String>) -> Self {
-                self.table_suffix = suffix.into();
-                self
-            }
-
-            pub fn table_name(&self) -> String {
-                format!("{}{}{}", self.table_prefix, self.table_name.to_string(), self.table_suffix)
-            }
-        }
-
-        impl #struct_name {
-            pub fn client(region: ::raiden::Region) -> #client_name {
-                #client_name::new(region)
-            }
-            pub fn client_with(client: ::raiden::Client, region: ::raiden::Region) -> #client_name {
-                #client_name::new_with_client(client, region)
-            }
-        }
+        #client_constructor
 
         impl ::raiden::IdGenerator for #struct_name {}
     };
     // Hand the output tokens back to the compiler.
     proc_macro::TokenStream::from(expanded)
 }
-
-// fn fetch_raiden_field(fields: &syn::FieldsNamed) -> Vec<syn::Field> {
-//     let fields: Vec<syn::Field> = fields
-//         .named
-//         .iter()
-//         .cloned()
-//         .filter(|f| {
-//             f.attrs.len() > 0
-//                 && f.attrs
-//                     .iter()
-//                     .any(|attr| attr.path.segments[0].ident == "raiden")
-//         })
-//         .collect();
-//     dbg!(&fields.len());
-//     fields
-// }
-
-// fn check_attr_of(
-//     name: &str,
-//     tokens: &mut proc_macro2::token_stream::IntoIter,
-// ) -> Option<proc_macro2::token_stream::IntoIter> {
-//     dbg!(&name);
-//     let mut tokens = match tokens.next() {
-//         Some(proc_macro2::TokenTree::Group(g)) => g.stream().into_iter(),
-//         _ => return None,
-//     };
-//     dbg!(&name);
-//
-//     match tokens.next() {
-//         Some(proc_macro2::TokenTree::Ident(ref ident)) if *ident == name => {
-//             return Some(tokens);
-//         }
-//         _ => return None,
-//     };
-// }

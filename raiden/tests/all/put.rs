@@ -148,12 +148,13 @@ mod tests {
             };
             let cond = User::condition().value("bokuweb_").eq_attr(User::name());
             let res = client.put(user).condition(cond).run().await;
-            assert_eq!(
-                Err(::raiden::RaidenError::ConditionalCheckFailed(
-                    "The conditional request failed".to_owned()
-                )),
-                res
-            );
+            assert!(res.is_err());
+
+            if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+                assert_eq!("The conditional request failed", msg);
+            } else {
+                panic!("err should be RaidenError::ConditionalCheckFailed");
+            }
         }
         rt.block_on(example());
     }
@@ -173,12 +174,13 @@ mod tests {
             };
             let cond = User::condition().attr_not_exists(User::id());
             let res = client.put(user).condition(cond).run().await;
-            assert_eq!(
-                Err(::raiden::RaidenError::ConditionalCheckFailed(
-                    "The conditional request failed".to_owned()
-                )),
-                res
-            );
+            assert!(res.is_err());
+
+            if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+                assert_eq!("The conditional request failed", msg);
+            } else {
+                panic!("err should be RaidenError::ConditionalCheckFailed");
+            }
         }
         rt.block_on(example());
     }

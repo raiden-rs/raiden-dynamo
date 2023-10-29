@@ -16,6 +16,61 @@ pub struct User {
     pub name: String,
 }
 
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+async fn example() {
+    let dispatcher =
+        raiden::request::HttpClient::new().expect("failed to create request dispatcher");
+    let credentials_provider = raiden::credential::DefaultCredentialsProvider::new()
+        .expect("failed to create credentials provider");
+    let core_client = raiden::Client::new_with(credentials_provider, dispatcher);
+
+    let client = User::client_with(
+        core_client,
+        Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        },
+    );
+
+    let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
+    let _ = client.batch_get(keys).run().await;
+}
+
+#[cfg(feature = "aws-sdk")]
+async fn example() {
+    use aws_smithy_client::{http_connector::ConnectorSettings, hyper_ext};
+
+    let https_connector = hyper_rustls::HttpsConnectorBuilder::new()
+        .with_native_roots()
+        .https_or_http()
+        .enable_http1()
+        .enable_http2()
+        .build();
+    let smithy_connector = hyper_ext::Adapter::builder()
+        .connector_settings(
+            ConnectorSettings::builder()
+                .connect_timeout(std::time::Duration::from_secs(5))
+                .build(),
+        )
+        .build(https_connector);
+
+    let sdk_config = aws_config::SdkConfig::builder()
+        .endpoint_url("http://localhost:8000")
+        .region(raiden::Region::from_static("ap-northeast-1"))
+        .credentials_provider(
+            aws_credential_types::provider::SharedCredentialsProvider::new(
+                aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
+            ),
+        )
+        .http_connector(smithy_connector)
+        .build();
+    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+
+    let client = User::client_with(sdk_client);
+    let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
+    let _ = client.batch_get(keys).run().await;
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::new("with_http_client=debug,info"))
@@ -26,24 +81,5 @@ fn main() {
         .with_timer(UtcTime::rfc_3339())
         .init();
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    async fn example() {
-        let dispatcher =
-            raiden::request::HttpClient::new().expect("failed to create request dispatcher");
-        let credentials_provider = raiden::credential::DefaultCredentialsProvider::new()
-            .expect("failed to create credentials provider");
-        let core_client = raiden::Client::new_with(credentials_provider, dispatcher);
-
-        let client = User::client_with(
-            core_client,
-            Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            },
-        );
-
-        let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
-        let _ = client.batch_get(keys).run().await;
-    }
-    rt.block_on(example());
+    tokio::runtime::Runtime::new().unwrap().block_on(example());
 }

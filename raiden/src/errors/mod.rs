@@ -24,12 +24,6 @@ pub enum RaidenError {
     ResourceNotFound(String),
     #[error("`{0}`")]
     SizeLimitExceeded(String),
-    #[error("`transaction canceled error {reasons}`")]
-    TransactionCanceled {
-        reasons: RaidenTransactionCancellationReasons,
-        #[cfg(feature = "aws-sdk")]
-        raw_reasons: Vec<crate::CancellationReason>,
-    },
     #[error("`{0}`")]
     TransactionConflict(String),
     #[error("`{0}`")]
@@ -37,22 +31,27 @@ pub enum RaidenError {
     //
     // Next errors returns only using rusoto.
     //
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("blocking error")]
     Blocking,
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("`{0}`")]
     Credentials(crate::CredentialsError),
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("`{0}`")]
     HttpDispatch(crate::HttpDispatchError),
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("`{0}`")]
     ParseError(String),
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[error("`transaction canceled error {reasons}`")]
+    TransactionCanceled {
+        reasons: RaidenTransactionCancellationReasons,
+    },
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
-    #[cfg(any(feature = "rusoto", feature = "rustls"))]
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("`{0}`")]
     Validation(String),
     //
@@ -67,6 +66,12 @@ pub enum RaidenError {
     #[cfg(feature = "aws-sdk")]
     #[error("`{0:?}`")]
     Timeout(aws_smithy_http::result::TimeoutError),
+    #[cfg(feature = "aws-sdk")]
+    #[error("`transaction canceled error {reasons}: {raw_reasons:?}`")]
+    TransactionCanceled {
+        reasons: RaidenTransactionCancellationReasons,
+        raw_reasons: Vec<crate::CancellationReason>,
+    },
     #[cfg(feature = "aws-sdk")]
     #[error("unknown error")]
     Unknown(aws_smithy_runtime_api::client::orchestrator::HttpResponse),
