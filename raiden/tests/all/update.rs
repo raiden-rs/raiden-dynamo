@@ -17,12 +17,8 @@ mod tests {
 
     #[test]
     fn test_update() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(User);
             let set_name_expression = User::update_expression()
                 .set(User::name())
                 .value("updated!!");
@@ -35,6 +31,7 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 res.item,
                 Some(User {
@@ -44,17 +41,14 @@ mod tests {
                 })
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_update_with_invalid_key_with_condition() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(User);
             let cond = User::condition().attr_exists(User::id());
             let set_expression = User::update_expression()
                 .set(User::name())
@@ -66,9 +60,11 @@ mod tests {
                 .set(set_expression)
                 .run()
                 .await;
+
             assert_eq!(res.is_err(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -83,12 +79,8 @@ mod tests {
 
     #[test]
     fn test_update_with_unstored() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UserWithUnStored::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UserWithUnStored);
             let set_expression = UserWithUnStored::update_expression()
                 .set(UserWithUnStored::name())
                 .value("updated!!");
@@ -98,9 +90,11 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
-            assert_eq!(res.item, None,);
+
+            assert_eq!(res.item, None);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -114,12 +108,8 @@ mod tests {
 
     #[test]
     fn test_update_with_sort_key() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateTestData1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UpdateTestData1);
             let set_expression = UpdateTestData1::update_expression()
                 .set(UpdateTestData1::name())
                 .value("bob");
@@ -130,6 +120,7 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 res.item,
                 Some(UpdateTestData1 {
@@ -139,7 +130,8 @@ mod tests {
                 })
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -151,12 +143,8 @@ mod tests {
 
     #[test]
     fn test_update_with_only_attr() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = EmptySetTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(EmptySetTestData0);
             let set_expression = EmptySetTestData0::update_expression()
                 .set(EmptySetTestData0::sset())
                 .attr(EmptySetTestData0::sset());
@@ -166,19 +154,17 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_ok(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_update_empty_set_sort_key() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = EmptySetTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(EmptySetTestData0);
             let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
             let expected_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
             let set_expression = EmptySetTestData0::update_expression()
@@ -190,20 +176,18 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert!(res.is_ok());
             assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_add_with_empty_hash_set() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = EmptySetTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(EmptySetTestData0);
             let sset: std::collections::HashSet<String> = std::collections::HashSet::new();
             let mut expected_sset: std::collections::HashSet<String> =
                 std::collections::HashSet::new();
@@ -217,10 +201,12 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_ok(), true);
             assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -232,12 +218,8 @@ mod tests {
 
     #[test]
     fn test_update_delete_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateDeleteTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UpdateDeleteTestData0);
             let mut delete_sset: std::collections::HashSet<String> =
                 std::collections::HashSet::new();
             delete_sset.insert("foo".to_owned());
@@ -254,9 +236,11 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -268,12 +252,8 @@ mod tests {
 
     #[test]
     fn test_update_add_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateAddTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UpdateAddTestData0);
             let mut add_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
             add_sset.insert("added".to_owned());
             let add_expression = UpdateAddTestData0::update_expression()
@@ -291,19 +271,17 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_update_add_sset_to_empty() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateAddTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UpdateAddTestData0);
             let mut add_sset: std::collections::HashSet<String> = std::collections::HashSet::new();
             add_sset.insert("added".to_owned());
             let add_expression = UpdateAddTestData0::update_expression()
@@ -319,19 +297,17 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.unwrap().item.unwrap().sset, expected_sset);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_update_to_empty_string() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(User);
             let set_name_expression = User::update_expression().set(User::name()).value("");
             let res = client
                 .update("id0")
@@ -340,9 +316,11 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
-            assert_eq!(res.item.unwrap().name, "".to_owned(),);
+
+            assert_eq!(res.item.unwrap().name, "".to_owned());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -354,18 +332,15 @@ mod tests {
 
     #[test]
     fn test_update_remove_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateRemoveTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(UpdateRemoveTestData0);
             let res = client
                 .update("id1")
                 .remove(UpdateRemoveTestData0::name())
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(
                 res.unwrap().item.unwrap(),
                 UpdateRemoveTestData0 {
@@ -380,6 +355,7 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(
                 res.unwrap().item.unwrap(),
                 UpdateRemoveTestData0 {
@@ -388,7 +364,8 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -401,17 +378,11 @@ mod tests {
 
     #[test]
     fn should_update_with_contains_condition_in_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(UpdateWithContainsInSetCondition);
             let set_expression = UpdateWithContainsInSetCondition::update_expression()
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
-
             let cond = UpdateWithContainsInSetCondition::condition().contains(
                 UpdateWithContainsInSetCondition::sset(),
                 "Hello".to_string(),
@@ -424,24 +395,20 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_ok(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn should_not_update_with_contains_condition_in_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(UpdateWithContainsInSetCondition);
             let set_expression = UpdateWithContainsInSetCondition::update_expression()
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
-
             let cond = UpdateWithContainsInSetCondition::condition().contains(
                 UpdateWithContainsInSetCondition::sset(),
                 "World".to_string(),
@@ -454,24 +421,20 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_err(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn should_not_update_with_or_condition_failed() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(UpdateWithContainsInSetCondition);
             let set_expression = UpdateWithContainsInSetCondition::update_expression()
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
-
             let cond = UpdateWithContainsInSetCondition::condition()
                 .contains(
                     UpdateWithContainsInSetCondition::sset(),
@@ -489,24 +452,20 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_err(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn should_update_with_or_condition() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = UpdateWithContainsInSetCondition::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(UpdateWithContainsInSetCondition);
             let set_expression = UpdateWithContainsInSetCondition::update_expression()
                 .set(UpdateWithContainsInSetCondition::name())
                 .value("Changed");
-
             let cond = UpdateWithContainsInSetCondition::condition()
                 .contains(
                     UpdateWithContainsInSetCondition::sset(),
@@ -524,71 +483,75 @@ mod tests {
                 .return_all_new()
                 .run()
                 .await;
+
             assert_eq!(res.is_ok(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn should_set_if_attr_not_exists() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
+    #[test]
+    fn should_set_if_attr_not_exists() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(User);
+            let set_name_expression = User::update_expression()
+                .set(User::name())
+                .value("updated")
+                .if_not_exists();
+            let set_age_expression = User::update_expression().set(User::age()).value(12);
 
-        let set_name_expression = User::update_expression()
-            .set(User::name())
-            .value("updated")
-            .if_not_exists();
-        let set_age_expression = User::update_expression().set(User::age()).value(12);
+            let res = client
+                .update("if_not_exists#0")
+                .set(set_name_expression)
+                .set(set_age_expression)
+                .return_all_new()
+                .run()
+                .await
+                .unwrap();
 
-        let res = client
-            .update("if_not_exists#0")
-            .set(set_name_expression)
-            .set(set_age_expression)
-            .return_all_new()
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(
-            res.item,
-            Some(User {
-                id: "if_not_exists#0".into(),
-                name: "updated".into(),
-                age: 12
-            })
-        );
+            assert_eq!(
+                res.item,
+                Some(User {
+                    id: "if_not_exists#0".into(),
+                    name: "updated".into(),
+                    age: 12
+                })
+            );
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn should_not_set_if_attr_exists() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
+    #[test]
+    fn should_not_set_if_attr_exists() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(User);
 
-        let set_name_expression = User::update_expression().set(User::name()).value("created");
-        let set_age_expression = User::update_expression().set(User::age()).value(12);
+            let set_name_expression = User::update_expression().set(User::name()).value("created");
+            let set_age_expression = User::update_expression().set(User::age()).value(12);
 
-        client
-            .update("if_not_exists#1")
-            .set(set_name_expression)
-            .set(set_age_expression)
-            .run()
-            .await
-            .unwrap();
+            client
+                .update("if_not_exists#1")
+                .set(set_name_expression)
+                .set(set_age_expression)
+                .run()
+                .await
+                .unwrap();
 
-        let set_name_expression = User::update_expression()
-            .set(User::name())
-            .value("updated")
-            .if_not_exists(); // update only if attribute not exists
-        let res = client
-            .update("if_not_exists#1")
-            .set(set_name_expression)
-            .return_all_new()
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.item.map(|u| u.name), Some("created".into()));
+            let set_name_expression = User::update_expression()
+                .set(User::name())
+                .value("updated")
+                .if_not_exists(); // update only if attribute not exists
+            let res = client
+                .update("if_not_exists#1")
+                .set(set_name_expression)
+                .return_all_new()
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.item.map(|u| u.name), Some("created".into()));
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

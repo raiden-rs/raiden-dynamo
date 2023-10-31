@@ -17,12 +17,8 @@ mod tests {
 
     #[test]
     fn test_query() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
             let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id0");
             let res = client.query().key_condition(cond).run().await;
 
@@ -52,17 +48,14 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_query_with_and_key_condition() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
             let cond = QueryTestData0::key_condition(QueryTestData0::id())
                 .eq("id0")
                 .and(QueryTestData0::key_condition(QueryTestData0::year()).eq(1999));
@@ -85,158 +78,168 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_simple_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::num()).eq(4000);
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 3);
+    #[test]
+    fn test_query_with_simple_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::num()).eq(4000);
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 3);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_size_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id5");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::name())
-            .size()
-            .ge(4);
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_with_size_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id5");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::name())
+                .size()
+                .ge(4);
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_or_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::name())
-            .eq("bar0")
-            .or(QueryTestData0::filter_expression(QueryTestData0::name()).eq("bar1"));
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_with_or_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id3");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::name())
+                .eq("bar0")
+                .or(QueryTestData0::filter_expression(QueryTestData0::name()).eq("bar1"));
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_attribute_exists_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::option()).attribute_exists();
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_with_attribute_exists_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+            let filter =
+                QueryTestData0::filter_expression(QueryTestData0::option()).attribute_exists();
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_attribute_not_exists_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
-        let filter =
-            QueryTestData0::filter_expression(QueryTestData0::option()).attribute_not_exists();
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 1);
+    #[test]
+    fn test_query_with_attribute_not_exists_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+            let filter =
+                QueryTestData0::filter_expression(QueryTestData0::option()).attribute_not_exists();
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 1);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_attribute_type_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::option())
-            .attribute_type(raiden::AttributeType::S);
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_with_attribute_type_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::option())
+                .attribute_type(raiden::AttributeType::S);
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_with_contains_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
-        let filter = QueryTestData0::filter_expression(QueryTestData0::name()).contains("bar");
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_with_contains_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::name()).contains("bar");
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_query_in_filter() {
-        let client = QueryTestData0::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
-        let filter =
-            QueryTestData0::filter_expression(QueryTestData0::name()).r#in(vec!["bar0", "bar1"]);
-        let res = client
-            .query()
-            .key_condition(cond)
-            .filter(filter)
-            .run()
-            .await
-            .unwrap();
-        assert_eq!(res.items.len(), 2);
+    #[test]
+    fn test_query_in_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(QueryTestData0);
+            let cond = QueryTestData0::key_condition(QueryTestData0::id()).eq("id4");
+            let filter = QueryTestData0::filter_expression(QueryTestData0::name())
+                .r#in(vec!["bar0", "bar1"]);
+            let res = client
+                .query()
+                .key_condition(cond)
+                .filter(filter)
+                .run()
+                .await
+                .unwrap();
+            assert_eq!(res.items.len(), 2);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -251,12 +254,8 @@ mod tests {
 
     #[test]
     fn test_query_limit_1() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
@@ -267,17 +266,14 @@ mod tests {
                 .await;
             assert_eq!(res.unwrap().items.len(), 1);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_query_limit_5() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
@@ -288,17 +284,14 @@ mod tests {
                 .await;
             assert_eq!(res.unwrap().items.len(), 5);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_query_no_limit() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
@@ -308,17 +301,14 @@ mod tests {
                 .await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_query_over_limit() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
@@ -329,17 +319,14 @@ mod tests {
                 .await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_query_over_limit_with_next_token() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let cond = Test::key_condition(Test::ref_id()).eq("id0");
             let res = client
                 .query()
@@ -363,7 +350,8 @@ mod tests {
                 .unwrap();
             assert_eq!(res.items.len(), 1);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -379,12 +367,8 @@ mod tests {
 
     #[test]
     fn test_query_with_renamed() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Project::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Project);
             let cond = Project::key_condition(Project::org_id()).eq("myOrg");
             let res = client
                 .query()
@@ -395,7 +379,8 @@ mod tests {
                 .await;
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -408,12 +393,8 @@ mod tests {
     }
     #[test]
     fn test_query_for_projection_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryTestData0a::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryTestData0a);
             let cond = QueryTestData0a::key_condition(QueryTestData0a::id()).eq("id0");
             let res = client.query().key_condition(cond).run().await;
 
@@ -439,7 +420,8 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -453,12 +435,8 @@ mod tests {
 
     #[test]
     fn test_query_with_begins_with_key_condition() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryTestData1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryTestData1);
             let cond = QueryTestData1::key_condition(QueryTestData1::id())
                 .eq("id0")
                 .and(QueryTestData1::key_condition(QueryTestData1::name()).begins_with("j"));
@@ -484,7 +462,8 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -498,12 +477,8 @@ mod tests {
 
     #[test]
     fn should_be_obtainable_when_the_size_is_1mb_or_larger() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryLargeDataTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryLargeDataTest);
             let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
             let res = client
                 .query()
@@ -514,17 +489,14 @@ mod tests {
 
             assert_eq!(res.unwrap().items.len(), 100)
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn should_be_obtainable_specified_limit_items_when_the_size_is_1mb_or_larger() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = QueryLargeDataTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(QueryLargeDataTest);
             let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
             let res = client
                 .query()
@@ -551,6 +523,7 @@ mod tests {
 
             assert_eq!(res.items.len(), 60);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

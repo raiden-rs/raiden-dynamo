@@ -23,7 +23,7 @@ mod tests {
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
         expected_names.insert("#name".to_owned(), "name".to_owned());
-        assert_eq!(condition_expression, "attribute_exists(#name)".to_owned(),);
+        assert_eq!(condition_expression, "attribute_exists(#name)".to_owned());
         assert_eq!(attribute_names, expected_names);
     }
 
@@ -80,13 +80,8 @@ mod tests {
             std::collections::HashMap::new();
         expected_names.insert("#id".to_owned(), "id".to_owned());
         let mut expected_values: raiden::AttributeValues = std::collections::HashMap::new();
-        expected_values.insert(
-            ":typeS".to_owned(),
-            raiden::AttributeValue {
-                s: Some("S".to_string()),
-                ..raiden::AttributeValue::default()
-            },
-        );
+        let attr_value: raiden::AttributeValue = "S".into_attr();
+        expected_values.insert(":typeS".to_owned(), attr_value);
 
         assert_eq!(
             condition_expression,
@@ -103,12 +98,10 @@ mod tests {
         let mut expected_names: raiden::AttributeNames = std::collections::HashMap::new();
         expected_names.insert("#name".to_owned(), "name".to_owned());
         let mut expected_values: raiden::AttributeValues = std::collections::HashMap::new();
+        let attr_value: raiden::AttributeValue = "boku".into_attr();
         expected_values.insert(
             ":begins_with_17d8e2e8233d9a6ae428061cb2cdf226".to_owned(),
-            raiden::AttributeValue {
-                s: Some("boku".to_string()),
-                ..raiden::AttributeValue::default()
-            },
+            attr_value,
         );
 
         assert_eq!(
@@ -202,7 +195,7 @@ mod tests {
         let mut expected_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
         expected_names.insert("#name".to_owned(), "name".to_owned());
-        assert_eq!(condition_expression, "#name = #name".to_owned(),);
+        assert_eq!(condition_expression, "#name = #name".to_owned());
         assert_eq!(attribute_names, expected_names);
     }
 
@@ -215,14 +208,10 @@ mod tests {
             std::collections::HashMap::new();
         expected_names.insert("#name".to_owned(), "name".to_owned());
         let mut expected_values: raiden::AttributeValues = std::collections::HashMap::new();
-        expected_values.insert(
-            ":value0".to_owned(),
-            raiden::AttributeValue {
-                s: Some("bokuweb".to_string()),
-                ..raiden::AttributeValue::default()
-            },
-        );
-        assert_eq!(condition_expression, ":value0 = #name".to_owned(),);
+        let attr_value: raiden::AttributeValue = "bokuweb".into_attr();
+        expected_values.insert(":value0".to_owned(), attr_value);
+
+        assert_eq!(condition_expression, ":value0 = #name".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }

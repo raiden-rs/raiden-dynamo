@@ -294,17 +294,17 @@ impl<A: std::cmp::Ord + FromStringSetItem> FromAttribute for BTreeSet<A> {
 
 pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
     match &a {
-        &AttributeValue::B(v) => v == &aws_smithy_types::Blob::new(vec![]),
-        &AttributeValue::Bool(v) => *v == false,
+        &AttributeValue::B(_)
+        | &AttributeValue::Bool(_)
+        | &AttributeValue::M(_)
+        | &AttributeValue::N(_)
+        | &AttributeValue::Null(_)
+        | &AttributeValue::S(_) => false,
         &AttributeValue::Bs(v) => v.is_empty(),
         &AttributeValue::L(v) => v.is_empty(),
-        &AttributeValue::M(v) => v.is_empty(),
-        &AttributeValue::N(v) => v.is_empty(),
         &AttributeValue::Ns(v) => v.is_empty(),
-        &AttributeValue::Null(_) => a.is_null(),
-        &AttributeValue::S(v) => v.is_empty(),
         &AttributeValue::Ss(v) => v.is_empty(),
-        _ => false,
+        _ => true,
     }
 }
 

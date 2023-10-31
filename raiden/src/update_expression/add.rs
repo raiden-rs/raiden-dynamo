@@ -79,7 +79,7 @@ mod tests {
         let mut expected_values = std::collections::HashMap::new();
         expected_names.insert("#age".to_owned(), "age".to_owned());
         expected_values.insert(":value0".to_owned(), 42.into_attr());
-        assert_eq!(expression, "#age :value0".to_owned(),);
+        assert_eq!(expression, "#age :value0".to_owned());
         assert_eq!(names, expected_names);
         assert_eq!(values, expected_values);
     }

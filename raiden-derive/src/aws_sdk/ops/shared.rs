@@ -19,57 +19,57 @@ pub(crate) fn expand_attr_to_item(
         let ty = &f.ty;
 
         let item = quote! {
-          let item = <#ty as ResolveAttribute>::resolve_attr(&#attr_key, &mut #item_ident);
+            let item = <#ty as ResolveAttribute>::resolve_attr(&#attr_key, &mut #item_ident);
         };
         if crate::finder::is_option(ty) {
             quote! {
-              #ident: {
-                #item
-                if item.is_none() {
-                    None
-                } else {
-                    let converted = ::raiden::FromAttribute::from_attr(item);
-                    if converted.is_err() {
-                        return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
+                #ident: {
+                    #item
+                    if item.is_none() {
+                        None
+                    } else {
+                        let converted = ::raiden::FromAttribute::from_attr(item);
+                        if converted.is_err() {
+                            return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
+                        }
+                        converted.unwrap()
                     }
-                    converted.unwrap()
-                }
-              },
+                },
             }
         } else if use_default {
             quote! {
-              #ident: {
-                #item
-                if item.is_none() {
-                    #ty::default()
-                } else {
-                  let item = item.unwrap();
-                  // If null is true, use default value.
-                  if let Some(true) = item.null {
-                    #ty::default()
-                  } else {
-                    let converted = ::raiden::FromAttribute::from_attr(Some(item));
-                    if converted.is_err() {
-                      // TODO: improve error handling.
-                        return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
+                #ident: {
+                    #item
+                    if item.is_none() {
+                        #ty::default()
+                    } else {
+                        let item = item.unwrap();
+                        // If null is true, use default value.
+                        if item.is_null() {
+                            #ty::default()
+                        } else {
+                            let converted = ::raiden::FromAttribute::from_attr(Some(item));
+                            if converted.is_err() {
+                            // TODO: improve error handling.
+                                return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
+                            }
+                            converted.unwrap()
+                        }
                     }
-                    converted.unwrap()
-                  }
-                }
-              },
+                },
             }
         } else {
             quote! {
                 #ident: {
-                  #item
-                  let converted = ::raiden::FromAttribute::from_attr(item);
-                  if converted.is_err() {
-                    // TODO: improve error handling.
-                      return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
-                  }
-                  converted.unwrap()
+                    #item
+                    let converted = ::raiden::FromAttribute::from_attr(item);
+                    if converted.is_err() {
+                        // TODO: improve error handling.
+                        return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
+                    }
+                    converted.unwrap()
                 },
-              }
+            }
         }
     }).collect()
 }
@@ -86,12 +86,12 @@ macro_rules! api_call_token {
 
         let span_token = if cfg!(feature = "tracing") {
             ::quote::quote! {
-              use tracing::Instrument;
-              let fut = fut.instrument(::tracing::debug_span!(
-                  "dynamodb::action",
-                  table = #table_name,
-                  api = std::stringify!(#operation),
-              ));
+                use tracing::Instrument;
+                let fut = fut.instrument(::tracing::debug_span!(
+                    "dynamodb::action",
+                    table = #table_name,
+                    api = std::stringify!(#operation),
+                ));
             }
         } else {
             ::quote::quote! {}

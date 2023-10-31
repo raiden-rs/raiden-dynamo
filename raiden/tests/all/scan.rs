@@ -16,12 +16,8 @@ mod tests {
 
     #[test]
     fn test_scan() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = ScanTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(ScanTestData0);
             let res = client.scan().run().await;
 
             assert_eq!(
@@ -40,7 +36,8 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -55,58 +52,50 @@ mod tests {
 
     #[test]
     fn test_scan_limit_1() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let res = client.scan().limit(1).run().await;
+
             assert_eq!(res.unwrap().items.len(), 1);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_scan_limit_5() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let res = client.scan().limit(5).run().await;
+
             assert_eq!(res.unwrap().items.len(), 5);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_scan_no_limit() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let res = client.scan().run().await;
+
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_scan_over_limit() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Test::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Test);
             let res = client.scan().limit(11).run().await;
+
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -122,16 +111,14 @@ mod tests {
 
     #[test]
     fn test_scan_with_renamed() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = Project::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(Project);
             let res = client.scan().limit(11).run().await;
+
             assert_eq!(res.unwrap().items.len(), 10);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -144,12 +131,8 @@ mod tests {
 
     #[test]
     fn test_scan_for_projection_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = ScanTestData0a::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(ScanTestData0a);
             let res = client.scan().run().await;
 
             assert_eq!(
@@ -166,7 +149,8 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -180,16 +164,14 @@ mod tests {
 
     #[test]
     fn should_be_scan_when_the_size_is_1mb_or_larger() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = ScanLargeDataTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(ScanLargeDataTest);
             let res = client.scan().run().await;
+
             assert_eq!(res.unwrap().items.len(), 100)
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug)]
@@ -204,72 +186,84 @@ mod tests {
         option: Option<String>,
     }
 
-    #[tokio::test]
-    async fn test_simple_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter = Scan::filter_expression(Scan::num()).eq(1000);
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 50);
+    #[test]
+    fn test_simple_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter = Scan::filter_expression(Scan::num()).eq(1000);
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 50);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_size_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter = Scan::filter_expression(Scan::name()).size().eq(10);
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 10);
+    #[test]
+    fn test_size_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter = Scan::filter_expression(Scan::name()).size().eq(10);
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 10);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_or_with_contain_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter = Scan::filter_expression(Scan::num())
-            .eq(1000)
-            .or(Scan::filter_expression(Scan::id()).contains("scanId50"));
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 51);
+    #[test]
+    fn test_or_with_contain_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter = Scan::filter_expression(Scan::num())
+                .eq(1000)
+                .or(Scan::filter_expression(Scan::id()).contains("scanId50"));
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 51);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_attribute_exists_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter = Scan::filter_expression(Scan::option()).attribute_exists();
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 50);
+    #[test]
+    fn test_attribute_exists_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter = Scan::filter_expression(Scan::option()).attribute_exists();
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 50);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_attribute_not_exists_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter = Scan::filter_expression(Scan::option()).attribute_not_exists();
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 50);
+    #[test]
+    fn test_attribute_not_exists_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter = Scan::filter_expression(Scan::option()).attribute_not_exists();
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 50);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[tokio::test]
-    async fn test_attribute_type_filter() {
-        let client = Scan::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let filter =
-            Scan::filter_expression(Scan::option()).attribute_type(raiden::AttributeType::S);
-        let res = client.scan().filter(filter).run().await.unwrap();
-        assert_eq!(res.items.len(), 50);
+    #[test]
+    fn test_attribute_type_filter() {
+        async fn example() {
+            let client = crate::all::create_client_from_struct!(Scan);
+            let filter =
+                Scan::filter_expression(Scan::option()).attribute_type(raiden::AttributeType::S);
+            let res = client.scan().filter(filter).run().await.unwrap();
+
+            assert_eq!(res.items.len(), 50);
+        }
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

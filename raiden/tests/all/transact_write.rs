@@ -1,5 +1,28 @@
 #[cfg(test)]
 mod tests {
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    fn create_client() -> ::raiden::WriteTx {
+        ::raiden::WriteTx::new(Region::Custom {
+            endpoint: "http://localhost:8000".into(),
+            name: "ap-northeast-1".into(),
+        })
+    }
+
+    #[cfg(feature = "aws-sdk")]
+    fn create_client() -> ::raiden::WriteTx {
+        let sdk_config = aws_config::SdkConfig::builder()
+            .endpoint_url("http://localhost:8000")
+            .region(raiden::Region::from_static("ap-northeast-1"))
+            .credentials_provider(
+                aws_credential_types::provider::SharedCredentialsProvider::new(
+                    aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
+                ),
+            )
+            .build();
+        let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+
+        ::raiden::WriteTx::new_with_client(sdk_client)
+    }
 
     #[cfg(test)]
     use pretty_assertions::assert_eq;
@@ -17,12 +40,8 @@ mod tests {
 
     #[test]
     fn test_minimum_transact_write() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let cond = User::condition().attr_not_exists(User::id());
             let input = User::put_item_builder()
                 .id("testId".to_owned())
@@ -32,6 +51,7 @@ mod tests {
                 .id("testId2".to_owned())
                 .name("bokuweb".to_owned())
                 .build();
+
             assert_eq!(
                 tx.put(User::put(input).condition(cond))
                     .put(User::put(input2))
@@ -41,17 +61,14 @@ mod tests {
                 true,
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_transact_write_put_and_update() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
@@ -59,29 +76,27 @@ mod tests {
             let set_expression = User::update_expression()
                 .set(User::name())
                 .value("updated!!");
-
             let res = tx
                 .put(User::put(input))
                 .update(User::update("testId2").set(set_expression))
                 .run()
                 .await;
+
             assert_eq!(res.is_ok(), true);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_transact_write_with_prefix_suffix() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
                 .build();
+
             assert_eq!(
                 tx.put(
                     User::put(input)
@@ -94,7 +109,8 @@ mod tests {
                 true,
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -115,16 +131,13 @@ mod tests {
 
     #[test]
     fn test_retry() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = User::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
                 .build();
+
             assert_eq!(
                 tx.with_retries(Box::new(MyRetryStrategy))
                     .put(User::put(input).table_prefix("unknown"))
@@ -134,7 +147,8 @@ mod tests {
                 true,
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
         assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 4)
     }
 
@@ -147,16 +161,13 @@ mod tests {
 
     #[test]
     fn test_transact_delete_and_put() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = TxDeleteTestData0::put_item_builder()
                 .id("testId".to_owned())
                 .name("bokuweb".to_owned())
                 .build();
+
             assert_eq!(
                 tx.put(TxDeleteTestData0::put(input))
                     .delete(TxDeleteTestData0::delete("id0"))
@@ -166,10 +177,7 @@ mod tests {
                 true,
             );
 
-            let client = TxDeleteTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(TxDeleteTestData0);
             let res = client.get("id0").run().await;
             assert!(res.is_err());
 
@@ -188,7 +196,8 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -207,12 +216,8 @@ mod tests {
 
     #[test]
     fn should_succeed_to_put_when_condition_check_ok() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = TxConditionalCheckTestData0::put_item_builder()
                 .id("testId0".to_owned())
                 .name("bokuweb".to_owned())
@@ -230,10 +235,7 @@ mod tests {
                 true,
             );
 
-            let client = TxConditionalCheckTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let client = crate::all::create_client_from_struct!(TxConditionalCheckTestData0);
             let res = client.get("testId0").run().await;
             assert_eq!(
                 res.unwrap().item,
@@ -243,17 +245,14 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn should_fail_to_put_when_condition_check_ng() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let tx = ::raiden::WriteTx::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+            let tx = create_client();
             let input = TxConditionalCheckTestData0::put_item_builder()
                 .id("testId1".to_owned())
                 .name("bokuweb".to_owned())
@@ -282,6 +281,7 @@ mod tests {
                 panic!("err should be RaidenError::TransactionCanceled");
             }
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

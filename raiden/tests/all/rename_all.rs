@@ -18,14 +18,10 @@ mod tests {
 
     #[test]
     fn test_rename_all_camelcase_get() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = RenameAllCamelCaseTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(RenameAllCamelCaseTest);
             let res = client.get("id0").run().await;
+
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -38,7 +34,8 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden)]
@@ -54,14 +51,10 @@ mod tests {
 
     #[test]
     fn test_rename_all_pascalcase_get() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = RenameAllPascalCaseTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(RenameAllPascalCaseTest);
             let res = client.get("id0").run().await;
+
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -74,6 +67,7 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

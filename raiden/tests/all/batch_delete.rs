@@ -14,18 +14,14 @@ mod partition_key_tests {
 
     #[test]
     fn test_batch_delete_item() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest0);
             let res: batch_delete::BatchDeleteOutput = client
                 .batch_delete(vec!["id0", "id1", "id2"])
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 res,
                 batch_delete::BatchDeleteOutput {
@@ -34,58 +30,50 @@ mod partition_key_tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_item_for_stored_and_unstored_keys() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest0);
             let res = client.batch_delete(vec!["id3", "unstored"]).run().await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_item_for_unstored_keys() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest0);
             let res = client
                 .batch_delete(vec!["unstored0", "unstored1", "unstored2"])
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_over_25_items() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest0);
             let res = client
                 .batch_delete((4..=100).map(|i| format!("id{i}")).collect())
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }
 
@@ -105,13 +93,8 @@ mod partition_key_and_sort_key_tests {
 
     #[test]
     fn test_batch_delete_item_with_sort_key() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest1);
             let res = client
                 .batch_delete(vec![
                     ("id0", 1999_usize),
@@ -120,38 +103,32 @@ mod partition_key_and_sort_key_tests {
                 ])
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_item_with_sort_key_for_stored_and_unstored_keys() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest1);
             let res = client
                 .batch_delete(vec![("id3", 2002_usize), ("unstored", 2000_usize)])
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_item_with_sort_key_for_unstored_keys() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest1);
             let res = client
                 .batch_delete(vec![
                     ("unstored0", 1999_usize),
@@ -160,20 +137,17 @@ mod partition_key_and_sort_key_tests {
                 ])
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_delete_with_sort_key_over_25_items() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchDeleteTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchDeleteTest1);
             let res = client
                 .batch_delete(
                     (4..=100)
@@ -182,8 +156,10 @@ mod partition_key_and_sort_key_tests {
                 )
                 .run()
                 .await;
+
             assert!(res.is_ok());
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

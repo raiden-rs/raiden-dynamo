@@ -229,7 +229,7 @@ mod tests {
             let mut expected_values = std::collections::HashMap::new();
             expected_names.insert("#name".to_owned(), "name".to_owned());
             expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
-            assert_eq!(expression, "#name = :value0".to_owned(),);
+            assert_eq!(expression, "#name = :value0".to_owned());
             assert_eq!(names, expected_names);
             assert_eq!(values, expected_values);
             return;
@@ -272,7 +272,7 @@ mod tests {
             let mut expected_values = std::collections::HashMap::new();
             expected_names.insert("#age".to_owned(), "age".to_owned());
             expected_values.insert(":value0".to_owned(), 10.into_attr());
-            assert_eq!(expression, "#age = #age + :value0".to_owned(),);
+            assert_eq!(expression, "#age = #age + :value0".to_owned());
             assert_eq!(names, expected_names);
             assert_eq!(values, expected_values);
             return;

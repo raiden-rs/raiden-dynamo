@@ -9,6 +9,7 @@ dynamo:
 test:
 	make dynamo
 	cargo test -- --test-threads=1
+	make dynamo
 	cargo test --no-default-features --features aws-sdk -- --test-threads=1
 
 .PHONY: lint

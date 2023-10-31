@@ -30,14 +30,10 @@ mod tests {
 
     #[test]
     fn test_rename_get_item() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = RenameTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(RenameTest);
             let res = client.get("id0").run().await;
+
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -54,19 +50,16 @@ mod tests {
                 "renamed".to_owned()
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_rename_key_get_item() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = RenameKeyTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(RenameKeyTest);
             let res = client.get("id0").run().await;
+
             assert_eq!(
                 res.unwrap(),
                 get::GetOutput {
@@ -79,18 +72,14 @@ mod tests {
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_rename_query() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = RenameTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(RenameTest);
             let cond = RenameTest::key_condition(RenameTest::id()).eq("id0");
             let res = client.query().key_condition(cond).run().await;
 
@@ -109,6 +98,7 @@ mod tests {
                 }
             )
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

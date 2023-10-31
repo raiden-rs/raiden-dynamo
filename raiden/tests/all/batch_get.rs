@@ -25,18 +25,14 @@ mod tests {
 
     #[test]
     fn test_batch_get_item() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest0);
             let res: batch_get::BatchGetOutput<BatchTest0> = client
                 .batch_get(vec!["id0", "id1", "id2"])
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 sort_by_id_0(res),
                 batch_get::BatchGetOutput {
@@ -55,28 +51,18 @@ mod tests {
                         },
                     ],
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_get_item_extended() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest0);
             let keys: Vec<String> = (0..101).into_iter().map(|n| format!("id{n}")).collect();
             let expected_items = (0..101)
                 .map(|n| BatchTest0 {
@@ -86,40 +72,32 @@ mod tests {
                 .collect();
             let res: batch_get::BatchGetOutput<BatchTest0> =
                 client.batch_get(keys).run().await.unwrap();
+
             assert_eq!(
                 sort_by_id_0(res),
                 batch_get::BatchGetOutput {
                     items: expected_items,
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     // NOTE: Same behavior with original SDK, but we're planning to improve this.
     // ref. https://github.com/raiden-rs/raiden/issues/44
     #[test]
     fn test_batch_get_item_partial_missing() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest0);
             let res: batch_get::BatchGetOutput<BatchTest0> = client
                 .batch_get(vec!["id100", "id101", "id102"])
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 sort_by_id_0(res),
                 batch_get::BatchGetOutput {
@@ -128,17 +106,12 @@ mod tests {
                         name: "bob".to_owned(),
                     },],
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -164,13 +137,8 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_sort_key() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest1);
             let keys: Vec<(String, usize)> = (0..250)
                 .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
@@ -185,22 +153,18 @@ mod tests {
                 .collect();
             let res: batch_get::BatchGetOutput<BatchTest1> =
                 client.batch_get(keys).run().await.unwrap();
+
             assert_eq!(
                 sort_by_id_1(res),
                 batch_get::BatchGetOutput {
                     items: expected_items,
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -215,13 +179,8 @@ mod tests {
 
     #[test]
     fn test_batch_get_item_for_projection_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest1a::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest1a);
             let keys: Vec<(String, usize)> = (0..250)
                 .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
@@ -233,7 +192,6 @@ mod tests {
                     year: 2000 + n as usize,
                 })
                 .collect();
-
             let mut res: batch_get::BatchGetOutput<BatchTest1a> =
                 client.batch_get(keys).run().await.unwrap();
             res.items.sort_by_key(|i| {
@@ -247,28 +205,18 @@ mod tests {
                 batch_get::BatchGetOutput {
                     items: expected_items,
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[test]
     fn test_batch_get_item_missing_all() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest1::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest1);
             let res: batch_get::BatchGetOutput<BatchTest1> = client
                 .batch_get(vec![
                     ("id300", 2300_usize),
@@ -278,22 +226,18 @@ mod tests {
                 .run()
                 .await
                 .unwrap();
+
             assert_eq!(
                 sort_by_id_1(res),
                 batch_get::BatchGetOutput {
                     items: vec![],
                     consumed_capacity: None,
-                    unprocessed_keys: Some(KeysAndAttributes {
-                        attributes_to_get: None,
-                        consistent_read: None,
-                        expression_attribute_names: None,
-                        keys: vec![],
-                        projection_expression: None,
-                    }),
+                    unprocessed_keys: Some(crate::all::default_key_and_attributes()),
                 }
             );
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -304,13 +248,8 @@ mod tests {
     }
     #[test]
     fn test_batch_get_item_with_16mb_limitation() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
         async fn example() {
-            let client = BatchTest2::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-
+            let client = crate::all::create_client_from_struct!(BatchTest2);
             let res: batch_get::BatchGetOutput<BatchTest2> = client
                 .batch_get(vec![
                     "id0", "id1", "id2", "id3", "id4", "id5", "id6", "id7", "id8", "id9", "id10",
@@ -324,6 +263,7 @@ mod tests {
                 .unwrap();
             assert_eq!(res.items.len(), 51);
         }
-        rt.block_on(example());
+
+        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 }

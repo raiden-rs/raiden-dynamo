@@ -30,7 +30,7 @@ pub(crate) fn expand_client_constructor(
                 Self::new_with_dynamo_db_client(client)
             }
 
-            pub fn new_with_client(client: ::raiden::Client) -> Self {
+            pub fn new_with_client(client: ::raiden::#dynamodb_client_name) -> Self {
                 Self::new_with_dynamo_db_client(client)
             }
 
@@ -78,7 +78,7 @@ pub(crate) fn expand_client_constructor(
                 #client_name::new(region)
             }
 
-            pub fn client_with(client: ::raiden::Client) -> #client_name {
+            pub fn client_with(client: ::raiden::#dynamodb_client_name) -> #client_name {
                 #client_name::new_with_client(client)
             }
         }
