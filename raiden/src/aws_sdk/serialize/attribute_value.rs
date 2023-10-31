@@ -8,25 +8,25 @@ use serde_json::{json, Error, Value};
 use crate::AttributeValue;
 
 pub fn attribute_value_to_value(value: &AttributeValue) -> Value {
-    match &value {
-        &AttributeValue::B(v) => json!({ "B": STANDARD.encode(v) }),
-        &AttributeValue::Bool(v) => json!({ "BOOL": v }),
-        &AttributeValue::Bs(vs) => json!({ "BS": [
+    match value {
+        AttributeValue::B(v) => json!({ "B": STANDARD.encode(v) }),
+        AttributeValue::Bool(v) => json!({ "BOOL": v }),
+        AttributeValue::Bs(vs) => json!({ "BS": [
             vs.iter().map(|v| json!({ "B": STANDARD.encode(v) })).collect::<Vec<_>>(),
         ]}),
-        &AttributeValue::L(vs) => json!({ "L": [
+        AttributeValue::L(vs) => json!({ "L": [
             vs.iter().map(attribute_value_to_value).collect::<Vec<_>>(),
         ]}),
-        &AttributeValue::M(vs) => json!({ "M": vs.iter().map(|(k, v)| {
+        AttributeValue::M(vs) => json!({ "M": vs.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
         }).collect::<std::collections::HashMap<String, Value>>() }),
-        &AttributeValue::N(v) => json!({ "N": v }),
-        &AttributeValue::Ns(vs) => json!({ "NS": [
+        AttributeValue::N(v) => json!({ "N": v }),
+        AttributeValue::Ns(vs) => json!({ "NS": [
             vs.iter().map(|v| json!({ "N": v })).collect::<Vec<_>>(),
         ]}),
-        &AttributeValue::Null(v) => json!({ "NULL": v }),
-        &AttributeValue::S(v) => json!({ "S": v }),
-        &AttributeValue::Ss(vs) => json!({ "SS": [
+        AttributeValue::Null(v) => json!({ "NULL": v }),
+        AttributeValue::S(v) => json!({ "S": v }),
+        AttributeValue::Ss(vs) => json!({ "SS": [
             vs.iter().map(|v| json!({ "S": v })).collect::<Vec<_>>(),
         ]}),
         _ => {

@@ -17,7 +17,7 @@ where
             &self
                 .consumed_capacity
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v)),
+                .map(crate::aws_sdk::serialize::consumed_capacity_to_value),
         )?;
         state.serialize_field("item", &self.item)?;
         state.serialize_field(
@@ -25,7 +25,7 @@ where
             &self
                 .item_collection_metrics
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::item_collection_metrics_to_value(&v)),
+                .map(crate::aws_sdk::serialize::item_collection_metrics_to_value),
         )?;
         state.end()
     }
@@ -47,8 +47,7 @@ where
             ItemCollectionMetrics,
         }
 
-        const FIELDS: &'static [&'static str] =
-            &["consumed_capacity", "item", "item_collection_metrics"];
+        const FIELDS: &[&str] = &["consumed_capacity", "item", "item_collection_metrics"];
 
         struct UpdateOutputVisitor<'de, T>
         where

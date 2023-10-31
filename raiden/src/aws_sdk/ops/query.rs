@@ -17,7 +17,7 @@ where
             &self
                 .consumed_capacity
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v)),
+                .map(crate::aws_sdk::serialize::consumed_capacity_to_value),
         )?;
         state.serialize_field("items", &self.items)?;
         state.serialize_field("count", &self.count)?;
@@ -45,7 +45,7 @@ where
             ScannedCount,
         }
 
-        const FIELDS: &'static [&'static str] = &[
+        const FIELDS: &[&str] = &[
             "consumed_capacity",
             "items",
             "count",

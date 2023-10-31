@@ -20,7 +20,7 @@ where
             &self
                 .consumed_capacity
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v)),
+                .map(crate::aws_sdk::serialize::consumed_capacity_to_value),
         )?;
         state.serialize_field("items", &self.items)?;
         state.serialize_field("count", &self.count)?;
@@ -28,7 +28,7 @@ where
             "last_evaluated_key",
             &self.last_evaluated_key.as_ref().map(|v| {
                 v.iter()
-                    .map(|(k, v)| (k, crate::aws_sdk::serialize::attribute_value_to_value(&v)))
+                    .map(|(k, v)| (k, crate::aws_sdk::serialize::attribute_value_to_value(v)))
                     .collect::<HashMap<_, _>>()
             }),
         )?;
@@ -55,7 +55,7 @@ where
             ScannedCount,
         }
 
-        const FIELDS: &'static [&'static str] = &[
+        const FIELDS: &[&str] = &[
             "consumed_capacity",
             "items",
             "count",

@@ -17,7 +17,7 @@ where
             &self
                 .consumed_capacity
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v)),
+                .map(crate::aws_sdk::serialize::consumed_capacity_to_value),
         )?;
         state.serialize_field("item", &self.item)?;
         state.end()
@@ -39,7 +39,7 @@ where
             Item,
         }
 
-        const FIELDS: &'static [&'static str] = &["consumed_capacity", "item"];
+        const FIELDS: &[&str] = &["consumed_capacity", "item"];
 
         struct PutOutputVisitor<'de, T>
         where

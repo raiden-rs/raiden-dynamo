@@ -16,7 +16,7 @@ where
             "consumed_capacity",
             &self.consumed_capacity.as_ref().map(|v| {
                 v.iter()
-                    .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v))
+                    .map(crate::aws_sdk::serialize::consumed_capacity_to_value)
                     .collect::<Vec<_>>()
             }),
         )?;
@@ -26,7 +26,7 @@ where
             &self
                 .unprocessed_keys
                 .as_ref()
-                .map(|v| crate::aws_sdk::serialize::keys_and_attributes_to_value(&v)),
+                .map(crate::aws_sdk::serialize::keys_and_attributes_to_value),
         )?;
         state.end()
     }
@@ -48,7 +48,7 @@ where
             UnprocessedKeys,
         }
 
-        const FIELDS: &'static [&'static str] = &["consumed_capacity", "items", "unprocessed_keys"];
+        const FIELDS: &[&str] = &["consumed_capacity", "items", "unprocessed_keys"];
 
         struct BatchGetOutputVisitor<'de, T>
         where

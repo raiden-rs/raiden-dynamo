@@ -13,7 +13,7 @@ impl Serialize for BatchDeleteOutput {
             "consumed_capacity",
             &self.consumed_capacity.as_ref().map(|v| {
                 v.iter()
-                    .map(|v| crate::aws_sdk::serialize::consumed_capacity_to_value(&v))
+                    .map(crate::aws_sdk::serialize::consumed_capacity_to_value)
                     .collect::<Vec<_>>()
             }),
         )?;
@@ -22,7 +22,7 @@ impl Serialize for BatchDeleteOutput {
             &self
                 .unprocessed_items
                 .iter()
-                .map(|v| crate::aws_sdk::serialize::delete_request_to_value(&v))
+                .map(crate::aws_sdk::serialize::delete_request_to_value)
                 .collect::<Vec<_>>(),
         )?;
         state.end()
@@ -41,7 +41,7 @@ impl<'de> Deserialize<'de> for BatchDeleteOutput {
             UnprocessedItems,
         }
 
-        const FIELDS: &'static [&'static str] = &["consumed_capacity", "unprocessed_items"];
+        const FIELDS: &[&str] = &["consumed_capacity", "unprocessed_items"];
 
         struct BatchDeleteOutputVisitor;
 

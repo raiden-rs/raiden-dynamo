@@ -100,7 +100,7 @@ impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
             Some(AttributeValue { null: Some(v), .. }) if v => {
                 Ok(std::borrow::Cow::Owned("".to_owned()))
             }
-            Some(AttributeValue { s: Some(v), .. }) => Ok(std::borrow::Cow::Owned(v.to_owned())),
+            Some(AttributeValue { s: Some(v), .. }) => Ok(std::borrow::Cow::Owned(v)),
             _ => Err(ConversionError::ValueIsNone),
         }
     }

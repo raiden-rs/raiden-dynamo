@@ -11,7 +11,7 @@ pub fn consumed_capacity_to_value(v: &crate::ConsumedCapacity) -> Value {
         "capacity_units": v.capacity_units,
         "read_capacity_units": v.read_capacity_units,
         "write_capacity_units": v.write_capacity_units,
-        "table": v.table.as_ref().map(|v| capacity_to_value(&v)),
+        "table": v.table.as_ref().map(capacity_to_value),
         "local_secondary_indexes": v.local_secondary_indexes.as_ref()
             .map(|v| {
                 v

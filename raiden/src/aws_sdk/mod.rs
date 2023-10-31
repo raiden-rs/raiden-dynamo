@@ -81,7 +81,7 @@ impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
             Some(v) if v.is_null() => Ok(std::borrow::Cow::Owned("".to_owned())),
-            Some(AttributeValue::S(s)) => Ok(std::borrow::Cow::Owned(s.to_owned())),
+            Some(AttributeValue::S(s)) => Ok(std::borrow::Cow::Owned(s)),
             _ => Err(ConversionError::ValueIsNone),
         }
     }
@@ -328,7 +328,7 @@ pub(crate) fn deserialize_attr_value(s: &str) -> Result<AttributeValues, RaidenE
 
 pub(crate) fn serialize_attr_values(value: &AttributeValues) -> String {
     let m: HashMap<String, serde_json::Value> = value
-        .into_iter()
+        .iter()
         .map(|(k, v)| {
             (
                 k.to_owned(),
