@@ -35,7 +35,7 @@ uuid = { version = "^1.4.1", features = ["v4"] }
 pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default_features = false }
 time = "0.3.30"
-tokio = "1.33.0"
+tokio = "1.34.0"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "time"] }
 
 [features]
