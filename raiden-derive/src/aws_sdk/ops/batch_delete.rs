@@ -33,7 +33,8 @@ pub(crate) fn expand_batch_delete(
                                         (stringify!(#partition_key_ident).to_string(), pk_attr_value),
                                         (stringify!(#sort_key_ident).to_string(), sk_attr_value),
                                     ])))
-                                    .build();
+                                    .build()
+                                    .expect("should be built");
 
                                 ::raiden::WriteRequest::builder()
                                     .delete_request(delete_request)
@@ -72,7 +73,8 @@ pub(crate) fn expand_batch_delete(
                                     .set_key(Some(::std::collections::HashMap::from_iter([
                                         (stringify!(#partition_key_ident).to_string(), pk_attr_value),
                                     ])))
-                                    .build();
+                                    .build()
+                                    .expect("should be built");
 
                                 ::raiden::WriteRequest::builder()
                                     .delete_request(delete_request)

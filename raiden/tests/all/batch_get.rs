@@ -63,7 +63,7 @@ mod tests {
     fn test_batch_get_item_extended() {
         async fn example() {
             let client = crate::all::create_client_from_struct!(BatchTest0);
-            let keys: Vec<String> = (0..101).into_iter().map(|n| format!("id{n}")).collect();
+            let keys: Vec<String> = (0..101).map(|n| format!("id{n}")).collect();
             let expected_items = (0..101)
                 .map(|n| BatchTest0 {
                     id: format!("id{n}"),
@@ -140,7 +140,6 @@ mod tests {
         async fn example() {
             let client = crate::all::create_client_from_struct!(BatchTest1);
             let keys: Vec<(String, usize)> = (0..250)
-                .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)
@@ -182,7 +181,6 @@ mod tests {
         async fn example() {
             let client = crate::all::create_client_from_struct!(BatchTest1a);
             let keys: Vec<(String, usize)> = (0..250)
-                .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)

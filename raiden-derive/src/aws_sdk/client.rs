@@ -25,7 +25,10 @@ pub(crate) fn expand_client_constructor(
         impl #client_name {
 
             pub fn new(region: ::raiden::Region) -> Self {
-                let config = ::raiden::Config::builder().region(region).build();
+                let config = ::raiden::Config::builder()
+                    .behavior_version(::raiden::BehaviorVersion::latest())
+                    .region(region)
+                    .build();
                 let client = ::raiden::#dynamodb_client_name::from_conf(config);
                 Self::new_with_dynamo_db_client(client)
             }

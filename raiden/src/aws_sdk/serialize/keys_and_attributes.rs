@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::de;
+use serde::de::{self, Error as _};
 use serde_json::{json, Error, Map, Value};
 
 use crate::{
@@ -10,9 +10,9 @@ use crate::{
 
 pub fn keys_and_attributes_to_value(v: &crate::KeysAndAttributes) -> Value {
     json!({
-        "keys": v.keys.as_ref().map(|v| v.iter().map(|v| v.iter().map(|(k, v)| {
+        "keys": v.keys.iter().map(|v| v.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
-        }).collect::<HashMap<String, Value>>()).collect::<Vec<_>>()),
+        }).collect::<HashMap<String, Value>>()).collect::<Vec<_>>(),
         "attributes_to_get": v.attributes_to_get,
         "consistent_read": v.consistent_read,
         "projection_expression": v.projection_expression,
@@ -82,7 +82,9 @@ pub fn value_to_keys_and_attributes(value: Value) -> Result<crate::KeysAndAttrib
             }
         );
 
-        Ok(builder.build())
+        builder
+            .build()
+            .map_err(|err| Error::custom(err.to_string()))
     } else {
         Err(de::Error::custom("value is not type of KeysAndAttributes"))
     }

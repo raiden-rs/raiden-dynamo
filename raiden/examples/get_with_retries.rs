@@ -39,14 +39,15 @@ async fn example() {
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let sdk_config = aws_config::SdkConfig::builder()
-        .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
+    let sdk_config = raiden::AwsSdkConfig::builder()
+        .behavior_version(raiden::BehaviorVersion::latest())
         .credentials_provider(
             aws_credential_types::provider::SharedCredentialsProvider::new(
                 aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
             ),
         )
+        .endpoint_url("http://localhost:8000")
+        .region(raiden::Region::from_static("ap-northeast-1"))
         .build();
     let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 

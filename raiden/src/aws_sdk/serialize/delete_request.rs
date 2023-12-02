@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::de;
+use serde::de::{self, Error as _};
 use serde_json::{json, Error, Map, Value};
 
 use crate::aws_sdk::serialize::{
@@ -9,9 +9,9 @@ use crate::aws_sdk::serialize::{
 
 pub fn delete_request_to_value(v: &crate::DeleteRequest) -> Value {
     json!({
-        "key": v.key.as_ref().map(|v| v.iter().map(|(k, v)| {
+        "key": v.key.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
-        }).collect::<HashMap<String, Value>>()),
+        }).collect::<HashMap<String, Value>>(),
     })
 }
 
@@ -32,7 +32,9 @@ pub fn value_to_delete_request(value: Value) -> Result<crate::DeleteRequest, Err
             Ok(Some(map))
         });
 
-        Ok(builder.build())
+        builder
+            .build()
+            .map_err(|err| Error::custom(err.to_string()))
     } else {
         Err(de::Error::custom("value is not type of DeleteRequest"))
     }

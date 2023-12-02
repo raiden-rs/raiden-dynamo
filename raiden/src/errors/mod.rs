@@ -59,13 +59,13 @@ pub enum RaidenError {
     //
     #[cfg(feature = "aws-sdk")]
     #[error("`{0:?}`")]
-    Construction(aws_smithy_http::result::ConstructionFailure),
+    Construction(aws_smithy_runtime_api::client::result::ConstructionFailure),
     #[cfg(feature = "aws-sdk")]
     #[error("`{0:?}`")]
-    HttpDispatch(aws_smithy_http::result::DispatchFailure),
+    HttpDispatch(aws_smithy_runtime_api::client::result::DispatchFailure),
     #[cfg(feature = "aws-sdk")]
     #[error("`{0:?}`")]
-    Timeout(aws_smithy_http::result::TimeoutError),
+    Timeout(aws_smithy_runtime_api::client::result::TimeoutError),
     #[cfg(feature = "aws-sdk")]
     #[error("`transaction canceled error {reasons}: {raw_reasons:?}`")]
     TransactionCanceled {

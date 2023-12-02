@@ -5,6 +5,7 @@ pub(crate) mod serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub use self::{errors::*, ops::*};
+pub use aws_config::{BehaviorVersion, SdkConfig as AwsSdkConfig};
 pub use aws_sdk_dynamodb::{
     client::*,
     config::*,

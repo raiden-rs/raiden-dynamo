@@ -149,6 +149,7 @@ pub(crate) fn expand_transact_write(
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()
+                    .expect("should be built")
             }
         }
 
@@ -288,7 +289,7 @@ pub(crate) fn expand_transact_write(
                 self.builder = self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix));
 
-                self.builder.build()
+                self.builder.build().expect("should be built")
             }
         }
 
@@ -354,6 +355,7 @@ pub(crate) fn expand_transact_write(
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()
+                    .expect("should be built")
             }
         }
 
@@ -398,6 +400,7 @@ pub(crate) fn expand_transact_write(
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()
+                    .expect("should be built")
             }
         }
 

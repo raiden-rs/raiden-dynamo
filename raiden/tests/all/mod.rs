@@ -36,14 +36,15 @@ macro_rules! create_client_from_struct {
 #[cfg(feature = "aws-sdk")]
 macro_rules! create_client {
     ($ty: ty) => {{
-        let sdk_config = aws_config::SdkConfig::builder()
-            .endpoint_url("http://localhost:8000")
-            .region(raiden::Region::from_static("ap-northeast-1"))
+        let sdk_config = raiden::AwsSdkConfig::builder()
+            .behavior_version(raiden::BehaviorVersion::latest())
             .credentials_provider(
                 aws_credential_types::provider::SharedCredentialsProvider::new(
                     aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
                 ),
             )
+            .endpoint_url("http://localhost:8000")
+            .region(raiden::Region::from_static("ap-northeast-1"))
             .build();
         let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 
@@ -54,14 +55,15 @@ macro_rules! create_client {
 #[cfg(feature = "aws-sdk")]
 macro_rules! create_client_from_struct {
     ($ty: ty) => {{
-        let sdk_config = aws_config::SdkConfig::builder()
-            .endpoint_url("http://localhost:8000")
-            .region(raiden::Region::from_static("ap-northeast-1"))
+        let sdk_config = raiden::AwsSdkConfig::builder()
+            .behavior_version(raiden::BehaviorVersion::latest())
             .credentials_provider(
                 aws_credential_types::provider::SharedCredentialsProvider::new(
                     aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
                 ),
             )
+            .endpoint_url("http://localhost:8000")
+            .region(raiden::Region::from_static("ap-northeast-1"))
             .build();
         let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 
@@ -84,5 +86,11 @@ fn default_key_and_attributes() -> raiden::KeysAndAttributes {
 
 #[cfg(feature = "aws-sdk")]
 fn default_key_and_attributes() -> raiden::KeysAndAttributes {
-    raiden::KeysAndAttributes::builder().build()
+    let mut v = raiden::KeysAndAttributes::builder()
+        .keys(std::collections::HashMap::new())
+        .build()
+        .expect("should be built");
+
+    v.keys = vec![];
+    v
 }

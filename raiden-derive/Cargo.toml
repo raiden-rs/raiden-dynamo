@@ -12,9 +12,9 @@ proc-macro = true
 [dependencies]
 convert_case = "^0.6.0"
 ident_case = "^1.0.1"
-proc-macro2 = "^1.0.69"
+proc-macro2 = "^1.0.70"
 quote = "^1.0.33"
-syn = "^2.0.38"
+syn = "^2.0.39"
 
 [features]
 default = ["rusoto"]

@@ -45,31 +45,29 @@ async fn example() {
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    use aws_smithy_client::{http_connector::ConnectorSettings, hyper_ext};
-
     let https_connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_native_roots()
         .https_or_http()
         .enable_http1()
         .enable_http2()
         .build();
-    let smithy_connector = hyper_ext::Adapter::builder()
-        .connector_settings(
-            ConnectorSettings::builder()
-                .connect_timeout(std::time::Duration::from_secs(5))
-                .build(),
-        )
+    let http_client = aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder::new()
         .build(https_connector);
-
-    let sdk_config = aws_config::SdkConfig::builder()
-        .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
+    let sdk_config = raiden::AwsSdkConfig::builder()
+        .behavior_version(raiden::BehaviorVersion::latest())
         .credentials_provider(
             aws_credential_types::provider::SharedCredentialsProvider::new(
                 aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
             ),
         )
-        .http_connector(smithy_connector)
+        .endpoint_url("http://localhost:8000")
+        .http_client(http_client)
+        .region(raiden::Region::from_static("ap-northeast-1"))
+        .timeout_config(
+            aws_config::timeout::TimeoutConfig::builder()
+                .connect_timeout(std::time::Duration::from_secs(5))
+                .build(),
+        )
         .build();
     let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 

@@ -1,5 +1,4 @@
-use aws_smithy_http::result::SdkError;
-use aws_smithy_runtime_api::client::orchestrator::HttpResponse;
+use aws_sdk_dynamodb::error::SdkError;
 
 use crate::{
     BatchGetItemError, BatchWriteItemError, DeleteItemError, GetItemError, PutItemError,
@@ -7,28 +6,26 @@ use crate::{
     TransactWriteItemsError, UpdateItemError,
 };
 
-type AwsSdkError<E> = SdkError<E, HttpResponse>;
-
-fn into_raiden_error<E>(error: AwsSdkError<E>) -> RaidenError {
+fn into_raiden_error<E>(error: SdkError<E>) -> RaidenError {
     match error {
-        AwsSdkError::ConstructionFailure(err) => RaidenError::Construction(err),
-        AwsSdkError::TimeoutError(err) => RaidenError::Timeout(err),
-        AwsSdkError::DispatchFailure(err) => RaidenError::HttpDispatch(err),
-        AwsSdkError::ResponseError(err) => RaidenError::Unknown(err.into_raw()),
-        AwsSdkError::ServiceError(err) => {
-            // AwsSdkError::ServiceError should be handled ( except for E::Unhandled(_)).
+        SdkError::ConstructionFailure(err) => RaidenError::Construction(err),
+        SdkError::TimeoutError(err) => RaidenError::Timeout(err),
+        SdkError::DispatchFailure(err) => RaidenError::HttpDispatch(err),
+        SdkError::ResponseError(err) => RaidenError::Unknown(err.into_raw()),
+        SdkError::ServiceError(err) => {
+            // SdkError::ServiceError should be handled ( except for E::Unhandled(_)).
             RaidenError::Unknown(err.into_raw())
         }
         _ => unreachable!(
-            "Unexpected variant of AwsSdkError detected. Raiden must be handle this variant."
+            "Unexpected variant of SdkError detected. Raiden must be handle this variant."
         ),
     }
 }
 
-impl From<AwsSdkError<BatchGetItemError>> for RaidenError {
-    fn from(error: AwsSdkError<BatchGetItemError>) -> Self {
+impl From<SdkError<BatchGetItemError>> for RaidenError {
+    fn from(error: SdkError<BatchGetItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 BatchGetItemError::InternalServerError(err) => {
                     RaidenError::InternalServerError(err.to_string())
                 }
@@ -51,10 +48,10 @@ impl From<AwsSdkError<BatchGetItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<BatchWriteItemError>> for RaidenError {
-    fn from(error: AwsSdkError<BatchWriteItemError>) -> Self {
+impl From<SdkError<BatchWriteItemError>> for RaidenError {
+    fn from(error: SdkError<BatchWriteItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 BatchWriteItemError::InternalServerError(err) => {
                     RaidenError::InternalServerError(err.to_string())
                 }
@@ -80,10 +77,10 @@ impl From<AwsSdkError<BatchWriteItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<GetItemError>> for RaidenError {
-    fn from(error: AwsSdkError<GetItemError>) -> Self {
+impl From<SdkError<GetItemError>> for RaidenError {
+    fn from(error: SdkError<GetItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 GetItemError::InternalServerError(err) => {
                     RaidenError::InternalServerError(err.to_string())
                 }
@@ -106,10 +103,10 @@ impl From<AwsSdkError<GetItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<QueryError>> for RaidenError {
-    fn from(error: AwsSdkError<QueryError>) -> Self {
+impl From<SdkError<QueryError>> for RaidenError {
+    fn from(error: SdkError<QueryError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 QueryError::InternalServerError(err) => {
                     RaidenError::InternalServerError(err.to_string())
                 }
@@ -132,10 +129,10 @@ impl From<AwsSdkError<QueryError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<ScanError>> for RaidenError {
-    fn from(error: AwsSdkError<ScanError>) -> Self {
+impl From<SdkError<ScanError>> for RaidenError {
+    fn from(error: SdkError<ScanError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 ScanError::InternalServerError(err) => {
                     RaidenError::InternalServerError(err.to_string())
                 }
@@ -158,10 +155,10 @@ impl From<AwsSdkError<ScanError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<PutItemError>> for RaidenError {
-    fn from(error: AwsSdkError<PutItemError>) -> Self {
+impl From<SdkError<PutItemError>> for RaidenError {
+    fn from(error: SdkError<PutItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 PutItemError::ConditionalCheckFailedException(err) => {
                     RaidenError::ConditionalCheckFailed(err.to_string())
                 }
@@ -193,10 +190,10 @@ impl From<AwsSdkError<PutItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<UpdateItemError>> for RaidenError {
-    fn from(error: AwsSdkError<UpdateItemError>) -> Self {
+impl From<SdkError<UpdateItemError>> for RaidenError {
+    fn from(error: SdkError<UpdateItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 UpdateItemError::ConditionalCheckFailedException(err) => {
                     RaidenError::ConditionalCheckFailed(err.to_string())
                 }
@@ -228,10 +225,10 @@ impl From<AwsSdkError<UpdateItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<DeleteItemError>> for RaidenError {
-    fn from(error: AwsSdkError<DeleteItemError>) -> Self {
+impl From<SdkError<DeleteItemError>> for RaidenError {
+    fn from(error: SdkError<DeleteItemError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 DeleteItemError::ConditionalCheckFailedException(err) => {
                     RaidenError::ConditionalCheckFailed(err.to_string())
                 }
@@ -263,10 +260,10 @@ impl From<AwsSdkError<DeleteItemError>> for RaidenError {
     }
 }
 
-impl From<AwsSdkError<TransactWriteItemsError>> for RaidenError {
-    fn from(error: AwsSdkError<TransactWriteItemsError>) -> Self {
+impl From<SdkError<TransactWriteItemsError>> for RaidenError {
+    fn from(error: SdkError<TransactWriteItemsError>) -> Self {
         match &error {
-            AwsSdkError::ServiceError(err) => match err.err() {
+            SdkError::ServiceError(err) => match err.err() {
                 TransactWriteItemsError::IdempotentParameterMismatchException(err) => {
                     RaidenError::IdempotentParameterMismatch(err.to_string())
                 }
