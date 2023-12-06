@@ -47,7 +47,7 @@ hyper-rustls = { version = "0.24", default-features = false, features = [
 pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default_features = false }
 time = "0.3.30"
-tokio = { version = "^1", features = ["rt-multi-thread"] }
+tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "time"] }
 
 

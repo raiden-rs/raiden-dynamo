@@ -16,26 +16,22 @@ mod tests {
         project_id: usize,
     }
 
-    #[test]
-    fn test_rename_all_camelcase_get() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(RenameAllCamelCaseTest);
-            let res = client.get("id0").run().await;
+    #[tokio::test]
+    async fn test_rename_all_camelcase_get() {
+        let client = crate::all::create_client_from_struct!(RenameAllCamelCaseTest);
+        let res = client.get("id0").run().await;
 
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: RenameAllCamelCaseTest {
-                        partition_key: "id0".to_owned(),
-                        foo_bar: "john".to_owned(),
-                        project_id: 1,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: RenameAllCamelCaseTest {
+                    partition_key: "id0".to_owned(),
+                    foo_bar: "john".to_owned(),
+                    project_id: 1,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -49,25 +45,21 @@ mod tests {
         project_id: usize,
     }
 
-    #[test]
-    fn test_rename_all_pascalcase_get() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(RenameAllPascalCaseTest);
-            let res = client.get("id0").run().await;
+    #[tokio::test]
+    async fn test_rename_all_pascalcase_get() {
+        let client = crate::all::create_client_from_struct!(RenameAllPascalCaseTest);
+        let res = client.get("id0").run().await;
 
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: RenameAllPascalCaseTest {
-                        partition_key: "id0".to_owned(),
-                        foo_bar: "john".to_owned(),
-                        project_id: 1,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: RenameAllPascalCaseTest {
+                    partition_key: "id0".to_owned(),
+                    foo_bar: "john".to_owned(),
+                    project_id: 1,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 }

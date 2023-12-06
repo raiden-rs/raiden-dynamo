@@ -26,8 +26,8 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_user_with_attribute_not_exists_condition_input() {
+    #[tokio::test]
+    async fn test_put_user_with_attribute_not_exists_condition_input() {
         let client = crate::all::create_client_from_struct!(User);
         let user = UserPutItemInput {
             id: "mock_id".to_owned(),
@@ -75,32 +75,24 @@ mod tests {
         assert_eq!(input, expected);
     }
 
-    #[test]
-    fn test_put_user() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = UserPutItemInput {
-                id: "mock_id".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let _res = client.put(user).run().await;
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "mock_id".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let _res = client.put(user).run().await;
     }
 
-    #[test]
-    fn test_put_user_with_builder() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = User::put_item_builder()
-                .id("mock_id".to_owned())
-                .name("bokuweb".to_owned())
-                .build();
-            let _res = client.put(user).run().await;
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_builder() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = User::put_item_builder()
+            .id("mock_id".to_owned())
+            .name("bokuweb".to_owned())
+            .build();
+        let _res = client.put(user).run().await;
     }
 
     #[derive(Raiden, Debug, Clone)]
@@ -111,98 +103,78 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_user_eq_op_condition_expression() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().value("bokuweb").eq_attr(User::name());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user_eq_op_condition_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().value("bokuweb").eq_attr(User::name());
+        let res = client.put(user).condition(cond).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().value("bokuweb_").eq_attr(User::name());
-            let res = client.put(user).condition(cond).run().await;
-            assert!(res.is_err());
+    #[tokio::test]
+    async fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().value("bokuweb_").eq_attr(User::name());
+        let res = client.put(user).condition(cond).run().await;
+        assert!(res.is_err());
 
-            if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
-                assert!(msg.contains("The conditional request failed"));
-            } else {
-                panic!("err should be RaidenError::ConditionalCheckFailed");
-            }
+        if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+            assert!(msg.contains("The conditional request failed"));
+        } else {
+            panic!("err should be RaidenError::ConditionalCheckFailed");
         }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_id_not_exists_expression() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().attr_not_exists(User::id());
-            let res = client.put(user).condition(cond).run().await;
-            assert!(res.is_err());
+    #[tokio::test]
+    async fn test_put_user_id_not_exists_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().attr_not_exists(User::id());
+        let res = client.put(user).condition(cond).run().await;
+        assert!(res.is_err());
 
-            if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
-                assert!(msg.contains("The conditional request failed"));
-            } else {
-                panic!("err should be RaidenError::ConditionalCheckFailed");
-            }
+        if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+            assert!(msg.contains("The conditional request failed"));
+        } else {
+            panic!("err should be RaidenError::ConditionalCheckFailed");
         }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_id_exists_expression() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(User);
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().attr_exists(User::id());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user_id_exists_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().attr_exists(User::id());
+        let res = client.put(user).condition(cond).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_with_uuid() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(UserWithUuid);
-            let item = UserWithUuid::put_item_builder()
-                .name("bokuweb".to_owned())
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_uuid() {
+        let client = crate::all::create_client_from_struct!(UserWithUuid);
+        let item = UserWithUuid::put_item_builder()
+            .name("bokuweb".to_owned())
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -217,19 +189,15 @@ mod tests {
         nums: Vec<usize>,
     }
 
-    #[test]
-    fn test_put_user_with_number_vec() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(UserVecTest);
-            let item = UserVecTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(vec![0, 1, 2])
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_number_vec() {
+        let client = crate::all::create_client_from_struct!(UserVecTest);
+        let item = UserVecTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(vec![0, 1, 2])
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -244,22 +212,18 @@ mod tests {
         nums: std::collections::HashSet<usize>,
     }
 
-    #[test]
-    fn test_put_user_with_number_set() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(UserSetTest);
-            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
-            nums.insert(1);
+    #[tokio::test]
+    async fn test_put_user_with_number_set() {
+        let client = crate::all::create_client_from_struct!(UserSetTest);
+        let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        nums.insert(1);
 
-            let item = UserSetTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(nums)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+        let item = UserSetTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(nums)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -289,22 +253,18 @@ mod tests {
         nums: std::collections::HashSet<Custom>,
     }
 
-    #[test]
-    fn test_put_user_with_user_defined_set() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(UserSetTest);
-            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
-            nums.insert(1);
+    #[tokio::test]
+    async fn test_put_user_with_user_defined_set() {
+        let client = crate::all::create_client_from_struct!(UserSetTest);
+        let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        nums.insert(1);
 
-            let item = UserSetTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(nums)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+        let item = UserSetTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(nums)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -318,18 +278,14 @@ mod tests {
         set: std::collections::HashSet<String>,
     }
 
-    #[test]
-    fn test_put_user_with_empty_set() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(UserEmptySetTest);
-            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let item = UserEmptySetTest::put_item_builder().set(set).build();
-            let res = client.put(item).run().await;
+    #[tokio::test]
+    async fn test_put_user_with_empty_set() {
+        let client = crate::all::create_client_from_struct!(UserEmptySetTest);
+        let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let item = UserEmptySetTest::put_item_builder().set(set).build();
+        let res = client.put(item).run().await;
 
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden, Debug, Clone)]
@@ -341,18 +297,14 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_with_empty_string() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(EmptyStringTestData0);
-            let item = EmptyStringTestData0::put_item_builder()
-                .name("".to_owned())
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_with_empty_string() {
+        let client = crate::all::create_client_from_struct!(EmptyStringTestData0);
+        let item = EmptyStringTestData0::put_item_builder()
+            .name("".to_owned())
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -363,28 +315,24 @@ mod tests {
         sset: std::collections::HashSet<String>,
     }
 
-    #[test]
-    fn test_put_with_empty_sset() {
-        async fn example() {
-            let client = crate::all::create_client_from_struct!(EmptyPutTestData0);
-            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let item = EmptyPutTestData0::put_item_builder()
-                .id("testid".to_owned())
-                .sset(set)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-            let res = client.get(res.unwrap().item.id).run().await;
-            assert_eq!(
-                res.unwrap().item,
-                EmptyPutTestData0 {
-                    id: "testid".to_owned(),
-                    sset: expected_set
-                }
-            );
-        }
-
-        tokio::runtime::Runtime::new().unwrap().block_on(example());
+    #[tokio::test]
+    async fn test_put_with_empty_sset() {
+        let client = crate::all::create_client_from_struct!(EmptyPutTestData0);
+        let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let item = EmptyPutTestData0::put_item_builder()
+            .id("testid".to_owned())
+            .sset(set)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
+        let res = client.get(res.unwrap().item.id).run().await;
+        assert_eq!(
+            res.unwrap().item,
+            EmptyPutTestData0 {
+                id: "testid".to_owned(),
+                sset: expected_set
+            }
+        );
     }
 }

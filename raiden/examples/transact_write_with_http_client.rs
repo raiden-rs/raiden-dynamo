@@ -53,13 +53,7 @@ async fn example() {
         .build();
     let http_client = aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder::new()
         .build(https_connector);
-    let sdk_config = raiden::AwsSdkConfig::builder()
-        .behavior_version(raiden::BehaviorVersion::latest())
-        .credentials_provider(
-            aws_credential_types::provider::SharedCredentialsProvider::new(
-                aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
-            ),
-        )
+    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
         .endpoint_url("http://localhost:8000")
         .http_client(http_client)
         .region(raiden::Region::from_static("ap-northeast-1"))
@@ -68,7 +62,8 @@ async fn example() {
                 .connect_timeout(std::time::Duration::from_secs(5))
                 .build(),
         )
-        .build();
+        .load()
+        .await;
     let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 
     let tx = ::raiden::WriteTx::new_with_client(sdk_client);

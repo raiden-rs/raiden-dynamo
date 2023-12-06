@@ -36,16 +36,11 @@ macro_rules! create_client_from_struct {
 #[cfg(feature = "aws-sdk")]
 macro_rules! create_client {
     ($ty: ty) => {{
-        let sdk_config = raiden::AwsSdkConfig::builder()
-            .behavior_version(raiden::BehaviorVersion::latest())
-            .credentials_provider(
-                aws_credential_types::provider::SharedCredentialsProvider::new(
-                    aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
-                ),
-            )
+        let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
             .endpoint_url("http://localhost:8000")
             .region(raiden::Region::from_static("ap-northeast-1"))
-            .build();
+            .load()
+            .await;
         let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 
         <$ty>::new_with_client(sdk_client)
@@ -55,16 +50,11 @@ macro_rules! create_client {
 #[cfg(feature = "aws-sdk")]
 macro_rules! create_client_from_struct {
     ($ty: ty) => {{
-        let sdk_config = raiden::AwsSdkConfig::builder()
-            .behavior_version(raiden::BehaviorVersion::latest())
-            .credentials_provider(
-                aws_credential_types::provider::SharedCredentialsProvider::new(
-                    aws_credential_types::Credentials::new("dummy", "dummy", None, None, "dummy"),
-                ),
-            )
+        let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
             .endpoint_url("http://localhost:8000")
             .region(raiden::Region::from_static("ap-northeast-1"))
-            .build();
+            .load()
+            .await;
         let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
 
         <$ty>::client_with(sdk_client)
