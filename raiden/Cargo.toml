@@ -27,7 +27,7 @@ safe-builder = { tag = "0.0.6", git = "https://github.com/raiden-rs/safe-builder
 serde = { version = "^1.0.193", features = ["derive"] }
 serde_derive = "^1.0.193"
 serde_json = "^1"
-thiserror = "^1"
+thiserror = "^1.0.51"
 tracing = { version = "0.1", optional = true }
 uuid = { version = "^1.4.1", features = ["v4"] }
 
