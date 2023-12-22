@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 again = "0.1"
-base64 = "^0.21"
+base64 = "^0.21.5"
 raiden-derive = { version = "*", path = "../raiden-derive" }
 rusoto_core_default = { package = "rusoto_core", version = "0.48", optional = true }
 rusoto_core_rustls = { package = "rusoto_core", version = "0.48", default_features = false, features = [
