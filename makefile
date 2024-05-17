@@ -22,3 +22,12 @@ check-deps:
 	cargo +nightly udeps --all-targets
 	cargo +nightly udeps --all-targets --no-default-features --features rustls
 	cargo +nightly udeps --all-targets --features tracing
+
+.PHONY: licenses
+licenses:
+	cargo bundle-licenses --format toml --output THIRDPARTY.toml
+
+.PHONY: check-licenses
+check-licenses:
+	RUST_LOG=error cargo bundle-licenses --format toml --output __CHECK --previous THIRDPARTY.toml --check-previous
+	rm __CHECK || true
