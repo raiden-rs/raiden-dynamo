@@ -1,17 +1,11 @@
 mod errors;
 mod ops;
 
-#[cfg(feature = "rusoto")]
-pub use rusoto_dynamodb_default::*;
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+pub use rusoto_dynamodb::*;
 
-#[cfg(feature = "rusoto")]
-pub use rusoto_core_default::*;
-
-#[cfg(feature = "rusoto_rustls")]
-pub use rusoto_dynamodb_rustls::*;
-
-#[cfg(feature = "rusoto_rustls")]
-pub use rusoto_core_rustls::*;
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+pub use rusoto_core::*;
 
 pub use self::{errors::*, ops::*};
 pub use rusoto_credential::*;

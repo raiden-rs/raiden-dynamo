@@ -11,19 +11,12 @@ again = "0.1"
 aws-config = { version = "^1", optional = true }
 aws-sdk-dynamodb = { version = "^1", optional = true }
 aws-smithy-runtime-api = { version = "^1", optional = true }
-base64 = "^0.21"
-paste = { version = "1.0.14", optional = true }
+base64 = "^0.22"
+paste = { version = "1.0.15", optional = true }
 raiden-derive = { version = "*", path = "../raiden-derive", default_features = false }
-rusoto_core_default = { package = "rusoto_core", version = "0.48", optional = true }
-rusoto_core_rustls = { package = "rusoto_core", version = "0.48", default_features = false, features = [
-    "rustls",
-], optional = true }
+rusoto_core = { package = "rusoto_core", version = "0.48", default_features = false, optional = true }
 rusoto_credential = { version = "0.48", optional = true }
-rusoto_dynamodb_default = { package = "rusoto_dynamodb", version = "0.48", features = [
-    "serialize_structs",
-], optional = true }
-rusoto_dynamodb_rustls = { package = "rusoto_dynamodb", version = "0.48", default_features = false, features = [
-    "rustls",
+rusoto_dynamodb = { package = "rusoto_dynamodb", version = "0.48", default_features = false, features = [
     "serialize_structs",
 ], optional = true }
 rust-crypto = "^0.2.36"
@@ -33,23 +26,22 @@ serde_derive = "^1"
 serde_json = "^1"
 thiserror = "^1"
 tracing = { version = "0.1", optional = true }
-uuid = { version = "^1.6", features = ["v4"] }
+uuid = { version = "^1.8", features = ["v4"] }
 
 
 [dev-dependencies]
-aws-credential-types = "1.0.1"
+aws-credential-types = "1.2.0"
 aws-smithy-runtime = { version = "^1" }
-hyper-rustls = { version = "0.24", default-features = false, features = [
+hyper-rustls = { version = "0.25", default-features = false, features = [
     "http1",
     "http2",
     "native-tokio",
 ] }
 pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default_features = false }
-time = "0.3.30"
+time = "0.3.36"
 tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "time"] }
-
 
 [features]
 default = ["rusoto"]
@@ -61,15 +53,15 @@ aws-sdk = [
     "raiden-derive/aws-sdk",
 ]
 rusoto = [
-    "dep:rusoto_core_default",
-    "dep:rusoto_credential",
-    "dep:rusoto_dynamodb_default",
+    "rusoto_core/default",
+    "rusoto_credential",
+    "rusoto_dynamodb/default",
     "raiden-derive/rusoto",
 ]
 rusoto_rustls = [
-    "dep:rusoto_core_rustls",
-    "dep:rusoto_credential",
-    "dep:rusoto_dynamodb_rustls",
+    "rusoto_core/rustls",
+    "rusoto_credential",
+    "rusoto_dynamodb/rustls",
     "raiden-derive/rusoto",
 ]
 rustls = ["rusoto_rustls"]
