@@ -7,7 +7,7 @@ pub use rusoto_dynamodb::*;
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
 pub use rusoto_core::*;
 
-pub use self::{errors::*, ops::*};
+pub use self::ops::*;
 pub use rusoto_credential::*;
 
 use std::collections::{BTreeSet, HashSet};

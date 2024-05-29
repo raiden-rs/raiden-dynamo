@@ -21,7 +21,7 @@ lint:
 
 .PHONY: check-deps
 check-deps:
-	cargo machete || echo
+	cargo machete
 	cargo +nightly udeps --all-targets --features tracing
 	cargo +nightly udeps --all-targets --no-default-features --features aws-sdk
 	cargo +nightly udeps --all-targets --no-default-features --features rusoto

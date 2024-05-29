@@ -40,6 +40,7 @@ async fn example() {
 async fn example() {
     let https_connector = hyper_rustls::HttpsConnectorBuilder::new()
         .with_native_roots()
+        .expect("should be success")
         .https_or_http()
         .enable_http1()
         .enable_http2()

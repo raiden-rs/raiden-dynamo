@@ -28,15 +28,10 @@ thiserror = "^1"
 tracing = { version = "0.1", optional = true }
 uuid = { version = "^1.8", features = ["v4"] }
 
-
 [dev-dependencies]
 aws-credential-types = "1.2.0"
 aws-smithy-runtime = { version = "^1" }
-hyper-rustls = { version = "0.25", default-features = false, features = [
-    "http1",
-    "http2",
-    "native-tokio",
-] }
+hyper-rustls = { version = "0.25", features = ["http2"] }
 pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default_features = false }
 time = "0.3.36"
@@ -66,3 +61,9 @@ rusoto_rustls = [
 ]
 rustls = ["rusoto_rustls"]
 tracing = ["dep:tracing", "raiden-derive/tracing"]
+
+[package.metadata.cargo-machete]
+ignored = ["rust-crypto"]
+
+[package.metadata.cargo-udeps.ignore]
+development = ["aws-credential-types", "aws-smithy-runtime", "hyper-rustls"]
