@@ -1,5 +1,6 @@
 pub use transact_write::*;
-pub mod transact_write {
+
+mod transact_write {
     use crate::{
         DynamoDb, TransactWriteConditionCheckBuilder, TransactWriteDeleteBuilder,
         TransactWriteItem, TransactWritePutBuilder, TransactWriteUpdateBuilder,
