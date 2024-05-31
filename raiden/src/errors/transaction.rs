@@ -9,7 +9,7 @@ pub struct RaidenTransactionCancellationReasons(
 );
 
 impl RaidenTransactionCancellationReasons {
-    // If `message` is unexcepted format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
+    // If `message` is unexpected format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
     // TODO: Fix it later.
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(message: &str) -> Self {
@@ -107,7 +107,7 @@ impl RaidenTransactionCancellationReason {
             "ProvisionedThroughputExceeded" => Self::ProvisionedThroughputExceeded,
             "ThrottlingError" => Self::ThrottlingError,
             "ValidationError" => Self::ValidationError,
-            // If `reason` is unexcepted, Self::Unknown is returned instead of Err(_)
+            // If `reason` is unexpected, Self::Unknown is returned instead of Err(_)
             _ => Self::Unknown,
         }
     }

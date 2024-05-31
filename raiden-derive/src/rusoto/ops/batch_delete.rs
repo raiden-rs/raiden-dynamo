@@ -162,7 +162,7 @@ pub(crate) fn expand_batch_delete(
 
                         let unprocessed_requests = unprocessed_items
                             .remove(&self.table_name)
-                            .expect("reqeust_items hashmap must have a value for the table name");
+                            .expect("request_items hashmap must have a value for the table name");
                         // push unprocessed requests back to the request buffer
                         self.write_requests.extend(unprocessed_requests);
                     }
