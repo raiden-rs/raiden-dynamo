@@ -28,8 +28,10 @@ pub enum RaidenError {
     TransactionConflict(String),
     #[error("`{0}`")]
     TransactionInProgress(String),
+    #[error("`{0}`")]
+    Validation(String),
     //
-    // Next errors returns only using rusoto.
+    // Following errors are returned only using rusoto.
     //
     #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("blocking error")]
@@ -51,11 +53,8 @@ pub enum RaidenError {
     #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
-    #[error("`{0}`")]
-    Validation(String),
     //
-    // Next errors returns only using aws-sdk.
+    // Following errors are returned only using aws-sdk.
     //
     #[cfg(feature = "aws-sdk")]
     #[error("`{0:?}`")]
@@ -76,7 +75,7 @@ pub enum RaidenError {
     #[error("unknown error")]
     Unknown(aws_smithy_runtime_api::client::orchestrator::HttpResponse),
     //
-    // Next errors are not used.
+    // Following errors are never returned.
     //
     #[deprecated = "unused. this variant never returns."]
     #[error("attribute {attr_name:?} value not found")]

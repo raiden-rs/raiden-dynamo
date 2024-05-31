@@ -1,6 +1,6 @@
 use crate::{
     aws_sdk::{
-        error::SdkError,
+        error::{ProvideErrorMetadata, SdkError},
         operation::{
             batch_get_item::BatchGetItemError, batch_write_item::BatchWriteItemError,
             delete_item::DeleteItemError, get_item::GetItemError, put_item::PutItemError,
@@ -11,15 +11,44 @@ use crate::{
     RaidenError, RaidenTransactionCancellationReasons,
 };
 
-fn into_raiden_error<E>(error: SdkError<E>) -> RaidenError {
+fn into_raiden_error<E>(error: SdkError<E>) -> RaidenError
+where
+    E: std::fmt::Debug + ProvideErrorMetadata,
+{
+    let (code, message) = (
+        error.meta().code().map(|v| v.to_owned()),
+        error.meta().message().map(|v| v.to_owned()),
+    );
+
     match error {
         SdkError::ConstructionFailure(err) => RaidenError::Construction(err),
         SdkError::TimeoutError(err) => RaidenError::Timeout(err),
         SdkError::DispatchFailure(err) => RaidenError::HttpDispatch(err),
         SdkError::ResponseError(err) => RaidenError::Unknown(err.into_raw()),
+        // This pattern is only for handling ServiceError::Unhandled.
+        // Other patterns should be handled in each ServiceError.
         SdkError::ServiceError(err) => {
-            // SdkError::ServiceError should be handled ( except for E::Unhandled(_)).
-            RaidenError::Unknown(err.into_raw())
+            let Some(code) = code else {
+                return RaidenError::Unknown(err.into_raw());
+            };
+
+            // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html
+            match code.as_str() {
+                "ValidationException" => RaidenError::Validation(if let Some(message) = message {
+                    message
+                } else {
+                    format!("{err:?}")
+                }),
+                "AccessDeniedException"
+                | "IncompleteSignatureException"
+                | "LimitExceededException"
+                | "MissingAuthenticationTokenException"
+                | "ResourceInUseException"
+                | "ThrottlingException"
+                | "UnrecognizedClientException"
+                | "ServiceUnavailable"
+                | _ => RaidenError::Unknown(err.into_raw()),
+            }
         }
         _ => unreachable!(
             "Unexpected variant of SdkError detected. Raiden must be handle this variant."
@@ -180,8 +209,6 @@ impl From<SdkError<PutItemError>> for RaidenError {
 
 impl From<SdkError<QueryError>> for RaidenError {
     fn from(error: SdkError<QueryError>) -> Self {
-        dbg!(&error);
-
         match &error {
             SdkError::ServiceError(err) => match err.err() {
                 QueryError::InternalServerError(err) => {
