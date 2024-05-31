@@ -5,30 +5,12 @@ pub(crate) mod serialize;
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub use self::ops::*;
-pub use aws_config as config;
-pub use aws_sdk_dynamodb::{
-    client::*,
-    config::*,
-    error::*,
-    meta::*,
-    operation::{
-        batch_get_item::{builders::*, *},
-        batch_write_item::{builders::*, *},
-        delete_item::{builders::*, *},
-        get_item::{builders::*, *},
-        put_item::{builders::*, *},
-        query::{builders::*, *},
-        scan::{builders::*, *},
-        transact_write_items::{builders::*, *},
-        update_item::{builders::*, *},
-    },
-    primitives::*,
-    types::{builders::*, *},
-};
+pub use aws_config;
+pub use aws_sdk_dynamodb::*;
 
 use crate::{
-    AttributeType, AttributeValues, ConversionError, FromAttribute, FromStringSetItem,
-    IntoAttribute, IntoStringSetItem, RaidenError,
+    aws_sdk::types::AttributeValue, AttributeType, AttributeValues, ConversionError, FromAttribute,
+    FromStringSetItem, IntoAttribute, IntoStringSetItem, RaidenError,
 };
 
 impl IntoAttribute for AttributeType {

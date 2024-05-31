@@ -97,7 +97,7 @@ tracing = "0.1"
 ### Setup
 
 ```
-AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy make dynamo
+make dynamo
 ```
 
 This starts up DynamoDB on Docker container, and then arranges test fixtures.
@@ -105,7 +105,7 @@ This starts up DynamoDB on Docker container, and then arranges test fixtures.
 ### Test
 
 ```
-AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy make test
+make test
 ```
 
 NOTE: Don't recommend to use `cargo test` because our test suite doesn't support running tests in parallel. Use `cargo test -- --test-threads=1` instead of it.
@@ -113,7 +113,7 @@ NOTE: Don't recommend to use `cargo test` because our test suite doesn't support
 ### Example
 
 ```
-AWS_ACCESS_KEY_ID=awsdummy AWS_SECRET_ACCESS_KEY=awsdummy  cargo run --example EXAMPLE_NAME
+AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy cargo run --example EXAMPLE_NAME
 ```
 
 ### Utility

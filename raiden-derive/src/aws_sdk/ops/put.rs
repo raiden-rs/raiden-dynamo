@@ -81,7 +81,7 @@ pub(crate) fn expand_put_item(
         });
 
         quote! {
-            let mut input_item: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
+            let mut input_item: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::new();
             #(#insertion)*
         }
     };
@@ -147,7 +147,7 @@ pub(crate) fn expand_put_item(
                     #(#output_values)*
                 };
 
-                let builder = ::raiden::PutItemInput::builder()
+                let builder = ::raiden::aws_sdk::operation::put_item::PutItemInput::builder()
                     .set_item(Some(input_item))
                     .table_name(self.table_name());
 
@@ -163,7 +163,7 @@ pub(crate) fn expand_put_item(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::PutItemInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::put_item::builders::PutItemInputBuilder,
             pub item: #item_output_name,
             pub policy: ::raiden::Policy,
             pub condition: &'a ::raiden::retry::RetryCondition,
@@ -171,7 +171,7 @@ pub(crate) fn expand_put_item(
 
         impl<'a> #builder_name<'a> {
 
-            pub fn raw_input(mut self, builder: ::raiden::PutItemInputBuilder) -> Self {
+            pub fn raw_input(mut self, builder: ::raiden::aws_sdk::operation::put_item::builders::PutItemInputBuilder) -> Self {
                 self.builder = builder;
                 self
             }
@@ -213,8 +213,8 @@ pub(crate) fn expand_put_item(
             async fn inner_run(
                 #inner_run_args
                 client: ::raiden::Client,
-                builder: ::raiden::PutItemInputBuilder,
-            ) -> Result<::raiden::PutItemOutput, ::raiden::RaidenError> {
+                builder: ::raiden::aws_sdk::operation::put_item::builders::PutItemInputBuilder,
+            ) -> Result<::raiden::aws_sdk::operation::put_item::PutItemOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
             }
         }

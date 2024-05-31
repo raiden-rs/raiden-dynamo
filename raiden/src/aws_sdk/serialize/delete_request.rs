@@ -3,11 +3,12 @@ use std::collections::HashMap;
 use serde::de::{self, Error as _};
 use serde_json::{json, Error, Map, Value};
 
-use crate::aws_sdk::serialize::{
-    attribute_value_to_value, set_optional_value, value_to_attribute_value,
+use crate::aws_sdk::{
+    serialize::{attribute_value_to_value, set_optional_value, value_to_attribute_value},
+    types::DeleteRequest,
 };
 
-pub fn delete_request_to_value(v: &crate::DeleteRequest) -> Value {
+pub fn delete_request_to_value(v: &DeleteRequest) -> Value {
     json!({
         "key": v.key.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
@@ -15,9 +16,9 @@ pub fn delete_request_to_value(v: &crate::DeleteRequest) -> Value {
     })
 }
 
-pub fn value_to_delete_request(value: Value) -> Result<crate::DeleteRequest, Error> {
+pub fn value_to_delete_request(value: Value) -> Result<DeleteRequest, Error> {
     if let Value::Object(m) = value {
-        let mut builder = crate::DeleteRequest::builder();
+        let mut builder = DeleteRequest::builder();
 
         set_optional_value!(builder, m, key, object, |m: &Map<_, _>| -> Result<_, _> {
             let mut map = HashMap::new();

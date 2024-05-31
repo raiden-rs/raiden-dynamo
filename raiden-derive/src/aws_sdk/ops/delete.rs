@@ -24,15 +24,15 @@ pub(crate) fn expand_delete_item(
                 fn delete(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     use ::std::iter::FromIterator;
 
-                    let pk_attr: ::raiden::AttributeValue = pk.into().into_attr();
-                    let sk_attr: ::raiden::AttributeValue = sk.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> =
+                    let pk_attr: ::raiden::aws_sdk::types::AttributeValue = pk.into().into_attr();
+                    let sk_attr: ::raiden::aws_sdk::types::AttributeValue = sk.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> =
                         std::collections::HashMap::from_iter([
                             (stringify!(#partition_key_ident).to_owned(), pk_attr),
                             (stringify!(#sort_key_ident).to_owned(), sk_attr),
                         ]);
 
-                    let mut builder = ::raiden::DeleteItemInput::builder()
+                    let mut builder = ::raiden::aws_sdk::operation::delete_item::DeleteItemInput::builder()
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
 
@@ -53,13 +53,13 @@ pub(crate) fn expand_delete_item(
                 fn delete(&self, key: impl Into<#partition_key_type>) -> #builder_name {
                     use ::std::iter::FromIterator;
 
-                    let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> =
+                    let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> =
                         std::collections::HashMap::from_iter([
                             (stringify!(#partition_key_ident).to_owned(), key_attr),
                         ]);
 
-                    let mut builder = ::raiden::DeleteItemInput::builder()
+                    let mut builder = ::raiden::aws_sdk::operation::delete_item::DeleteItemInput::builder()
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
 
@@ -98,11 +98,11 @@ pub(crate) fn expand_delete_item(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::DeleteItemInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::delete_item::builders::DeleteItemInputBuilder,
         }
 
         impl<'a> #builder_name<'a> {
-            pub fn raw_input(mut self, builder: ::raiden::DeleteItemInputBuilder) -> Self {
+            pub fn raw_input(mut self, builder: ::raiden::aws_sdk::operation::delete_item::builders::DeleteItemInputBuilder) -> Self {
                 self.builder = builder;
                 self
             }
@@ -132,7 +132,7 @@ pub(crate) fn expand_delete_item(
             async fn inner_run(
                 #inner_run_args
                 client: &::raiden::Client,
-                builder: ::raiden::DeleteItemInputBuilder,
+                builder: ::raiden::aws_sdk::operation::delete_item::builders::DeleteItemInputBuilder,
             ) -> Result<(), ::raiden::RaidenError> {
                 #api_call_token?;
                 Ok(())

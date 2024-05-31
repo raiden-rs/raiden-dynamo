@@ -28,7 +28,7 @@ pub(crate) fn expand_batch_delete(
                             let pk_attr_value = pk.into().into_attr();
                             let sk_attr_value = sk.into().into_attr();
                             let write_request = {
-                                let delete_request = ::raiden::DeleteRequest::builder()
+                                let delete_request = ::raiden::aws_sdk::types::DeleteRequest::builder()
                                     .set_key(Some(::std::collections::HashMap::from_iter([
                                         (stringify!(#partition_key_ident).to_string(), pk_attr_value),
                                         (stringify!(#sort_key_ident).to_string(), sk_attr_value),
@@ -36,7 +36,7 @@ pub(crate) fn expand_batch_delete(
                                     .build()
                                     .expect("should be built");
 
-                                ::raiden::WriteRequest::builder()
+                                ::raiden::aws_sdk::types::WriteRequest::builder()
                                     .delete_request(delete_request)
                                     .build()
                             };
@@ -69,14 +69,14 @@ pub(crate) fn expand_batch_delete(
                         for pk in keys.into_iter() {
                             let pk_attr_value = pk.into().into_attr();
                             let write_request = {
-                                let delete_request = ::raiden::DeleteRequest::builder()
+                                let delete_request = ::raiden::aws_sdk::types::DeleteRequest::builder()
                                     .set_key(Some(::std::collections::HashMap::from_iter([
                                         (stringify!(#partition_key_ident).to_string(), pk_attr_value),
                                     ])))
                                     .build()
                                     .expect("should be built");
 
-                                ::raiden::WriteRequest::builder()
+                                ::raiden::aws_sdk::types::WriteRequest::builder()
                                     .delete_request(delete_request)
                                     .build()
                             };
@@ -114,7 +114,7 @@ pub(crate) fn expand_batch_delete(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub write_requests: ::std::vec::Vec<::raiden::WriteRequest>,
+            pub write_requests: ::std::vec::Vec<::raiden::aws_sdk::types::WriteRequest>,
             pub table_name: String,
         }
 
@@ -140,7 +140,7 @@ pub(crate) fn expand_batch_delete(
                         let request_items = vec![(self.table_name.clone(), req)]
                             .into_iter()
                             .collect::<std::collections::HashMap<_, _>>();
-                        let builder = ::raiden::BatchWriteItemInput::builder()
+                        let builder = ::raiden::aws_sdk::operation::batch_write_item::BatchWriteItemInput::builder()
                             .set_request_items(Some(request_items));
 
                         let result = #call_inner_run;
@@ -185,8 +185,8 @@ pub(crate) fn expand_batch_delete(
             async fn inner_run(
                 #inner_run_args
                 client: &::raiden::Client,
-                builder: ::raiden::BatchWriteItemInputBuilder,
-            ) -> Result<::raiden::BatchWriteItemOutput, ::raiden::RaidenError> {
+                builder: ::raiden::operation::batch_write_item::builders::BatchWriteItemInputBuilder,
+            ) -> Result<::raiden::operation::batch_write_item::BatchWriteItemOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
             }
         }

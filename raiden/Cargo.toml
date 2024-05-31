@@ -29,7 +29,7 @@ tracing = { version = "0.1", optional = true }
 uuid = { version = "^1.8", features = ["v4"] }
 
 [dev-dependencies]
-aws-credential-types = "1.2.0"
+aws-credential-types = { version = "^1" }
 aws-smithy-runtime = { version = "^1" }
 hyper-rustls = { version = "0.25", features = ["http2"] }
 pretty_assertions = "1.4.0"

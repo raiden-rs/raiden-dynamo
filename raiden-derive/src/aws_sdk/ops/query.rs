@@ -41,7 +41,7 @@ pub(crate) fn expand_query(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::QueryInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::query::builders::QueryInputBuilder,
             pub next_token: Option<::raiden::NextToken>,
             pub limit: Option<i64>,
             pub policy: ::raiden::Policy,
@@ -49,7 +49,7 @@ pub(crate) fn expand_query(
         }
 
         struct #query_output_item {
-            consumed_capacity: Option<::raiden::ConsumedCapacity>,
+            consumed_capacity: Option<::raiden::aws_sdk::types::ConsumedCapacity>,
             count: Option<i64>,
             items: Option<Vec<::std::collections::HashMap<String, AttributeValue>>>,
             last_evaluated_key: Option<::std::collections::HashMap<String, AttributeValue>>,
@@ -60,7 +60,7 @@ pub(crate) fn expand_query(
 
             #![allow(clippy::field_reassign_with_default)]
             fn query(&self) -> #builder_name {
-                let builder = ::raiden::QueryInput::builder()
+                let builder = ::raiden::aws_sdk::operation::query::QueryInput::builder()
                     .table_name(self.table_name())
                     .set_projection_expression(self.projection_expression.clone())
                     .set_expression_attribute_names(self.attribute_names.clone());
@@ -207,7 +207,7 @@ pub(crate) fn expand_query(
             async fn inner_run(
                 #inner_run_args
                 client: ::raiden::Client,
-                builder: ::raiden::QueryInputBuilder,
+                builder: ::raiden::aws_sdk::operation::query::builders::QueryInputBuilder,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
                 let res = #api_call_token?;
                 Ok(#query_output_item {

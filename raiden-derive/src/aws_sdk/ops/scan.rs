@@ -34,7 +34,7 @@ pub(crate) fn expand_scan(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::ScanInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::scan::builders::ScanInputBuilder,
             pub next_token: Option<::raiden::NextToken>,
             pub limit: Option<i64>
         }
@@ -42,7 +42,7 @@ pub(crate) fn expand_scan(
         impl #trait_name for #client_name {
             #![allow(clippy::field_reassign_with_default)]
             fn scan(&self) -> #builder_name {
-                let builder = ::raiden::ScanInput::builder()
+                let builder = ::raiden::aws_sdk::operation::scan::ScanInput::builder()
                     .table_name(self.table_name())
                     .set_projection_expression(self.projection_expression.clone())
                     .set_expression_attribute_names(self.attribute_names.clone());
@@ -143,8 +143,8 @@ pub(crate) fn expand_scan(
             async fn inner_run(
                 #inner_run_args
                 client: &::raiden::Client,
-                builder: ::raiden::ScanInputBuilder,
-            ) -> Result<::raiden::ScanOutput, ::raiden::RaidenError> {
+                builder: ::raiden::aws_sdk::operation::scan::builders::ScanInputBuilder,
+            ) -> Result<::raiden::aws_sdk::operation::scan::ScanOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
             }
         }

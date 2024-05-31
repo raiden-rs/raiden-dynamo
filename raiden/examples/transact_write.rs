@@ -27,21 +27,26 @@ async fn example() {
         .id("testId2".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    tx.put(User::put(input).condition(cond))
+    let res = tx
+        .put(User::put(input).condition(cond))
         .put(User::put(input2))
         .run()
-        .await
-        .unwrap();
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-        .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
-        .load()
-        .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .region(::raiden::config::Region::from_static("ap-northeast-1"))
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
 
     let tx = ::raiden::WriteTx::new_with_client(sdk_client);
     let cond = User::condition().attr_not_exists(User::id());
@@ -53,11 +58,14 @@ async fn example() {
         .id("testId2".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    tx.put(User::put(input).condition(cond))
+    let res = tx
+        .put(User::put(input).condition(cond))
         .put(User::put(input2))
         .run()
-        .await
-        .unwrap();
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {

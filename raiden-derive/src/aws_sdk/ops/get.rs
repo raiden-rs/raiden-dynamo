@@ -26,14 +26,14 @@ pub(crate) fn expand_get_item(
                 fn get(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     use ::std::iter::FromIterator;
 
-                    let pk_attr: ::raiden::AttributeValue = pk.into().into_attr();
-                    let sk_attr: ::raiden::AttributeValue = sk.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                    let pk_attr: ::raiden::aws_sdk::types::AttributeValue = pk.into().into_attr();
+                    let sk_attr: ::raiden::aws_sdk::types::AttributeValue = sk.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                         (stringify!(#partition_key_ident).to_owned(), pk_attr),
                         (stringify!(#sort_key_ident).to_owned(), sk_attr),
                     ]);
 
-                    let mut builder = ::raiden::GetItemInput::builder()
+                    let mut builder = ::raiden::aws_sdk::operation::get_item::GetItemInput::builder()
                         .set_expression_attribute_names(self.attribute_names.clone())
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
@@ -61,12 +61,12 @@ pub(crate) fn expand_get_item(
                 fn get(&self, key: impl Into<#partition_key_type>) -> #builder_name {
                     use ::std::iter::FromIterator;
 
-                    let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                    let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                         (stringify!(#partition_key_ident).to_owned(), key_attr),
                     ]);
 
-                    let mut builder = ::raiden::GetItemInput::builder()
+                    let mut builder = ::raiden::aws_sdk::operation::get_item::GetItemInput::builder()
                         .set_expression_attribute_names(self.attribute_names.clone())
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
@@ -111,7 +111,7 @@ pub(crate) fn expand_get_item(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::GetItemInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::get_item::builders::GetItemInputBuilder,
             pub policy: ::raiden::Policy,
             pub condition: &'a ::raiden::retry::RetryCondition,
         }
@@ -136,7 +136,7 @@ pub(crate) fn expand_get_item(
             async fn inner_run(
                 #inner_run_args
                 client: ::raiden::Client,
-                builder: ::raiden::GetItemInputBuilder,
+                builder: ::raiden::aws_sdk::operation::get_item::builders::GetItemInputBuilder,
             ) -> Result<::raiden::get::GetOutput<#struct_name>, ::raiden::RaidenError> {
                 let res = #api_call_token?;
                 if res.item.is_none() {

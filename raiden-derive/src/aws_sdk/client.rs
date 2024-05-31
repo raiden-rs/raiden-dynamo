@@ -23,10 +23,9 @@ pub(crate) fn expand_client_constructor(
 
     quote! {
         impl #client_name {
-
-            pub fn new(region: ::raiden::Region) -> Self {
-                let config = ::raiden::Config::builder()
-                    .behavior_version(::raiden::BehaviorVersion::latest())
+            pub fn new(region: ::raiden::aws_sdk::config::Region) -> Self {
+                let config = ::raiden::aws_sdk::config::Config::builder()
+                    .behavior_version(::raiden::aws_sdk::config::BehaviorVersion::latest())
                     .region(region)
                     .build();
                 let client = ::raiden::#dynamodb_client_name::from_conf(config);
@@ -50,7 +49,10 @@ pub(crate) fn expand_client_constructor(
                     table_prefix: "".to_owned(),
                     table_suffix: "".to_owned(),
                     client,
-                    retry_condition: ::raiden::RetryCondition::new(),
+                    // NOTE:
+                    // Since the AWS SDK provides a retry option,
+                    // configure it to not retry by default.
+                    retry_condition: ::raiden::RetryCondition::never(),
                     attribute_names: Some(names),
                     projection_expression
                 }
@@ -77,7 +79,7 @@ pub(crate) fn expand_client_constructor(
         }
 
         impl #struct_name {
-            pub fn client(region: ::raiden::Region) -> #client_name {
+            pub fn client(region: ::raiden::aws_sdk::config::Region) -> #client_name {
                 #client_name::new(region)
             }
 

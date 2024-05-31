@@ -1,8 +1,11 @@
 // DynamoDb, DynamoDbClient, TransactWriteItem, TransactWriteItemsInput
 use crate::{
-    Client, Config, RaidenError, Region, RetryCondition, RetryStrategy,
-    TransactWriteConditionCheckBuilder, TransactWriteDeleteBuilder, TransactWriteItem,
-    TransactWriteItemsFluentBuilder, TransactWritePutBuilder, TransactWriteUpdateBuilder,
+    aws_sdk::{
+        config::Region, operation::transact_write_items::builders::TransactWriteItemsFluentBuilder,
+        types::TransactWriteItem,
+    },
+    Client, Config, RaidenError, RetryCondition, RetryStrategy, TransactWriteConditionCheckBuilder,
+    TransactWriteDeleteBuilder, TransactWritePutBuilder, TransactWriteUpdateBuilder,
 };
 
 pub struct WriteTx {
@@ -18,7 +21,10 @@ impl WriteTx {
         Self {
             items: vec![],
             client: Client::from_conf(config),
-            retry_condition: RetryCondition::new(),
+            // NOTE:
+            // Since the AWS SDK provides a retry option,
+            // configure it to not retry by default.
+            retry_condition: RetryCondition::never(),
         }
     }
 
@@ -26,7 +32,10 @@ impl WriteTx {
         Self {
             items: vec![],
             client,
-            retry_condition: RetryCondition::new(),
+            // NOTE:
+            // Since the AWS SDK provides a retry option,
+            // configure it to not retry by default.
+            retry_condition: RetryCondition::never(),
         }
     }
 

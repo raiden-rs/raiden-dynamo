@@ -70,7 +70,7 @@ pub enum RaidenError {
     #[error("`transaction canceled error {reasons}: {raw_reasons:?}`")]
     TransactionCanceled {
         reasons: RaidenTransactionCancellationReasons,
-        raw_reasons: Vec<crate::CancellationReason>,
+        raw_reasons: Vec<crate::aws_sdk::types::CancellationReason>,
     },
     #[cfg(feature = "aws-sdk")]
     #[error("unknown error")]

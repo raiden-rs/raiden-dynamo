@@ -1,3 +1,6 @@
+export AWS_ACCESS_KEY_ID := dummy
+export AWS_SECRET_ACCESS_KEY := dummy
+
 .PHONY: dynamo
 dynamo:
 	docker compose down --volumes
@@ -22,7 +25,7 @@ lint:
 .PHONY: check-deps
 check-deps:
 	cargo machete
-	cargo +nightly udeps --all-targets --features tracing
 	cargo +nightly udeps --all-targets --no-default-features --features aws-sdk
 	cargo +nightly udeps --all-targets --no-default-features --features rusoto
 	cargo +nightly udeps --all-targets --no-default-features --features rusoto_rustls
+	cargo +nightly udeps --all-targets --features tracing

@@ -18,9 +18,9 @@ pub(crate) fn expand_batch_get(
     let (partition_key_ident, partition_key_type) = partition_key;
 
     let builder_keys_type = if sort_key.is_none() {
-        quote! { std::vec::Vec<::raiden::AttributeValue> }
+        quote! { std::vec::Vec<::raiden::aws_sdk::types::AttributeValue> }
     } else {
-        quote! { std::vec::Vec<(::raiden::AttributeValue, ::raiden::AttributeValue)> }
+        quote! { std::vec::Vec<(::raiden::aws_sdk::types::AttributeValue, ::raiden::aws_sdk::types::AttributeValue)> }
     };
 
     let insertion_attribute_name = fields.named.iter().map(|f| {
@@ -87,7 +87,7 @@ pub(crate) fn expand_batch_get(
         let (sort_key_ident, _sort_key_type) = sort_key;
         quote! {
             for (pk_attr, sk_attr) in keys.into_iter() {
-                let key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = ::std::collections::HashMap::from_iter([
+                let key_val: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = ::std::collections::HashMap::from_iter([
                     (stringify!(#partition_key_ident).to_owned(), pk_attr),
                     (stringify!(#sort_key_ident).to_owned(), sk_attr),
                 ]);
@@ -98,7 +98,7 @@ pub(crate) fn expand_batch_get(
     } else {
         quote! {
             for key_attr in keys.into_iter() {
-                let key_val: std::collections::HashMap<String, ::raiden::AttributeValue> = ::std::collections::HashMap::from_iter([
+                let key_val: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = ::std::collections::HashMap::from_iter([
                     (stringify!(#partition_key_ident).to_owned(), key_attr),
                 ]);
 
@@ -138,7 +138,7 @@ pub(crate) fn expand_batch_get(
                 use ::std::iter::FromIterator;
 
                 let mut items: std::vec::Vec<#struct_name> = vec![];
-                let mut unprocessed_keys = ::raiden::KeysAndAttributes::builder()
+                let mut unprocessed_keys = ::raiden::aws_sdk::types::KeysAndAttributes::builder()
                     .set_keys(Some(vec![]))
                     .build()
                     .expect("should be built");
@@ -147,7 +147,7 @@ pub(crate) fn expand_batch_get(
                 let mut unprocessed_retry = 5;
                 loop {
                     let unprocessed_key_len = unprocessed_keys.keys().len();
-                    let mut item_builder = ::raiden::KeysAndAttributes::builder()
+                    let mut item_builder = ::raiden::aws_sdk::types::KeysAndAttributes::builder()
                         .set_expression_attribute_names(self.attribute_names.clone())
                         .set_projection_expression(self.projection_expression.clone())
                         .set_keys(Some(unprocessed_keys.keys));
@@ -157,7 +157,7 @@ pub(crate) fn expand_batch_get(
                         #convert_to_external_proc
                     }
 
-                    let builder = ::raiden::BatchGetItemInput::builder()
+                    let builder = ::raiden::aws_sdk::operation::batch_get_item::BatchGetItemInput::builder()
                         .request_items(
                             self.table_name.to_string(),
                             item_builder.build().expect("should be built"),
@@ -209,8 +209,8 @@ pub(crate) fn expand_batch_get(
             async fn inner_run(
                 #inner_run_args
                 client: &::raiden::Client,
-                builder: ::raiden::BatchGetItemInputBuilder,
-            ) -> Result<::raiden::BatchGetItemOutput, ::raiden::RaidenError> {
+                builder: ::raiden::aws_sdk::operation::batch_get_item::builders::BatchGetItemInputBuilder,
+            ) -> Result<::raiden::aws_sdk::operation::batch_get_item::BatchGetItemOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
             }
         }

@@ -1,6 +1,3 @@
-// NOTE: allow to re-export aws_sdk_dynamodb.
-#![cfg_attr(feature = "aws-sdk", allow(ambiguous_glob_reexports))]
-
 #[cfg(all(feature = "rusoto", feature = "rusoto_rustls"))]
 compile_error!("feature \"rusoto\" and \"rusoto_rustls\" cannot be enabled at the same time.");
 
@@ -31,13 +28,13 @@ pub mod value_id;
 mod rusoto;
 
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
-pub use rusoto::*;
+pub use self::rusoto::*;
 
 #[cfg(feature = "aws-sdk")]
-mod aws_sdk;
+pub mod aws_sdk;
 
 #[cfg(feature = "aws-sdk")]
-pub use aws_sdk::*;
+pub use self::aws_sdk::{types::AttributeValue, *};
 
 pub use condition::*;
 pub use errors::*;

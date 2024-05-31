@@ -48,7 +48,7 @@ impl raiden::FromAttribute for CustomId {
     }
 }
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug)]
 #[raiden(table_name = "user")]
 pub struct User {
     #[raiden(partition_key)]
@@ -64,29 +64,35 @@ async fn example() {
         endpoint: "http://localhost:8000".into(),
         name: "ap-northeast-1".into(),
     });
-
     let input = User::put_item_builder()
         .id("testId".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    let _ = client.put(input).run().await;
+    let res = client.put(input).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-        .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
-        .load()
-        .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
-
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .region(::raiden::config::Region::from_static("ap-northeast-1"))
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
     let client = User::client_with(sdk_client);
     let input = User::put_item_builder()
         .id("testId".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    let _ = client.put(input).run().await;
+    let res = client.put(input).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {

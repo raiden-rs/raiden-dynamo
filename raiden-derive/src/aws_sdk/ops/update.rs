@@ -30,14 +30,14 @@ pub(crate) fn expand_update_item(
                 fn update(&self, pk: impl Into<#partition_key_type>, sk: impl Into<#sort_key_type>) -> #builder_name {
                     use std::iter::FromIterator;
 
-                    let pk_attr: ::raiden::AttributeValue = pk.into().into_attr();
-                    let sk_attr: ::raiden::AttributeValue = sk.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                    let pk_attr: ::raiden::aws_sdk::types::AttributeValue = pk.into().into_attr();
+                    let sk_attr: ::raiden::aws_sdk::types::AttributeValue = sk.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                         (stringify!(#partition_key_ident).to_owned(), pk_attr),
                         (stringify!(#sort_key_ident).to_owned(), sk_attr),
                     ]);
 
-                    let builder = ::raiden::UpdateItemInput::builder()
+                    let builder = ::raiden::aws_sdk::operation::update_item::UpdateItemInput::builder()
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
 
@@ -64,12 +64,12 @@ pub(crate) fn expand_update_item(
                 fn update(&self, key: impl Into<#partition_key_type>) -> #builder_name {
                     use std::iter::FromIterator;
 
-                    let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                    let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                    let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                    let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                         (stringify!(#partition_key_ident).to_owned(), key_attr),
                     ]);
 
-                    let builder = ::raiden::UpdateItemInput::builder()
+                    let builder = ::raiden::aws_sdk::operation::update_item::UpdateItemInput::builder()
                         .set_key(Some(key_set))
                         .table_name(self.table_name());
 
@@ -136,7 +136,7 @@ pub(crate) fn expand_update_item(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
-            pub builder: ::raiden::UpdateItemInputBuilder,
+            pub builder: ::raiden::aws_sdk::operation::update_item::builders::UpdateItemInputBuilder,
             pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub set_items: Vec<::raiden::update_expression::SetOrRemove>,
             pub remove_items: Vec<#attr_enum_name>,
@@ -146,7 +146,7 @@ pub(crate) fn expand_update_item(
         }
 
         impl<'a> #builder_name<'a> {
-            pub fn raw_input(mut self, builder: ::raiden::UpdateItemInputBuilder) -> Self {
+            pub fn raw_input(mut self, builder: ::raiden::aws_sdk::operation::update_item::builders::UpdateItemInputBuilder) -> Self {
                 self.builder = builder;
                 self
             }
@@ -173,13 +173,13 @@ pub(crate) fn expand_update_item(
 
             // INFO: raiden supports only none, all_old and all_new to map response to struct.
             pub fn return_all_old(mut self) -> Self {
-                self.builder = self.builder.return_values(::raiden::ReturnValue::AllOld);
+                self.builder = self.builder.return_values(::raiden::aws_sdk::types::ReturnValue::AllOld);
                 self
             }
 
             // INFO: raiden supports only none, all_old and all_new to map response to struct.
             pub fn return_all_new(mut self) -> Self {
-                self.builder = self.builder.return_values(::raiden::ReturnValue::AllNew);
+                self.builder = self.builder.return_values(::raiden::aws_sdk::types::ReturnValue::AllNew);
                 self
             }
 
@@ -350,8 +350,8 @@ pub(crate) fn expand_update_item(
             async fn inner_run(
                 #inner_run_args
                 client: ::raiden::Client,
-                builder: ::raiden::UpdateItemInputBuilder,
-            ) -> Result<::raiden::UpdateItemOutput, ::raiden::RaidenError> {
+                builder: ::raiden::aws_sdk::operation::update_item::builders::UpdateItemInputBuilder,
+            ) -> Result<::raiden::aws_sdk::operation::update_item::UpdateItemOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
             }
         }

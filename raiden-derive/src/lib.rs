@@ -18,12 +18,12 @@ mod rename;
 #[cfg(feature = "rusoto")]
 mod rusoto;
 #[cfg(feature = "rusoto")]
-use rusoto::{client, ops};
+use rusoto::*;
 
 #[cfg(feature = "aws-sdk")]
 mod aws_sdk;
 #[cfg(feature = "aws-sdk")]
-use aws_sdk::{client, ops};
+use aws_sdk::*;
 
 use crate::rename::*;
 use std::str::FromStr;

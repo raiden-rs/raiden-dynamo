@@ -4,9 +4,8 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug, Clone)]
 #[raiden(table_name = "QueryTestData0")]
-#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Test {
     #[raiden(partition_key)]
@@ -22,23 +21,25 @@ async fn example() {
         endpoint: "http://localhost:8000".into(),
         name: "ap-northeast-1".into(),
     });
-
     let res = client.delete("id1", 2003_usize).run().await;
+
     dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
+    let sdk_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
         .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
+        .region(raiden::config::Region::from_static("ap-northeast-1"))
         .load()
         .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
-
+    let sdk_client = raiden::Client::new(&sdk_config);
     let client = Test::client_with(sdk_client);
     let res = client.delete("id1", 2003_usize).run().await;
+
     dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {

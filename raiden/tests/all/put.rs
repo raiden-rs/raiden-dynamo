@@ -64,7 +64,7 @@ mod tests {
         };
 
         #[cfg(feature = "aws-sdk")]
-        let expected = ::raiden::PutItemInput::builder()
+        let expected = ::raiden::operation::put_item::PutItemInput::builder()
             .condition_expression("attribute_not_exists(#name)")
             .set_expression_attribute_names(Some(attribute_names))
             .set_item(Some(item))

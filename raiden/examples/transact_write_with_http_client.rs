@@ -19,7 +19,6 @@ async fn example() {
     let credentials_provider = raiden::credential::DefaultCredentialsProvider::new()
         .expect("failed to create credentials provider");
     let core_client = raiden::Client::new_with(credentials_provider, dispatcher);
-
     let tx = ::raiden::WriteTx::new_with_client(
         core_client,
         Region::Custom {
@@ -36,11 +35,14 @@ async fn example() {
         .id("testId2".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    tx.put(User::put(input).condition(cond))
+    let res = tx
+        .put(User::put(input).condition(cond))
         .put(User::put(input2))
         .run()
-        .await
-        .unwrap();
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
@@ -54,19 +56,20 @@ async fn example() {
         .build();
     let http_client = aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder::new()
         .build(https_connector);
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-        .endpoint_url("http://localhost:8000")
-        .http_client(http_client)
-        .region(raiden::Region::from_static("ap-northeast-1"))
-        .timeout_config(
-            aws_config::timeout::TimeoutConfig::builder()
-                .connect_timeout(std::time::Duration::from_secs(5))
-                .build(),
-        )
-        .load()
-        .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
-
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .http_client(http_client)
+    .region(raiden::config::Region::from_static("ap-northeast-1"))
+    .timeout_config(
+        raiden::config::timeout::TimeoutConfig::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .build(),
+    )
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
     let tx = ::raiden::WriteTx::new_with_client(sdk_client);
     let cond = User::condition().attr_not_exists(User::id());
     let input = User::put_item_builder()
@@ -77,11 +80,14 @@ async fn example() {
         .id("testId2".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    tx.put(User::put(input).condition(cond))
+    let res = tx
+        .put(User::put(input).condition(cond))
         .put(User::put(input2))
         .run()
-        .await
-        .unwrap();
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {

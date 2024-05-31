@@ -3,9 +3,12 @@ use std::collections::HashMap;
 use serde::de;
 use serde_json::{json, Error, Map, Value};
 
-use crate::aws_sdk::serialize::set_optional_value;
+use crate::aws_sdk::{
+    serialize::set_optional_value,
+    types::{Capacity, ConsumedCapacity},
+};
 
-pub fn consumed_capacity_to_value(v: &crate::ConsumedCapacity) -> Value {
+pub fn consumed_capacity_to_value(v: &ConsumedCapacity) -> Value {
     json!({
         "table_name": v.table_name,
         "capacity_units": v.capacity_units,
@@ -29,12 +32,12 @@ pub fn consumed_capacity_to_value(v: &crate::ConsumedCapacity) -> Value {
     })
 }
 
-pub fn value_to_consumed_capacity(value: Value) -> Result<crate::ConsumedCapacity, Error> {
+pub fn value_to_consumed_capacity(value: Value) -> Result<ConsumedCapacity, Error> {
     let Value::Object(m) = value else {
         return Err(de::Error::custom("value is not type of ConsumedCapacity"));
     };
 
-    let mut builder = crate::ConsumedCapacity::builder();
+    let mut builder = ConsumedCapacity::builder();
 
     set_optional_value!(builder, m, table_name, String);
     set_optional_value!(builder, m, capacity_units, f64);
@@ -80,7 +83,7 @@ pub fn value_to_consumed_capacity(value: Value) -> Result<crate::ConsumedCapacit
     Ok(builder.build())
 }
 
-pub fn capacity_to_value(v: &crate::Capacity) -> Value {
+pub fn capacity_to_value(v: &Capacity) -> Value {
     json!({
         "read_capacity_units": v.read_capacity_units,
         "write_capacity_units": v.write_capacity_units,
@@ -88,12 +91,12 @@ pub fn capacity_to_value(v: &crate::Capacity) -> Value {
     })
 }
 
-pub fn value_to_capacity(value: Value) -> Result<crate::Capacity, Error> {
+pub fn value_to_capacity(value: Value) -> Result<Capacity, Error> {
     let Value::Object(m) = value else {
         return Err(de::Error::custom("value is not type of Capacity"));
     };
 
-    let mut builder = crate::Capacity::builder();
+    let mut builder = Capacity::builder();
 
     set_optional_value!(builder, m, read_capacity_units, f64);
     set_optional_value!(builder, m, write_capacity_units, f64);

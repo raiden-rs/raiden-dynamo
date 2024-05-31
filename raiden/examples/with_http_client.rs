@@ -4,16 +4,13 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-#[derive(Raiden)]
-#[raiden(table_name = "user")]
+#[derive(Raiden, Debug)]
+#[raiden(table_name = "hello")]
 pub struct User {
     #[raiden(partition_key)]
     pub id: String,
     #[raiden(sort_key)]
     pub year: usize,
-    #[raiden(uuid)]
-    pub uuid: String,
-    pub name: String,
 }
 
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
@@ -23,7 +20,6 @@ async fn example() {
     let credentials_provider = raiden::credential::DefaultCredentialsProvider::new()
         .expect("failed to create credentials provider");
     let core_client = raiden::Client::new_with(credentials_provider, dispatcher);
-
     let client = User::client_with(
         core_client,
         Region::Custom {
@@ -31,9 +27,11 @@ async fn example() {
             name: "ap-northeast-1".into(),
         },
     );
-
     let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
-    let _ = client.batch_get(keys).run().await;
+    let res = client.batch_get(keys).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
@@ -47,22 +45,26 @@ async fn example() {
         .build();
     let http_client = aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder::new()
         .build(https_connector);
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-        .endpoint_url("http://localhost:8000")
-        .http_client(http_client)
-        .region(raiden::Region::from_static("ap-northeast-1"))
-        .timeout_config(
-            aws_config::timeout::TimeoutConfig::builder()
-                .connect_timeout(std::time::Duration::from_secs(5))
-                .build(),
-        )
-        .load()
-        .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
-
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .http_client(http_client)
+    .region(raiden::config::Region::from_static("ap-northeast-1"))
+    .timeout_config(
+        raiden::config::timeout::TimeoutConfig::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .build(),
+    )
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
     let client = User::client_with(sdk_client);
     let keys: Vec<(&str, usize)> = vec![("bokuweb", 2019), ("raiden", 2020)];
-    let _ = client.batch_get(keys).run().await;
+    let res = client.batch_get(keys).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {

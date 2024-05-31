@@ -52,7 +52,7 @@ pub(crate) fn expand_transact_write(
         });
 
         quote! {
-            let mut input_item: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
+            let mut input_item: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::new();
             #(#insertion)*
         }
     };
@@ -61,12 +61,12 @@ pub(crate) fn expand_transact_write(
         impl #struct_name {
             pub fn put(item: #item_input_name) -> #put_builder {
                 let mut attribute_names: std::collections::HashMap<String, String> = std::collections::HashMap::new();
-                let mut attribute_values: std::collections::HashMap<String, raiden::AttributeValue> = std::collections::HashMap::new();
+                let mut attribute_values: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::new();
                 let mut uuid_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
 
                 #input_items
 
-                let builder = ::raiden::Put::builder().set_item(Some(input_item));
+                let builder = ::raiden::aws_sdk::types::Put::builder().set_item(Some(input_item));
 
                 #put_builder {
                     builder,
@@ -80,11 +80,11 @@ pub(crate) fn expand_transact_write(
             pub fn condition_check(key: impl Into<#partition_key_type>) -> #condition_check_builder {
                 use std::iter::FromIterator;
 
-                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                     (stringify!(#partition_key_ident).to_owned(), key_attr),
                 ]);
-                let builder = ::raiden::ConditionCheck::builder()
+                let builder = ::raiden::aws_sdk::types::ConditionCheck::builder()
                     .set_key(Some(key_set));
 
                 #condition_check_builder {
@@ -99,11 +99,11 @@ pub(crate) fn expand_transact_write(
             pub fn delete(key: impl Into<#partition_key_type>) -> #delete_builder {
                 use std::iter::FromIterator;
 
-                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                     (stringify!(#partition_key_ident).to_owned(), key_attr),
                 ]);
-                let builder = ::raiden::Delete::builder().set_key(Some(key_set));
+                let builder = ::raiden::aws_sdk::types::Delete::builder().set_key(Some(key_set));
 
                 #delete_builder {
                     builder,
@@ -117,11 +117,11 @@ pub(crate) fn expand_transact_write(
             pub fn update(key: impl Into<#partition_key_type>) -> #update_builder {
                 use std::iter::FromIterator;
 
-                let key_attr: ::raiden::AttributeValue = key.into().into_attr();
-                let key_set: std::collections::HashMap<String, ::raiden::AttributeValue> = std::collections::HashMap::from_iter([
+                let key_attr: ::raiden::aws_sdk::types::AttributeValue = key.into().into_attr();
+                let key_set: std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue> = std::collections::HashMap::from_iter([
                     (stringify!(#partition_key_ident).to_owned(), key_attr),
                 ]);
-                let builder = ::raiden::Update::builder().set_key(Some(key_set));
+                let builder = ::raiden::aws_sdk::types::Update::builder().set_key(Some(key_set));
 
                 #update_builder {
                     builder,
@@ -141,11 +141,11 @@ pub(crate) fn expand_transact_write(
             pub table_name: String,
             pub table_prefix: String,
             pub table_suffix: String,
-            pub builder: ::raiden::PutBuilder,
+            pub builder: ::raiden::aws_sdk::types::builders::PutBuilder,
         }
 
         impl ::raiden::TransactWritePutBuilder for #put_builder {
-            fn build(self) -> ::raiden::Put {
+            fn build(self) -> ::raiden::aws_sdk::types::Put {
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()
@@ -187,7 +187,7 @@ pub(crate) fn expand_transact_write(
             pub table_name: String,
             pub table_prefix: String,
             pub table_suffix: String,
-            pub builder: ::raiden::UpdateBuilder,
+            pub builder: ::raiden::aws_sdk::types::builders::UpdateBuilder,
 
             pub add_items: Vec<(String, ::raiden::AttributeNames, ::raiden::AttributeValues)>,
             pub set_items: Vec<::raiden::update_expression::SetOrRemove>,
@@ -196,7 +196,7 @@ pub(crate) fn expand_transact_write(
         }
 
         impl ::raiden::TransactWriteUpdateBuilder for #update_builder {
-            fn build(mut self) -> ::raiden::Update {
+            fn build(mut self) -> ::raiden::aws_sdk::types::Update {
                 // TODO: Refactor later
                 let mut attr_names: ::raiden::AttributeNames = std::collections::HashMap::new();
                 let mut attr_values: ::raiden::AttributeValues = std::collections::HashMap::new();
@@ -347,11 +347,11 @@ pub(crate) fn expand_transact_write(
             pub table_name: String,
             pub table_prefix: String,
             pub table_suffix: String,
-            pub builder: ::raiden::DeleteBuilder,
+            pub builder: ::raiden::aws_sdk::types::builders::DeleteBuilder,
         }
 
         impl ::raiden::TransactWriteDeleteBuilder for #delete_builder {
-            fn build(self) -> ::raiden::Delete {
+            fn build(self) -> ::raiden::aws_sdk::types::Delete {
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()
@@ -392,11 +392,11 @@ pub(crate) fn expand_transact_write(
             pub table_name: String,
             pub table_prefix: String,
             pub table_suffix: String,
-            pub builder: ::raiden::ConditionCheckBuilder,
+            pub builder: ::raiden::aws_sdk::types::builders::ConditionCheckBuilder,
         }
 
         impl ::raiden::TransactWriteConditionCheckBuilder for #condition_check_builder {
-            fn build(self) -> ::raiden::ConditionCheck {
+            fn build(self) -> ::raiden::aws_sdk::types::ConditionCheck {
                 self.builder
                     .table_name(format!("{}{}{}", self.table_prefix, self.table_name, self.table_suffix))
                     .build()

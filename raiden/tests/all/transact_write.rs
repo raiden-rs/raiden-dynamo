@@ -10,12 +10,14 @@ mod tests {
 
     #[cfg(feature = "aws-sdk")]
     async fn create_client() -> ::raiden::WriteTx {
-        let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-            .endpoint_url("http://localhost:8000")
-            .region(raiden::Region::from_static("ap-northeast-1"))
-            .load()
-            .await;
-        let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+        let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+            ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+        )
+        .endpoint_url("http://localhost:8000")
+        .region(::raiden::config::Region::from_static("ap-northeast-1"))
+        .load()
+        .await;
+        let sdk_client = ::raiden::Client::new(&sdk_config);
 
         ::raiden::WriteTx::new_with_client(sdk_client)
     }

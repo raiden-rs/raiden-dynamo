@@ -3,11 +3,14 @@ use std::collections::HashMap;
 use serde::de;
 use serde_json::{json, Error, Map, Value};
 
-use crate::aws_sdk::serialize::{
-    attribute_value_to_value, parse_value, set_optional_value, value_to_attribute_value,
+use crate::aws_sdk::{
+    serialize::{
+        attribute_value_to_value, parse_value, set_optional_value, value_to_attribute_value,
+    },
+    types::ItemCollectionMetrics,
 };
 
-pub fn item_collection_metrics_to_value(v: &crate::ItemCollectionMetrics) -> Value {
+pub fn item_collection_metrics_to_value(v: &ItemCollectionMetrics) -> Value {
     json!({
         "item_collection_key": v.item_collection_key.as_ref().map(|v| {
             v
@@ -19,11 +22,9 @@ pub fn item_collection_metrics_to_value(v: &crate::ItemCollectionMetrics) -> Val
     })
 }
 
-pub fn value_to_item_collection_metrics(
-    value: Value,
-) -> Result<crate::ItemCollectionMetrics, Error> {
+pub fn value_to_item_collection_metrics(value: Value) -> Result<ItemCollectionMetrics, Error> {
     if let Value::Object(m) = value {
-        let mut builder = crate::ItemCollectionMetrics::builder();
+        let mut builder = ItemCollectionMetrics::builder();
 
         set_optional_value!(
             builder,

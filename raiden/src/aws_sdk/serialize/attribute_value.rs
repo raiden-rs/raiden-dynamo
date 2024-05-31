@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 
-use aws_sdk_dynamodb::primitives::Blob;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::de::{self, Error as _};
 use serde_json::{json, Error, Value};
 
-use crate::AttributeValue;
+use crate::aws_sdk::{primitives::Blob, types::AttributeValue};
 
 pub fn attribute_value_to_value(value: &AttributeValue) -> Value {
     match value {

@@ -14,12 +14,12 @@ pub(crate) fn expand_scan(
     let api_call_token = super::api_call_token!("scan");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.input.table_name, &self.client, self.input.clone()).await? },
-            quote! { table_name: &str, },
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, self.input.clone()).await? },
+            quote! { #builder_name::inner_run(client, input).await },
             quote! {},
         )
     };
@@ -32,6 +32,8 @@ pub(crate) fn expand_scan(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::ScanInput,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
             pub next_token: Option<::raiden::NextToken>,
             pub limit: Option<i64>
         }
@@ -46,6 +48,8 @@ pub(crate) fn expand_scan(
                 #builder_name {
                     client: &self.client,
                     input,
+                    policy: self.retry_condition.strategy.policy(),
+                    condition: &self.retry_condition,
                     next_token: None,
                     limit: None,
                 }
@@ -98,7 +102,16 @@ pub(crate) fn expand_scan(
                         self.input.limit = Some(limit);
                     }
 
-                    let res = #call_inner_run;
+                    let res = {
+                        let policy: ::raiden::RetryPolicy = self.policy.clone().into();
+                        let client = self.client;
+                        let input = self.input.clone();
+                        policy.retry_if(move || {
+                            let client = client.clone();
+                            let input = input.clone();
+                            async { #call_inner_run }
+                        }, self.condition).await?
+                    };
 
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
@@ -131,7 +144,7 @@ pub(crate) fn expand_scan(
 
             async fn inner_run(
                 #inner_run_args
-                client: &::raiden::DynamoDbClient,
+                client: ::raiden::DynamoDbClient,
                 input: ::raiden::ScanInput,
             ) -> Result<::raiden::ScanOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)

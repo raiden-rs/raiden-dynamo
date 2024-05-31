@@ -45,6 +45,12 @@ impl RetryCondition {
     pub fn new() -> Self {
         Default::default()
     }
+
+    pub fn never() -> Self {
+        Self {
+            strategy: Box::new(NopRetryStrategy),
+        }
+    }
 }
 
 impl Default for RetryCondition {
@@ -104,5 +110,18 @@ impl RetryStrategy for DefaultRetryStrategy {
 
     fn policy(&self) -> Policy {
         Policy::default()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct NopRetryStrategy;
+
+impl RetryStrategy for NopRetryStrategy {
+    fn should_retry(&self, _: &RaidenError) -> bool {
+        false
+    }
+
+    fn policy(&self) -> Policy {
+        Policy::None
     }
 }

@@ -4,11 +4,14 @@ use serde::de::{self, Error as _};
 use serde_json::{json, Error, Map, Value};
 
 use crate::{
-    aws_sdk::serialize::{attribute_value_to_value, parse_value, set_optional_value},
+    aws_sdk::{
+        serialize::{attribute_value_to_value, parse_value, set_optional_value},
+        types::KeysAndAttributes,
+    },
     serialize::value_to_attribute_value,
 };
 
-pub fn keys_and_attributes_to_value(v: &crate::KeysAndAttributes) -> Value {
+pub fn keys_and_attributes_to_value(v: &KeysAndAttributes) -> Value {
     json!({
         "keys": v.keys.iter().map(|v| v.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
@@ -20,9 +23,9 @@ pub fn keys_and_attributes_to_value(v: &crate::KeysAndAttributes) -> Value {
     })
 }
 
-pub fn value_to_keys_and_attributes(value: Value) -> Result<crate::KeysAndAttributes, Error> {
+pub fn value_to_keys_and_attributes(value: Value) -> Result<KeysAndAttributes, Error> {
     if let Value::Object(m) = value {
-        let mut builder = crate::KeysAndAttributes::builder();
+        let mut builder = KeysAndAttributes::builder();
 
         set_optional_value!(builder, m, keys, array, |vs: &Vec<_>| -> Result<_, _> {
             let mut values = vec![];

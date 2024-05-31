@@ -1,9 +1,14 @@
-use aws_sdk_dynamodb::error::SdkError;
-
 use crate::{
-    BatchGetItemError, BatchWriteItemError, DeleteItemError, GetItemError, PutItemError,
-    QueryError, RaidenError, RaidenTransactionCancellationReasons, ScanError,
-    TransactWriteItemsError, UpdateItemError,
+    aws_sdk::{
+        error::SdkError,
+        operation::{
+            batch_get_item::BatchGetItemError, batch_write_item::BatchWriteItemError,
+            delete_item::DeleteItemError, get_item::GetItemError, put_item::PutItemError,
+            query::QueryError, scan::ScanError, transact_write_items::TransactWriteItemsError,
+            update_item::UpdateItemError,
+        },
+    },
+    RaidenError, RaidenTransactionCancellationReasons,
 };
 
 fn into_raiden_error<E>(error: SdkError<E>) -> RaidenError {

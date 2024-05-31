@@ -4,7 +4,7 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug)]
 #[raiden(table_name = "LastEvaluateKeyData")]
 pub struct Test {
     #[raiden(partition_key)]
@@ -20,7 +20,6 @@ async fn example() {
         name: "ap-northeast-1".into(),
     });
     let cond = Test::key_condition(Test::ref_id()).eq("id0");
-
     let res = client
         .query()
         .index("testGSI")
@@ -28,17 +27,21 @@ async fn example() {
         .key_condition(cond)
         .run()
         .await;
-    dbg!(&res.unwrap().items.len());
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let sdk_config = raiden::config::defaults(raiden::BehaviorVersion::latest())
-        .endpoint_url("http://localhost:8000")
-        .region(raiden::Region::from_static("ap-northeast-1"))
-        .load()
-        .await;
-    let sdk_client = aws_sdk_dynamodb::Client::new(&sdk_config);
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .region(::raiden::config::Region::from_static("ap-northeast-1"))
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
 
     let client = Test::client_with(sdk_client);
     let cond = Test::key_condition(Test::ref_id()).eq("id0");
@@ -49,7 +52,9 @@ async fn example() {
         .key_condition(cond)
         .run()
         .await;
-    dbg!(&res.unwrap().items.len());
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {
