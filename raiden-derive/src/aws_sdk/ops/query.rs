@@ -51,8 +51,8 @@ pub(crate) fn expand_query(
         struct #query_output_item {
             consumed_capacity: Option<::raiden::aws_sdk::types::ConsumedCapacity>,
             count: Option<i64>,
-            items: Option<Vec<::std::collections::HashMap<String, AttributeValue>>>,
-            last_evaluated_key: Option<::std::collections::HashMap<String, AttributeValue>>,
+            items: Option<Vec<::std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue>>>,
+            last_evaluated_key: Option<::std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue>>,
             scanned_count: Option<i64>,
         }
 

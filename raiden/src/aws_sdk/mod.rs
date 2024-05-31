@@ -104,11 +104,11 @@ impl<T: IntoAttribute> IntoAttribute for Option<T> {
 
 impl<T: FromAttribute> FromAttribute for Option<T> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
-        Ok(if let Some(v) = value {
-            Some(FromAttribute::from_attr(Some(v))?)
-        } else {
-            None
-        })
+        match value {
+            None => Ok(None),
+            Some(v) if v.is_null() => Ok(None),
+            _ => Ok(Some(FromAttribute::from_attr(value)?)),
+        }
     }
 }
 

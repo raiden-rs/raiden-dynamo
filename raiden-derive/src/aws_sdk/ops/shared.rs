@@ -19,7 +19,7 @@ pub(crate) fn expand_attr_to_item(
         let ty = &f.ty;
 
         let item = quote! {
-            let item = <#ty as ResolveAttribute>::resolve_attr(&#attr_key, &mut #item_ident);
+            let item = <#ty as ::raiden::ResolveAttribute>::resolve_attr(&#attr_key, &mut #item_ident);
         };
         if crate::finder::is_option(ty) {
             quote! {
