@@ -5,6 +5,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use raiden::*;
 
+    #[allow(dead_code)]
     #[derive(Raiden, Debug, Clone)]
     pub struct DeleteTest0 {
         #[raiden(partition_key)]
@@ -62,6 +63,7 @@ mod tests {
         rt.block_on(example());
     }
 
+    #[allow(dead_code)]
     #[derive(Raiden, Debug, Clone)]
     pub struct DeleteTest1 {
         #[raiden(partition_key)]

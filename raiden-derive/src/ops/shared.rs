@@ -73,3 +73,38 @@ pub(crate) fn expand_attr_to_item(
         }
     }).collect()
 }
+
+macro_rules! api_call_token {
+    ($operation: literal) => {
+        $crate::ops::api_call_token!("table_name", "client", $operation, "input")
+    };
+    ($table_name: literal, $client: literal, $operation: literal, $input: literal) => {{
+        let table_name = ::quote::format_ident!($table_name);
+        let client = ::quote::format_ident!($client);
+        let operation = ::quote::format_ident!($operation);
+        let input = ::quote::format_ident!($input);
+
+        let span_token = if cfg!(feature = "tracing") {
+            ::quote::quote! {
+              use tracing::Instrument;
+              let fut = fut.instrument(::tracing::debug_span!(
+                  "dynamodb::action",
+                  table = #table_name,
+                  api = std::stringify!(#operation),
+              ));
+            }
+        } else {
+            ::quote::quote! {}
+        };
+
+        ::quote::quote! {{
+            let fut = #client.#operation(#input);
+
+            #span_token
+
+            fut.await
+        }}
+    }};
+}
+
+pub(super) use api_call_token;

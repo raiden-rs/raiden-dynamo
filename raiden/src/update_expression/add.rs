@@ -25,7 +25,7 @@ impl<T: super::IntoAttrName> Add<T> {
 impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr = self.target.into_attr_name();
-        let attr_name = format!("#{}", attr);
+        let attr_name = format!("#{attr}");
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
         let mut values: super::AttributeValues = std::collections::HashMap::new();
@@ -38,7 +38,7 @@ impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<
         }
 
         names.insert(attr_name.clone(), attr);
-        let expression = format!("{} {}", attr_name, placeholder);
+        let expression = format!("{attr_name} {placeholder}");
         values.insert(placeholder, value);
         (expression, names, values)
     }

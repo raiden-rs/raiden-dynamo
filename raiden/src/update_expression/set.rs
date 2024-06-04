@@ -117,7 +117,7 @@ impl<T: super::IntoAttrName> SetExpressionFilledWithoutOperation<T> {
 impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledWithoutOperation<T> {
     fn build(self) -> SetOrRemove {
         let attr = self.target.into_attr_name();
-        let attr_name = format!("#{}", attr);
+        let attr_name = format!("#{attr}");
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
         names.insert(attr_name.clone(), attr);
@@ -125,8 +125,12 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
         match self.value {
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
-                let set_attr_name = format!("#{}", set_attr);
-                let expression = format!("{} = {}", attr_name, set_attr_name);
+                let set_attr_name = format!("#{set_attr}");
+                let expression = if self.if_not_exists {
+                    format!("{attr_name} = if_not_exists({attr_name}, {set_attr_name})")
+                } else {
+                    format!("{attr_name} = {set_attr_name}")
+                };
                 names.insert(set_attr_name, set_attr);
                 SetOrRemove::Set(expression, names, values)
             }
@@ -137,7 +141,11 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
                     // Use remove instead of set
                     return SetOrRemove::Remove(attr_name, names);
                 }
-                let expression = format!("{} = {}", attr_name, placeholder);
+                let expression = if self.if_not_exists {
+                    format!("{attr_name} = if_not_exists({attr_name}, {placeholder})")
+                } else {
+                    format!("{attr_name} = {placeholder}")
+                };
                 values.insert(placeholder, value);
                 SetOrRemove::Set(expression, names, values)
             }
@@ -148,7 +156,7 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
 impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<T> {
     fn build(self) -> SetOrRemove {
         let attr = self.target.into_attr_name();
-        let attr_name = format!("#{}", attr);
+        let attr_name = format!("#{attr}");
 
         let mut names: super::AttributeNames = std::collections::HashMap::new();
         names.insert(attr_name.clone(), attr);
@@ -158,13 +166,13 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<
         let op_expression = match self.operand {
             Operand::_Attr(a) => {
                 let operand_attr = a.into_attr_name();
-                let operand_attr_name = format!("#{}", operand_attr);
-                let val = format!("{} {}", op, operand_attr_name);
+                let operand_attr_name = format!("#{operand_attr}");
+                let val = format!("{op} {operand_attr_name}");
                 names.insert(operand_attr_name, operand_attr);
                 val
             }
             Operand::Value(placeholder, value) => {
-                let val = format!("{} {}", op, placeholder);
+                let val = format!("{op} {placeholder}");
                 values.insert(placeholder, value);
                 val
             }
@@ -173,13 +181,13 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<
         match self.value {
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
-                let set_attr_name = format!("#{}", set_attr);
-                let expression = format!("{} = {} {}", attr_name, set_attr_name, op_expression);
+                let set_attr_name = format!("#{set_attr}");
+                let expression = format!("{attr_name} = {set_attr_name} {op_expression}");
                 names.insert(set_attr_name, set_attr);
                 SetOrRemove::Set(expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
-                let expression = format!("{} = {} {}", attr_name, placeholder, op_expression);
+                let expression = format!("{attr_name} = {placeholder} {op_expression}");
                 values.insert(placeholder, value);
                 SetOrRemove::Set(expression, names, values)
             }
@@ -222,6 +230,29 @@ mod tests {
             expected_names.insert("#name".to_owned(), "name".to_owned());
             expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
             assert_eq!(expression, "#name = :value0".to_owned(),);
+            assert_eq!(names, expected_names);
+            assert_eq!(values, expected_values);
+            return;
+        }
+        panic!("should not pass");
+    }
+
+    #[test]
+    fn test_set_if_not_exists() {
+        crate::value_id::reset_value_id();
+        if let SetOrRemove::Set(expression, names, values) = Set::new(UserAttrNames::Name)
+            .value("updated!!")
+            .if_not_exists()
+            .build()
+        {
+            let mut expected_names = std::collections::HashMap::new();
+            let mut expected_values = std::collections::HashMap::new();
+            expected_names.insert("#name".to_owned(), "name".to_owned());
+            expected_values.insert(":value0".to_owned(), "updated!!".into_attr());
+            assert_eq!(
+                expression,
+                "#name = if_not_exists(#name, :value0)".to_owned()
+            );
             assert_eq!(names, expected_names);
             assert_eq!(values, expected_values);
             return;

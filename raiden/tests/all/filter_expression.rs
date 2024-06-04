@@ -5,6 +5,7 @@ mod tests {
     use pretty_assertions::assert_eq;
     use raiden::*;
 
+    #[allow(dead_code)]
     #[derive(Raiden)]
     #[raiden(table_name = "user")]
     #[derive(Debug, Clone)]

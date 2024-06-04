@@ -76,7 +76,7 @@ impl fmt::Display for RaidenTransactionCancellationReasons {
             })
             .collect::<Vec<_>>()
             .join(", ");
-        f.write_fmt(format_args!("[{}]", reasons))
+        f.write_fmt(format_args!("[{reasons}]"))
     }
 }
 

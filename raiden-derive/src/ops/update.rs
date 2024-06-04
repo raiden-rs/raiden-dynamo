@@ -78,6 +78,19 @@ pub(crate) fn expand_update_item(
         }
     };
 
+    let api_call_token = super::api_call_token!("update_item");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(client, input).await },
+            quote! {},
+        )
+    };
+
     quote! {
         #[derive(Debug, Clone, PartialEq)]
         pub struct #item_output_name {
@@ -280,9 +293,7 @@ pub(crate) fn expand_update_item(
                 let res = policy.retry_if(move || {
                     let input = input.clone();
                     let client = client.clone();
-                    async {
-                        #builder_name::inner_run(client, input).await
-                    }
+                    async { #call_inner_run }
                 }, self.condition).await?;
 
 
@@ -303,11 +314,11 @@ pub(crate) fn expand_update_item(
             }
 
             async fn inner_run(
+                #inner_run_args
                 client: ::raiden::DynamoDbClient,
                 input: ::raiden::UpdateItemInput,
             ) -> Result<::raiden::UpdateItemOutput, ::raiden::RaidenError> {
-                let res = client.update_item(input).await?;
-                Ok(res)
+                Ok(#api_call_token?)
             }
         }
 

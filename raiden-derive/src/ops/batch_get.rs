@@ -109,6 +109,19 @@ pub(crate) fn expand_batch_get(
         }
     };
 
+    let api_call_token = super::api_call_token!("batch_get_item");
+    let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
+        (
+            quote! { #builder_name::inner_run(&self.table_name, &self.client, input).await? },
+            quote! { table_name: &str, },
+        )
+    } else {
+        (
+            quote! { #builder_name::inner_run(&self.client, input).await? },
+            quote! {},
+        )
+    };
+
     quote! {
         #client_trait
 
@@ -150,7 +163,7 @@ pub(crate) fn expand_batch_get(
                         .request_items
                         .insert(self.table_name.to_string(), item);
 
-                    let res = self.client.batch_get_item(input).await?;
+                    let res = #call_inner_run;
 
                     if self.keys.is_empty() {
                         unprocessed_retry -= 1;
@@ -189,6 +202,14 @@ pub(crate) fn expand_batch_get(
                         })
                     }
                 }
+            }
+
+            async fn inner_run(
+                #inner_run_args
+                client: &::raiden::DynamoDbClient,
+                input: ::raiden::BatchGetItemInput,
+            ) -> Result<::raiden::BatchGetItemOutput, ::raiden::RaidenError> {
+                Ok(#api_call_token?)
             }
         }
     }

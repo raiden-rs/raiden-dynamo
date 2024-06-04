@@ -89,6 +89,12 @@ impl WriteTx {
             .await
     }
 
+    #[cfg_attr(feature = "tracing", tracing::instrument(
+        level = tracing::Level::DEBUG,
+        name = "dynamodb::action",
+        skip_all,
+        fields(api = "transact_write_items")
+    ))]
     async fn inner_run(
         client: crate::DynamoDbClient,
         input: crate::TransactWriteItemsInput,
