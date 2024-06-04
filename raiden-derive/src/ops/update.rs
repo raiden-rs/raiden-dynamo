@@ -87,7 +87,7 @@ pub(crate) fn expand_update_item(
         struct #update_expression_name;
 
         impl #struct_name {
-            fn update_expression() -> #update_expression_name {
+            pub fn update_expression() -> #update_expression_name {
                 #update_expression_name
             }
         }
