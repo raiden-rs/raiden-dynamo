@@ -97,7 +97,7 @@ pub(crate) fn expand_update_item(
             // #(#output_fields)*
         }
 
-        struct #update_expression_name;
+        pub struct #update_expression_name;
 
         impl #struct_name {
             pub fn update_expression() -> #update_expression_name {
