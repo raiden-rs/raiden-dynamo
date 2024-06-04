@@ -149,3 +149,7 @@ We have a plan to resolve these issues in a future release.
 - [x] Automatic retrying: https://github.com/raiden-rs/raiden/issues/44
 - [x] Strict type checking of keys: https://github.com/raiden-rs/raiden/issues/26
 - [x] Exponential backoff handling
+
+## License
+
+This project is available under the terms of either the [Apache 2.0 license](./LICENSE-APACHE) or the [MIT license](./LICENSE-MIT).

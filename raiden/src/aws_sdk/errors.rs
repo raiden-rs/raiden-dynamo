@@ -39,15 +39,7 @@ where
                 } else {
                     format!("{err:?}")
                 }),
-                "AccessDeniedException"
-                | "IncompleteSignatureException"
-                | "LimitExceededException"
-                | "MissingAuthenticationTokenException"
-                | "ResourceInUseException"
-                | "ThrottlingException"
-                | "UnrecognizedClientException"
-                | "ServiceUnavailable"
-                | _ => RaidenError::Unknown(err.into_raw()),
+                _ => RaidenError::Unknown(err.into_raw()),
             }
         }
         _ => unreachable!(

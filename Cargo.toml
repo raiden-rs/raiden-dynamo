@@ -4,3 +4,6 @@ members = [
     "raiden-derive",
     "raiden",
 ]
+
+[workspace.package]
+license = "MIT OR Apache-2.0"

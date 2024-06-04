@@ -97,24 +97,24 @@ pub(crate) fn expand_update_item(
             // #(#output_fields)*
         }
 
-        struct #update_expression_name;
+        pub struct #update_expression_name;
 
         impl #struct_name {
-            fn update_expression() -> #update_expression_name {
+            pub fn update_expression() -> #update_expression_name {
                 #update_expression_name
             }
         }
 
         impl #update_expression_name {
-            fn set(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Set<#attr_enum_name> {
+            pub fn set(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Set<#attr_enum_name> {
                 ::raiden::update_expression::Set::new(attr)
             }
 
-            fn add(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Add<#attr_enum_name> {
+            pub fn add(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Add<#attr_enum_name> {
                 ::raiden::update_expression::Add::new(attr)
             }
 
-            fn delete(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Delete<#attr_enum_name> {
+            pub fn delete(&self, attr: #attr_enum_name) -> ::raiden::update_expression::Delete<#attr_enum_name> {
                 ::raiden::update_expression::Delete::new(attr)
             }
         }
