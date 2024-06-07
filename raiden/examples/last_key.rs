@@ -10,7 +10,51 @@ pub struct Test {
     #[raiden(partition_key)]
     pub id: String,
     pub ref_id: String,
-    pub long_text: String,
+    pub long_text: LongText,
+}
+
+#[derive(Clone, PartialEq)]
+pub struct LongText(String);
+
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+impl IntoAttribute for LongText {
+    fn into_attr(self) -> AttributeValue {
+        AttributeValue {
+            s: Some(self.0),
+            ..AttributeValue::default()
+        }
+    }
+}
+
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+impl FromAttribute for LongText {
+    fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
+        Ok(Self(value.unwrap().s.unwrap()))
+    }
+}
+
+#[cfg(feature = "aws-sdk")]
+impl raiden::IntoAttribute for LongText {
+    fn into_attr(self) -> raiden::AttributeValue {
+        raiden::AttributeValue::S(self.0)
+    }
+}
+
+#[cfg(feature = "aws-sdk")]
+impl raiden::FromAttribute for LongText {
+    fn from_attr(value: Option<raiden::AttributeValue>) -> Result<Self, ConversionError> {
+        if let Some(raiden::AttributeValue::S(v)) = value {
+            Ok(Self(v))
+        } else {
+            unimplemented!();
+        }
+    }
+}
+
+impl std::fmt::Debug for LongText {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Long long text")
+    }
 }
 
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]

@@ -10,12 +10,20 @@
 
 ## Examples
 
-### get_item example
+You can see more examples [here](https://github.com/raiden-rs/raiden-dynamo/tree/master/raiden/examples)
 
-``` rust
+### Generating client
+
+`raiden` uses `aws-sdk-dynamodb` or `rusoto_dynamodb` as internal client.
+
+#### With aws-sdk-dynamodb
+
+```rust
+use raiden::*;
+
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
-pub struct User {
+struct User {
     #[raiden(partition_key)]
     id: String,
     name: String,
@@ -23,14 +31,140 @@ pub struct User {
 
 #[tokio::main]
 async fn main() {
+    // Simply, specify the region.
+    let client = User::client(config::Region::from_static("us-east-1"));
+
+    // You can also specify aws-sdk-dynamodb client.
+    let client = {
+        let sdk_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+            .region(raiden::config::Region::from_static("us-east-1"))
+            .load()
+            .await;
+        let sdk_client = raiden::Client::new(&sdk_config);
+
+        User::client_with(sdk_client)
+    };
+
+    // Run operations...
+}
+```
+
+#### With rusoto_dynamodb
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    // Simply, specify the region.
     let client = User::client(Region::UsEast1);
+
+    // You can also specify rusoto_core client.
+    let client = User::client_with(Client::shared(), Region::UsEast1);
+
+    // Run operations...
+}
+```
+
+#### Set prefix/suffix to the table name
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = User::client(config::Region::from_static("us-east-1"))
+        .table_prefix("prefix")
+        .table_suffix("suffix");
+
+    // Print `prefix-user-suffix`
+    println!("{}", client.table_name());
+}
+```
+
+#### Configure retry strategy
+
+NOTE: Default retry strategy differs between aws-sdk and rusoto( or rusoto_rustls) 
+
+- `aws-sdk` ... Not retry in raiden by default. Because you can configure retry strategy using `aws_config`. Or you can configure your own strategy like next example.
+- `rusoto` or `rusoto_rustls` ... Enabled retrying in raiden by default. See detail [here](https://github.com/mythrnr/raiden-dynamo/blob/master/raiden/src/retry/mod.rs).
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+}
+
+// Force retry 3 times.
+struct MyRetryStrategy;
+
+impl RetryStrategy for MyRetryStrategy {
+    fn should_retry(&self, _error: &RaidenError) -> bool {
+        true
+    }
+
+    fn policy(&self) -> Policy {
+        Policy::Limit(3)
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    let client = User::client(config::Region::from_static("us-east-1"))
+        .with_retries(Box::new(MyRetryStrategy));
+
+    // Run operations...
+}
+```
+
+### Running operations
+
+#### get_item
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
     let _res = client.get("user_primary_key").run().await;
 }
 ```
 
-### put_item example
+#### put_item
 
-``` rust
+```rust
+use raiden::*;
+
 #[derive(Raiden)]
 #[raiden(table_name = "user")]
 pub struct User {
@@ -41,18 +175,20 @@ pub struct User {
 
 #[tokio::main]
 async fn main() {
-    let client = User::client(Region::UsEast1);
+    let client = /* generate client */;
     let input = User::put_item_builder()
         .id("foo".to_owned())
         .name("bokuweb".to_owned())
         .build();
-    let res = client.put(&input).run().await;
+    let _res = client.put(&input).run().await;
 }
 ```
 
-### batch_get_item example
+#### batch_get_item
 
-``` rust
+```rust
+use raiden::*;
+
 #[derive(Raiden, Debug, PartialEq)]
 pub struct User {
     #[raiden(partition_key)]
@@ -63,7 +199,7 @@ pub struct User {
 
 #[tokio::main]
 async fn main() {
-    let client = User::client(Region::UsEast1);
+    let client = /* generate client */;
     let keys: Vec<(&str, usize)> = vec![("Alice", 1992), ("Bob", 1976), ("Charlie", 2002)];
     let res = client.batch_get(keys).run().await;
 }
@@ -89,20 +225,12 @@ tracing = "0.1"
 
 ### Requirements
 
-- Rust
+- Rust (1.76.0+)
 - Deno (1.13.2+)
 - GNU Make
 - Docker Engine
 
-### Setup
-
-```
-make dynamo
-```
-
-This starts up DynamoDB on Docker container, and then arranges test fixtures.
-
-### Test
+### Run tests
 
 ```
 make test
@@ -110,9 +238,11 @@ make test
 
 NOTE: Don't recommend to use `cargo test` because our test suite doesn't support running tests in parallel. Use `cargo test -- --test-threads=1` instead of it.
 
-### Example
+### Run examples
 
 ```
+make dynamo
+
 AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy cargo run --example EXAMPLE_NAME
 ```
 
