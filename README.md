@@ -16,7 +16,7 @@ You can see more examples [here](https://github.com/raiden-rs/raiden-dynamo/tree
 
 `raiden` uses `aws-sdk-dynamodb` or `rusoto_dynamodb` as internal client.
 
-#### With aws-sdk-dynamodb
+#### With aws-sdk-dynamodb (`aws-sdk` is enabled)
 
 ```rust
 use raiden::*;
@@ -49,7 +49,7 @@ async fn main() {
 }
 ```
 
-#### With rusoto_dynamodb
+#### With rusoto_dynamodb ( `rusoto` or `rusoto_rustls` or `rustls` is enabled)
 
 ```rust
 use raiden::*;
@@ -90,8 +90,8 @@ struct User {
 #[tokio::main]
 async fn main() {
     let client = User::client(config::Region::from_static("us-east-1"))
-        .table_prefix("prefix")
-        .table_suffix("suffix");
+        .table_prefix("prefix-")
+        .table_suffix("-suffix");
 
     // Print `prefix-user-suffix`
     println!("{}", client.table_name());
@@ -100,7 +100,7 @@ async fn main() {
 
 #### Configure retry strategy
 
-NOTE: Default retry strategy differs between aws-sdk and rusoto( or rusoto_rustls) 
+NOTE: Default retry strategy differs between `aws-sdk` and `rusoto` ( or `rusoto_rustls` )
 
 - `aws-sdk` ... Not retry in raiden by default. Because you can configure retry strategy using `aws_config`. Or you can configure your own strategy like next example.
 - `rusoto` or `rusoto_rustls` ... Enabled retrying in raiden by default. See detail [here](https://github.com/mythrnr/raiden-dynamo/blob/master/raiden/src/retry/mod.rs).
