@@ -18,7 +18,10 @@ export async function createTableAndPutItems(
   client: DynamoDBClient,
   { table, items }: CreateAndPut,
 ) {
+  console.group()
+
   await createTable(client, table);
+  console.log("table created");
 
   // NOTE: Running `put` operations concurrently with `Promise.all` would lead to running out of write buffer.
   for (const item of items) {
@@ -27,6 +30,9 @@ export async function createTableAndPutItems(
       Item: item,
     });
   }
+
+  console.log("items are put");
+  console.groupEnd();
 }
 
 export function getCredFromEnv(): {
