@@ -18,7 +18,7 @@ export async function createTableAndPutItems(
   client: DynamoDBClient,
   { table, items }: CreateAndPut,
 ) {
-  console.group()
+  console.group();
 
   await createTable(client, table);
   console.log("table created");
