@@ -3,7 +3,7 @@ export AWS_SECRET_ACCESS_KEY := dummy
 
 .PHONY: dynamo
 dynamo:
-	docker compose down --volumes
+	docker compose down --rmi all --volumes
 	docker compose up -d --wait dynamodb
 	docker compose up aws-cli
 	deno run --allow-net=localhost:8000 --allow-env --no-check ./setup/setup.ts
