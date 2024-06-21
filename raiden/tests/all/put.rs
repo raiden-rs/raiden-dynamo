@@ -26,84 +26,73 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_user_with_attribute_not_exists_condition_input() {
-        let client = User::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
+    #[tokio::test]
+    async fn test_put_user_with_attribute_not_exists_condition_input() {
+        let client = crate::all::create_client_from_struct!(User);
         let user = UserPutItemInput {
             id: "mock_id".to_owned(),
             name: "bokuweb".to_owned(),
         };
         let cond = User::condition().attr_not_exists(User::name());
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         let input = client.put(user).condition(cond).input;
+        #[cfg(feature = "aws-sdk")]
+        let input = client.put(user).condition(cond).builder.build().unwrap();
+
         let mut attribute_names: std::collections::HashMap<String, String> =
             std::collections::HashMap::new();
 
         let mut item: std::collections::HashMap<String, raiden::AttributeValue> =
             std::collections::HashMap::new();
 
-        item.insert(
-            "name".to_owned(),
-            raiden::AttributeValue {
-                s: Some("bokuweb".to_owned()),
-                ..raiden::AttributeValue::default()
-            },
-        );
-        item.insert(
-            "id".to_owned(),
-            raiden::AttributeValue {
-                s: Some("mock_id".to_owned()),
-                ..raiden::AttributeValue::default()
-            },
-        );
+        let attr_value: raiden::AttributeValue = "bokuweb".into_attr();
+        item.insert("name".to_owned(), attr_value);
+        let attr_value: raiden::AttributeValue = "mock_id".into_attr();
+        item.insert("id".to_owned(), attr_value);
+
         attribute_names.insert("#name".to_owned(), "name".to_owned());
-        assert_eq!(
-            input,
-            ::raiden::PutItemInput {
-                condition_expression: Some("attribute_not_exists(#name)".to_owned()),
-                expression_attribute_names: Some(attribute_names),
-                expression_attribute_values: None,
-                item,
-                table_name: "user".to_owned(),
-                ..::raiden::PutItemInput::default()
-            },
-        );
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        let expected = ::raiden::PutItemInput {
+            condition_expression: Some("attribute_not_exists(#name)".to_owned()),
+            expression_attribute_names: Some(attribute_names),
+            expression_attribute_values: None,
+            item,
+            table_name: "user".to_owned(),
+            ..::raiden::PutItemInput::default()
+        };
+
+        #[cfg(feature = "aws-sdk")]
+        let expected = ::raiden::operation::put_item::PutItemInput::builder()
+            .condition_expression("attribute_not_exists(#name)")
+            .set_expression_attribute_names(Some(attribute_names))
+            .set_item(Some(item))
+            .table_name("user")
+            .build()
+            .unwrap();
+
+        assert_eq!(input, expected);
     }
 
-    #[test]
-    fn test_put_user() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "mock_id".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let _res = client.put(user).run().await;
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "mock_id".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let _res = client.put(user).run().await;
     }
 
-    #[test]
-    fn test_put_user_with_builder() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = User::put_item_builder()
-                .id("mock_id".to_owned())
-                .name("bokuweb".to_owned())
-                .build();
-            let _res = client.put(user).run().await;
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_builder() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = User::put_item_builder()
+            .id("mock_id".to_owned())
+            .name("bokuweb".to_owned())
+            .build();
+        let _res = client.put(user).run().await;
     }
 
     #[derive(Raiden, Debug, Clone)]
@@ -114,111 +103,78 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_user_eq_op_condition_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().value("bokuweb").eq_attr(User::name());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user_eq_op_condition_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().value("bokuweb").eq_attr(User::name());
+        let res = client.put(user).condition(cond).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().value("bokuweb_").eq_attr(User::name());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(
-                Err(::raiden::RaidenError::ConditionalCheckFailed(
-                    "The conditional request failed".to_owned()
-                )),
-                res
-            );
+    #[tokio::test]
+    async fn test_put_user_eq_op_condition_expression_with_not_exist_name() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().value("bokuweb_").eq_attr(User::name());
+        let res = client.put(user).condition(cond).run().await;
+        assert!(res.is_err());
+
+        if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+            assert!(msg.contains("The conditional request failed"));
+        } else {
+            panic!("err should be RaidenError::ConditionalCheckFailed");
         }
-        rt.block_on(example());
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_id_not_exists_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().attr_not_exists(User::id());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(
-                Err(::raiden::RaidenError::ConditionalCheckFailed(
-                    "The conditional request failed".to_owned()
-                )),
-                res
-            );
+    #[tokio::test]
+    async fn test_put_user_id_not_exists_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().attr_not_exists(User::id());
+        let res = client.put(user).condition(cond).run().await;
+        assert!(res.is_err());
+
+        if let RaidenError::ConditionalCheckFailed(msg) = res.unwrap_err() {
+            assert!(msg.contains("The conditional request failed"));
+        } else {
+            panic!("err should be RaidenError::ConditionalCheckFailed");
         }
-        rt.block_on(example());
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_id_exists_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let user = UserPutItemInput {
-                id: "id0".to_owned(),
-                name: "bokuweb".to_owned(),
-            };
-            let cond = User::condition().attr_exists(User::id());
-            let res = client.put(user).condition(cond).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user_id_exists_expression() {
+        let client = crate::all::create_client_from_struct!(User);
+        let user = UserPutItemInput {
+            id: "id0".to_owned(),
+            name: "bokuweb".to_owned(),
+        };
+        let cond = User::condition().attr_exists(User::id());
+        let res = client.put(user).condition(cond).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
-    #[test]
     #[allow(dead_code)]
-    fn test_put_user_with_uuid() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithUuid::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let item = UserWithUuid::put_item_builder()
-                .name("bokuweb".to_owned())
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_uuid() {
+        let client = crate::all::create_client_from_struct!(UserWithUuid);
+        let item = UserWithUuid::put_item_builder()
+            .name("bokuweb".to_owned())
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -233,22 +189,15 @@ mod tests {
         nums: Vec<usize>,
     }
 
-    #[test]
-    fn test_put_user_with_number_vec() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserVecTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let item = UserVecTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(vec![0, 1, 2])
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_user_with_number_vec() {
+        let client = crate::all::create_client_from_struct!(UserVecTest);
+        let item = UserVecTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(vec![0, 1, 2])
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -263,25 +212,18 @@ mod tests {
         nums: std::collections::HashSet<usize>,
     }
 
-    #[test]
-    fn test_put_user_with_number_set() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserSetTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
-            nums.insert(1);
+    #[tokio::test]
+    async fn test_put_user_with_number_set() {
+        let client = crate::all::create_client_from_struct!(UserSetTest);
+        let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        nums.insert(1);
 
-            let item = UserSetTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(nums)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+        let item = UserSetTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(nums)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -311,25 +253,18 @@ mod tests {
         nums: std::collections::HashSet<Custom>,
     }
 
-    #[test]
-    fn test_put_user_with_user_defined_set() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserSetTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
-            nums.insert(1);
+    #[tokio::test]
+    async fn test_put_user_with_user_defined_set() {
+        let client = crate::all::create_client_from_struct!(UserSetTest);
+        let mut nums: std::collections::HashSet<usize> = std::collections::HashSet::new();
+        nums.insert(1);
 
-            let item = UserSetTest::put_item_builder()
-                .name("bokuweb".to_owned())
-                .nums(nums)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+        let item = UserSetTest::put_item_builder()
+            .name("bokuweb".to_owned())
+            .nums(nums)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden)]
@@ -343,21 +278,14 @@ mod tests {
         set: std::collections::HashSet<String>,
     }
 
-    #[test]
-    fn test_put_user_with_empty_set() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserEmptySetTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+    #[tokio::test]
+    async fn test_put_user_with_empty_set() {
+        let client = crate::all::create_client_from_struct!(UserEmptySetTest);
+        let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let item = UserEmptySetTest::put_item_builder().set(set).build();
+        let res = client.put(item).run().await;
 
-            let item = UserEmptySetTest::put_item_builder().set(set).build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden, Debug, Clone)]
@@ -369,21 +297,14 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_put_with_empty_string() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = EmptyStringTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let item = EmptyStringTestData0::put_item_builder()
-                .name("".to_owned())
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_with_empty_string() {
+        let client = crate::all::create_client_from_struct!(EmptyStringTestData0);
+        let item = EmptyStringTestData0::put_item_builder()
+            .name("".to_owned())
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -394,31 +315,24 @@ mod tests {
         sset: std::collections::HashSet<String>,
     }
 
-    #[test]
-    fn test_put_with_empty_sset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = EmptyPutTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let set: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
-            let item = EmptyPutTestData0::put_item_builder()
-                .id("testid".to_owned())
-                .sset(set)
-                .build();
-            let res = client.put(item).run().await;
-            assert_eq!(res.is_ok(), true);
-            let res = client.get(res.unwrap().item.id).run().await;
-            assert_eq!(
-                res.unwrap().item,
-                EmptyPutTestData0 {
-                    id: "testid".to_owned(),
-                    sset: expected_set
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_put_with_empty_sset() {
+        let client = crate::all::create_client_from_struct!(EmptyPutTestData0);
+        let set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let expected_set: std::collections::HashSet<String> = std::collections::HashSet::new();
+        let item = EmptyPutTestData0::put_item_builder()
+            .id("testid".to_owned())
+            .sset(set)
+            .build();
+        let res = client.put(item).run().await;
+        assert_eq!(res.is_ok(), true);
+        let res = client.get(res.unwrap().item.id).run().await;
+        assert_eq!(
+            res.unwrap().item,
+            EmptyPutTestData0 {
+                id: "testid".to_owned(),
+                sset: expected_set
+            }
+        );
     }
 }

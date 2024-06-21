@@ -4,9 +4,8 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug, Clone)]
 #[raiden(table_name = "QueryTestData0")]
-#[derive(Debug, Clone)]
 #[allow(dead_code)]
 pub struct Test {
     #[raiden(partition_key)]
@@ -14,6 +13,33 @@ pub struct Test {
     name: String,
     #[raiden(sort_key)]
     year: usize,
+}
+
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+async fn example() {
+    let client = Test::client(raiden::Region::Custom {
+        endpoint: "http://localhost:8000".into(),
+        name: "ap-northeast-1".into(),
+    });
+    let res = client.delete("id1", 2003_usize).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
+}
+
+#[cfg(feature = "aws-sdk")]
+async fn example() {
+    let sdk_config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+        .endpoint_url("http://localhost:8000")
+        .region(raiden::config::Region::from_static("ap-northeast-1"))
+        .load()
+        .await;
+    let sdk_client = raiden::Client::new(&sdk_config);
+    let client = Test::client_with(sdk_client);
+    let res = client.delete("id1", 2003_usize).run().await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {
@@ -26,15 +52,5 @@ fn main() {
         .with_timer(UtcTime::rfc_3339())
         .init();
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    async fn example() {
-        let client = Test::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-
-        let res = client.delete("id1", 2003_usize).run().await;
-        dbg!(&res);
-    }
-    rt.block_on(example());
+    tokio::runtime::Runtime::new().unwrap().block_on(example());
 }

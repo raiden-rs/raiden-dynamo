@@ -16,7 +16,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: 1.67.0
+          toolchain: 1.76.0
           override: true
       - name: Install deps
         run: sudo apt-get install libssl-dev
@@ -47,10 +47,5 @@ jobs:
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-      - name: Setup DynamoDB Local
-        uses: rrainn/dynamodb-action@v2.0.0
-        with:
-          port: 8000
-          cors: "*"
       - name: test
-        run: AWS_ACCESS_KEY_ID=dummy AWS_SECRET_ACCESS_KEY=dummy make test
+        run: make test

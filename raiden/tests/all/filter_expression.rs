@@ -30,7 +30,7 @@ mod tests {
         let mut expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), "bokuweb".into_attr());
-        assert_eq!(filter_expression, "#name = :value0".to_owned(),);
+        assert_eq!(filter_expression, "#name = :value0".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -46,7 +46,7 @@ mod tests {
         let mut expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), 7.into_attr());
-        assert_eq!(filter_expression, "size(#name) = :value0".to_owned(),);
+        assert_eq!(filter_expression, "size(#name) = :value0".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -63,7 +63,7 @@ mod tests {
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), "raiden".into_attr());
 
-        assert_eq!(filter_expression, "#name <> :value0".to_owned(),);
+        assert_eq!(filter_expression, "#name <> :value0".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -158,7 +158,7 @@ mod tests {
         let mut expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), "bokuweb".into_attr());
-        assert_eq!(filter_expression, "begins_with(#name, :value0)".to_owned(),);
+        assert_eq!(filter_expression, "begins_with(#name, :value0)".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -188,7 +188,7 @@ mod tests {
         expected_names.insert("#name".to_owned(), "name".to_owned());
         let expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
-        assert_eq!(filter_expression, "attribute_exists(#name)".to_owned(),);
+        assert_eq!(filter_expression, "attribute_exists(#name)".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -204,7 +204,7 @@ mod tests {
         expected_names.insert("#name".to_owned(), "name".to_owned());
         let expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
-        assert_eq!(filter_expression, "attribute_not_exists(#name)".to_owned(),);
+        assert_eq!(filter_expression, "attribute_not_exists(#name)".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }
@@ -241,7 +241,7 @@ mod tests {
         let mut expected_values: std::collections::HashMap<String, AttributeValue> =
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), "boku".into_attr());
-        assert_eq!(filter_expression, "contains(#name, :value0)".to_owned(),);
+        assert_eq!(filter_expression, "contains(#name, :value0)".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }

@@ -33,7 +33,12 @@ impl<T: super::IntoAttrName> UpdateDeleteExpressionBuilder for DeleteExpressionF
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58
-        if value.null.is_some() || value == AttributeValue::default() {
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        let is_null = value.null.is_some();
+        #[cfg(feature = "aws-sdk")]
+        let is_null = value.is_null();
+
+        if is_null || crate::is_attr_value_empty(&value) {
             return ("".to_owned(), names, values);
         }
 

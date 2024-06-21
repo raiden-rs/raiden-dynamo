@@ -8,6 +8,13 @@ pub fn expand_condition_builder(
     let condition_name = format_ident!("{}Condition", struct_name);
     let condition_token_name = format_ident!("{}ConditionToken", struct_name);
     let wait_attr_op_name = format_ident!("{}LeftAttrAndWaitOp", struct_name);
+    let attribute_value_path = if cfg!(feature = "rusoto") {
+        quote! { ::raiden::AttributeValue }
+    } else if cfg!(feature = "aws-sdk") {
+        quote! { ::raiden::aws_sdk::types::AttributeValue }
+    } else {
+        unreachable!();
+    };
 
     quote! {
 
@@ -96,7 +103,7 @@ pub fn expand_condition_builder(
         pub struct #wait_attr_op_name {
             not: bool,
             attr_or_placeholder: ::raiden::AttrOrPlaceholder,
-            attr_value: Option<::raiden::AttributeValue>
+            attr_value: Option<#attribute_value_path>,
         }
 
         impl #wait_attr_op_name {

@@ -33,6 +33,8 @@ pub(crate) fn expand_delete_item(
                     #builder_name {
                         client: &self.client,
                         input,
+                        policy: self.retry_condition.strategy.policy(),
+                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -54,6 +56,8 @@ pub(crate) fn expand_delete_item(
                     #builder_name {
                         client: &self.client,
                         input,
+                        policy: self.retry_condition.strategy.policy(),
+                        condition: &self.retry_condition,
                     }
                 }
             }
@@ -63,12 +67,12 @@ pub(crate) fn expand_delete_item(
     let api_call_token = super::api_call_token!("delete_item");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.input.table_name.clone(), &self.client, self.input).await? },
-            quote! { table_name: &str, },
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input).await },
+            quote! { table_name: String, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, self.input).await? },
+            quote! { #builder_name::inner_run(client, input).await },
             quote! {},
         )
     };
@@ -79,6 +83,8 @@ pub(crate) fn expand_delete_item(
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::DeleteItemInput,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
@@ -100,13 +106,21 @@ pub(crate) fn expand_delete_item(
             }
 
             pub async fn run(self) -> Result<(), ::raiden::RaidenError> {
-                #call_inner_run;
+                let policy: ::raiden::RetryPolicy = self.policy.into();
+                let client = self.client;
+                let input = self.input;
+                policy.retry_if(move || {
+                    let client = client.clone();
+                    let input = input.clone();
+                    async { #call_inner_run }
+                }, self.condition).await?;
+
                 Ok(())
             }
 
             async fn inner_run(
                 #inner_run_args
-                client: &::raiden::DynamoDbClient,
+                client: ::raiden::DynamoDbClient,
                 input: ::raiden::DeleteItemInput,
             ) -> Result<(), ::raiden::RaidenError> {
                 #api_call_token?;

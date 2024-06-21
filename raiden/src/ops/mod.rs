@@ -4,8 +4,7 @@ pub mod get;
 pub mod put;
 pub mod query;
 pub mod scan;
-pub mod update;
-
 pub mod transact_write;
+pub mod update;
 
 pub use transact_write::*;

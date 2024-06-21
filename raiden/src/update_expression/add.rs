@@ -33,7 +33,12 @@ impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58
-        if value.null.is_some() || value == AttributeValue::default() {
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        let is_null = value.null.is_some();
+        #[cfg(feature = "aws-sdk")]
+        let is_null = value.is_null();
+
+        if is_null || crate::is_attr_value_empty(&value) {
             return ("".to_owned(), names, values);
         }
 
@@ -74,7 +79,7 @@ mod tests {
         let mut expected_values = std::collections::HashMap::new();
         expected_names.insert("#age".to_owned(), "age".to_owned());
         expected_values.insert(":value0".to_owned(), 42.into_attr());
-        assert_eq!(expression, "#age :value0".to_owned(),);
+        assert_eq!(expression, "#age :value0".to_owned());
         assert_eq!(names, expected_names);
         assert_eq!(values, expected_values);
     }
