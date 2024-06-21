@@ -42,12 +42,12 @@ pub(crate) fn expand_attr_to_item(
                 #ident: {
                     #item
                     if item.is_none() {
-                        #ty::default()
+                        Default::default()
                     } else {
                         let item = item.unwrap();
                         // If null is true, use default value.
                         if let Some(true) = item.null {
-                            #ty::default()
+                            Default::default()
                         } else {
                             let converted = ::raiden::FromAttribute::from_attr(Some(item));
                             if converted.is_err() {
