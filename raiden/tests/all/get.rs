@@ -394,6 +394,8 @@ mod tests {
         id: String,
         #[raiden(use_default)]
         flag: bool,
+        #[raiden(use_default)]
+        type_param: std::collections::BTreeSet<usize>,
     }
 
     #[tokio::test]
@@ -410,6 +412,7 @@ mod tests {
                 item: UseDefaultForNull {
                     id: "id0".to_owned(),
                     flag: false,
+                    type_param: Default::default(),
                 },
                 consumed_capacity: None,
             }
