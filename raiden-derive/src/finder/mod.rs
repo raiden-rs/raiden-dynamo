@@ -105,28 +105,29 @@ pub(crate) fn find_partition_key_field(fields: &syn::FieldsNamed) -> Option<syn:
     let fields: Vec<syn::Field> = fields
         .named
         .iter()
+        .filter(|&f| include_unary_attr(&f.attrs, "partition_key"))
         .cloned()
-        .filter(|f| include_unary_attr(&f.attrs, "partition_key"))
         .collect();
 
     if fields.len() > 1 {
         panic!("partition key should be only one.")
     }
-    fields.get(0).cloned()
+    fields.first().cloned()
 }
 
 pub(crate) fn find_sort_key_field(fields: &syn::FieldsNamed) -> Option<syn::Field> {
     let fields: Vec<syn::Field> = fields
         .named
         .iter()
-        .cloned()
         .filter(|f| include_unary_attr(&f.attrs, "sort_key"))
+        .cloned()
         .collect();
 
     if fields.len() > 1 {
         panic!("sort key should be only one.")
     }
-    fields.get(0).cloned()
+
+    fields.first().cloned()
 }
 
 pub(crate) fn is_option(ty: &syn::Type) -> bool {
