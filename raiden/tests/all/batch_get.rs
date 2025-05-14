@@ -77,7 +77,7 @@ mod tests {
                 name: "ap-northeast-1".into(),
             });
 
-            let keys: Vec<String> = (0..101).into_iter().map(|n| format!("id{n}")).collect();
+            let keys: Vec<String> = (0..101).map(|n| format!("id{n}")).collect();
             let expected_items = (0..101)
                 .map(|n| BatchTest0 {
                     id: format!("id{n}"),
@@ -172,7 +172,6 @@ mod tests {
             });
 
             let keys: Vec<(String, usize)> = (0..250)
-                .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)
@@ -223,7 +222,6 @@ mod tests {
             });
 
             let keys: Vec<(String, usize)> = (0..250)
-                .into_iter()
                 .map(|n| (format!("id{n}"), (2000 + n) as usize))
                 .collect();
             let expected_items = (0..250)

@@ -63,7 +63,7 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilledOrWaitOperator<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         if self.not {
             (
-                format!("NOT ({})", self.cond.to_string()),
+                format!("NOT ({})", self.cond),
                 self.cond.to_attr_names(),
                 self.cond.into_attr_values(),
             )
@@ -101,25 +101,29 @@ impl<T: Clone> ConditionBuilder<T> for ConditionFilled<T> {
     }
 }
 
-impl std::string::ToString for ConditionFunctionExpression {
-    fn to_string(&self) -> String {
-        use crypto::digest::Digest;
-        use crypto::md5::Md5;
+impl std::fmt::Display for ConditionFunctionExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use md5::{Digest, Md5};
+
         match self {
-            Self::AttributeExists(path) => format!("attribute_exists(#{path})"),
-            Self::AttributeNotExists(path) => format!("attribute_not_exists(#{path})"),
+            Self::AttributeExists(path) => write!(f, "attribute_exists(#{path})"),
+            Self::AttributeNotExists(path) => write!(f, "attribute_not_exists(#{path})"),
             Self::AttributeType(path, attribute_type) => {
-                format!("attribute_type(#{path}, :type{attribute_type})")
+                write!(f, "attribute_type(#{path}, :type{attribute_type})")
             }
             Self::BeginsWith(path, s) => {
-                let mut md5 = Md5::new();
-                md5.input(s.as_bytes());
-                format!("begins_with(#{}, :begins_with_{})", path, md5.result_str())
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
+                write!(
+                    f,
+                    "begins_with(#{path}, :begins_with_{:x})",
+                    hasher.finalize()
+                )
             }
             Self::Contains(path, s) => {
-                let mut md5 = Md5::new();
-                md5.input(s.as_bytes());
-                format!("contains(#{}, :contains_{})", path, md5.result_str())
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
+                write!(f, "contains(#{path}, :contains_{:x})", hasher.finalize())
             }
             Self::Size(_path) => {
                 unimplemented!("Size condition expression is not implemented yet.")
@@ -147,8 +151,8 @@ impl super::ToAttrNames for ConditionFunctionExpression {
 
 impl super::IntoAttrValues for ConditionFunctionExpression {
     fn into_attr_values(self) -> super::AttributeValues {
-        use crypto::digest::Digest;
-        use crypto::md5::Md5;
+        use md5::{Digest, Md5};
+
         let mut m: super::AttributeValues = std::collections::HashMap::new();
         match self {
             Self::AttributeType(_path, t) => {
@@ -161,10 +165,10 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 );
             }
             Self::BeginsWith(_path, s) => {
-                let mut md5 = Md5::new();
-                md5.input(s.as_bytes());
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
                 m.insert(
-                    format!(":begins_with_{}", md5.result_str()),
+                    format!(":begins_with_{:x}", hasher.finalize()),
                     super::AttributeValue {
                         s: Some(s),
                         ..super::AttributeValue::default()
@@ -172,10 +176,10 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 );
             }
             Self::Contains(_path, s) => {
-                let mut md5 = Md5::new();
-                md5.input(s.as_bytes());
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
                 m.insert(
-                    format!(":contains_{}", md5.result_str()),
+                    format!(":contains_{:x}", hasher.finalize()),
                     super::AttributeValue {
                         s: Some(s),
                         ..super::AttributeValue::default()
@@ -188,10 +192,10 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
     }
 }
 
-impl std::string::ToString for ConditionComparisonExpression {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for ConditionComparisonExpression {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Eq(left, _, right, _) => format!("{} = {}", left.to_string(), right.to_string()),
+            Self::Eq(left, _, right, _) => write!(f, "{left} = {right}"),
         }
     }
 }
@@ -237,11 +241,11 @@ pub enum AttrOrPlaceholder {
     Placeholder(String),
 }
 
-impl std::string::ToString for AttrOrPlaceholder {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for AttrOrPlaceholder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Placeholder(p) => format!(":{p}"),
-            Self::Attr(a) => format!("#{a}"),
+            Self::Placeholder(p) => write!(f, ":{p}"),
+            Self::Attr(a) => write!(f, "#{a}"),
         }
     }
 }
@@ -269,11 +273,11 @@ pub enum Cond {
     Cmp(ConditionComparisonExpression),
 }
 
-impl std::string::ToString for Cond {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for Cond {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Func(func) => func.to_string(),
-            Self::Cmp(cmp) => cmp.to_string(),
+            Self::Func(func) => write!(f, "{func}"),
+            Self::Cmp(cmp) => write!(f, "{cmp}"),
         }
     }
 }

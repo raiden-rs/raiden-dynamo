@@ -1,9 +1,11 @@
+export AWS_ACCESS_KEY_ID = awsdummy
+export AWS_SECRET_ACCESS_KEY = awsdummy
+
 .PHONY: dynamo
 dynamo:
-	- docker rm -f dynamodb
-	- docker stop dynamodb
-	docker run --rm -d --name dynamodb -p 8000:8000 amazon/dynamodb-local:latest
-	deno run --allow-net=localhost:8000 --allow-env --no-check ./setup/setup.ts
+	- docker compose down --volumes
+	docker compose up -d --wait
+	deno run --allow-net=localhost:8000 --allow-env --allow-read --allow-sys --no-check ./setup/setup.ts
 
 .PHONY: test
 test:
@@ -18,7 +20,7 @@ lint:
 
 .PHONY: check-deps
 check-deps:
-	cargo machete || echo
+	cargo machete
 	cargo +nightly udeps --all-targets
 	cargo +nightly udeps --all-targets --no-default-features --features rustls
 	cargo +nightly udeps --all-targets --features tracing
