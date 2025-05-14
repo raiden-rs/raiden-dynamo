@@ -116,18 +116,14 @@ impl std::fmt::Display for ConditionFunctionExpression {
                 hasher.update(s.as_bytes());
                 write!(
                     f,
-                    "begins_with(#{path}, :begins_with_{})",
-                    hex::encode(hasher.finalize())
+                    "begins_with(#{path}, :begins_with_{:x})",
+                    hasher.finalize()
                 )
             }
             Self::Contains(path, s) => {
                 let mut hasher = Md5::new();
                 hasher.update(s.as_bytes());
-                write!(
-                    f,
-                    "contains(#{path}, :contains_{})",
-                    hex::encode(hasher.finalize())
-                )
+                write!(f, "contains(#{path}, :contains_{:x})", hasher.finalize())
             }
             Self::Size(_path) => {
                 unimplemented!("Size condition expression is not implemented yet.")
@@ -172,7 +168,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 let mut hasher = Md5::new();
                 hasher.update(s.as_bytes());
                 m.insert(
-                    format!(":begins_with_{}", hex::encode(hasher.finalize())),
+                    format!(":begins_with_{:x}", hasher.finalize()),
                     super::AttributeValue {
                         s: Some(s),
                         ..super::AttributeValue::default()
@@ -183,7 +179,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                 let mut hasher = Md5::new();
                 hasher.update(s.as_bytes());
                 m.insert(
-                    format!(":contains_{}", hex::encode(hasher.finalize())),
+                    format!(":contains_{:x}", hasher.finalize()),
                     super::AttributeValue {
                         s: Some(s),
                         ..super::AttributeValue::default()
