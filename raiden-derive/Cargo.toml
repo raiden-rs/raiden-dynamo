@@ -16,7 +16,7 @@ convert_case = "^0.8.0"
 ident_case = "^1.0.1"
 proc-macro2 = "^1.0.95"
 quote = "^1.0.40"
-syn = "^2.0.101"
+syn = "^2.0.104"
 
 [features]
 default = []

@@ -48,7 +48,9 @@ pub(crate) fn expand_batch_get(
             table_name: self.table_name(),
             keys: key_attrs,
             attribute_names: Some(names),
-            projection_expression
+            projection_expression,
+            policy: self.retry_condition.strategy.policy(),
+            condition: &self.retry_condition,
         }
     };
 
@@ -112,12 +114,12 @@ pub(crate) fn expand_batch_get(
     let api_call_token = super::api_call_token!("batch_get_item");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.table_name, &self.client, input).await? },
-            quote! { table_name: &str, },
+            quote! { #builder_name::inner_run(table_name, client, input).await },
+            quote! { table_name: String, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, input).await? },
+            quote! { #builder_name::inner_run(client, input).await },
             quote! {},
         )
     };
@@ -130,13 +132,17 @@ pub(crate) fn expand_batch_get(
             pub table_name: String,
             pub keys: #builder_keys_type,
             pub attribute_names: Option<::raiden::AttributeNames>,
-            pub projection_expression: Option<String>
+            pub projection_expression: Option<String>,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl<'a> #builder_name<'a> {
 
             #![allow(clippy::field_reassign_with_default)]
-            pub async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
+            pub async fn run(self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
+                let Self { client, table_name, mut keys, attribute_names, projection_expression, policy, condition } = self;
+                let policy: ::raiden::RetryPolicy = policy.into();
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
 
@@ -146,32 +152,41 @@ pub(crate) fn expand_batch_get(
                     let mut input = ::raiden::BatchGetItemInput::default();
                     let mut item = ::raiden::KeysAndAttributes::default();
                     item.keys = Default::default();
-                    item.expression_attribute_names = self.attribute_names.clone();
-                    item.projection_expression = self.projection_expression.clone();
+                    item.expression_attribute_names = attribute_names.clone();
+                    item.projection_expression = projection_expression.clone();
 
                     for key in unprocessed_keys.keys.iter() {
                         item.keys.push(key.clone());
                     }
 
                     if unprocessed_keys.keys.len() < 100 {
-                        let keys = self.keys.drain(0..std::cmp::min(100 - unprocessed_keys.keys.len(), self.keys.len()));
+                        let keys = keys.drain(0..std::cmp::min(100 - unprocessed_keys.keys.len(), keys.len()));
                         #convert_to_external_proc
                     }
 
                     input.request_items = Default::default();
                     input
                         .request_items
-                        .insert(self.table_name.to_string(), item);
+                        .insert(table_name.to_string(), item);
 
-                    let res = #call_inner_run;
+                    let res = {
+                        let t = table_name.clone();
+                        let c = client.clone();
+                        let i = input.clone();
+                        policy.retry_if(move || {
+                            let (table_name, client, input)
+                                = (t.clone(), c.clone(), i.clone());
+                            async move { #call_inner_run }
+                        }, condition).await?
+                    };
 
-                    if self.keys.is_empty() {
+                    if keys.is_empty() {
                         unprocessed_retry -= 1;
                     }
 
                     if let Some(res_responses) = res.responses {
                         let mut res_responses = res_responses;
-                        if let Some(res_items) = (&mut res_responses).remove(&self.table_name) {
+                        if let Some(res_items) = (&mut res_responses).remove(&table_name) {
                             for res_item in res_items.into_iter() {
                                 let mut res_item = res_item;
                                 items.push(#struct_name {
@@ -179,7 +194,7 @@ pub(crate) fn expand_batch_get(
                                 })
                             }
                         } else {
-                            return Err(::raiden::RaidenError::ResourceNotFound(format!("'{}' table not found or not active", &self.table_name)));
+                            return Err(::raiden::RaidenError::ResourceNotFound(format!("'{}' table not found or not active", &table_name)));
                         }
                     } else {
                         return Err(::raiden::RaidenError::ResourceNotFound("resource not found".to_owned()));
@@ -188,13 +203,13 @@ pub(crate) fn expand_batch_get(
                     unprocessed_keys.keys = vec![];
 
                     if let Some(mut keys_by_table) = res.unprocessed_keys {
-                        if let Some(mut keys_attrs) = keys_by_table.get_mut(&self.table_name) {
+                        if let Some(mut keys_attrs) = keys_by_table.get_mut(&table_name) {
                             unprocessed_keys.keys = keys_attrs.keys.clone();
                         }
                     }
 
 
-                    if (self.keys.is_empty() && unprocessed_keys.keys.is_empty()) || unprocessed_retry == 0 {
+                    if (keys.is_empty() && unprocessed_keys.keys.is_empty()) || unprocessed_retry == 0 {
                         return Ok(::raiden::batch_get::BatchGetOutput {
                             consumed_capacity: res.consumed_capacity,
                             items,
@@ -206,7 +221,7 @@ pub(crate) fn expand_batch_get(
 
             async fn inner_run(
                 #inner_run_args
-                client: &::raiden::DynamoDbClient,
+                client: ::raiden::DynamoDbClient,
                 input: ::raiden::BatchGetItemInput,
             ) -> Result<::raiden::BatchGetItemOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)

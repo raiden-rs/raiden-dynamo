@@ -14,12 +14,12 @@ pub(crate) fn expand_scan(
     let api_call_token = super::api_call_token!("scan");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.input.table_name, &self.client, self.input.clone()).await? },
-            quote! { table_name: &str, },
+            quote! { #builder_name::inner_run(input.table_name.clone(), client, input.clone()).await },
+            quote! { table_name: String, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, self.input.clone()).await? },
+            quote! { #builder_name::inner_run(client, input.clone()).await },
             quote! {},
         )
     };
@@ -33,7 +33,9 @@ pub(crate) fn expand_scan(
             pub client: &'a ::raiden::DynamoDbClient,
             pub input: ::raiden::ScanInput,
             pub next_token: Option<::raiden::NextToken>,
-            pub limit: Option<i64>
+            pub limit: Option<i64>,
+            pub policy: ::raiden::Policy,
+            pub condition: &'a ::raiden::retry::RetryCondition,
         }
 
         impl #trait_name for #client_name {
@@ -48,6 +50,8 @@ pub(crate) fn expand_scan(
                     input,
                     next_token: None,
                     limit: None,
+                    policy: self.retry_condition.strategy.policy(),
+                    condition: &self.retry_condition,
                 }
             }
         }
@@ -86,19 +90,29 @@ pub(crate) fn expand_scan(
                 self
             }
 
-            pub async fn run(mut self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
-                if let Some(token) = self.next_token {
-                    self.input.exclusive_start_key = Some(token.into_attr_values()?);
+            pub async fn run(self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
+                let Self { client, mut input, next_token, mut limit, policy, condition } = self;
+                let policy: ::raiden::RetryPolicy = policy.into();
+
+                if let Some(token) = next_token {
+                    input.exclusive_start_key = Some(token.into_attr_values()?);
                 }
 
                 let mut items: Vec<#struct_name> = vec![];
 
                 loop {
-                    if let Some(limit) = self.limit {
-                        self.input.limit = Some(limit);
+                    if let Some(limit) = limit {
+                        input.limit = Some(limit);
                     }
 
-                    let res = #call_inner_run;
+                    let res = {
+                        let c = client.clone();
+                        let i = input.clone();
+                        policy.retry_if(move || {
+                            let (client, input) = (c.clone(), i.clone());
+                            async move { #call_inner_run }
+                        }, condition).await?
+                    };
 
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
@@ -112,9 +126,9 @@ pub(crate) fn expand_scan(
                     let scanned = &res.scanned_count.unwrap_or(0);
 
                     let mut has_next = true;
-                    if let Some(limit) = self.limit {
-                        has_next = limit - scanned > 0;
-                        self.limit = Some(limit - scanned);
+                    if let Some(l) = limit {
+                        has_next = l - scanned > 0;
+                        limit = Some(l - scanned);
                     }
                     if res.last_evaluated_key.is_none() || !has_next {
                         return Ok(::raiden::scan::ScanOutput {
@@ -125,13 +139,13 @@ pub(crate) fn expand_scan(
                             scanned_count: res.scanned_count,
                         })
                     }
-                    self.input.exclusive_start_key = res.last_evaluated_key;
+                    input.exclusive_start_key = res.last_evaluated_key;
                 }
             }
 
             async fn inner_run(
                 #inner_run_args
-                client: &::raiden::DynamoDbClient,
+                client: ::raiden::DynamoDbClient,
                 input: ::raiden::ScanInput,
             ) -> Result<::raiden::ScanOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
