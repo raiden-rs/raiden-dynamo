@@ -38,7 +38,7 @@ pretty_assertions = "^1.4.1"
 raiden = { path = "./", features = ["tracing"], default-features = false }
 time = "^0.3.41"
 tokio = "^1.47.1"
-tracing-subscriber = { version = "^0.3.19", features = ["env-filter", "time"] }
+tracing-subscriber = { version = "^0.3.20", features = ["env-filter", "time"] }
 
 [features]
 default = ["rusoto_core_default", "rusoto_dynamodb_default"]
