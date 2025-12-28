@@ -291,6 +291,7 @@ pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
     }
 }
 
+#[allow(clippy::result_large_err)]
 pub(crate) fn deserialize_attr_value(s: &str) -> Result<AttributeValues, RaidenError> {
     let values: HashMap<String, serde_json::Value> = match serde_json::from_str(s) {
         Ok(v) => v,

@@ -1,9 +1,10 @@
 [workspace]
-
-members = [
-    "raiden-derive",
-    "raiden",
-]
+members = ["raiden", "raiden-derive"]
+resolver = "2"
 
 [workspace.package]
+authors = ["bokuweb <bokuweb12@gmail.com>"]
+edition = "2021"
 license = "MIT OR Apache-2.0"
+rust-version = "1.88.0"
+version = "0.1.0"

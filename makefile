@@ -6,7 +6,7 @@ dynamo:
 	docker compose down --volumes
 	docker compose up -d --wait dynamodb
 	docker compose up aws-cli
-	deno run --allow-net=localhost:8000 --allow-env --no-check ./setup/setup.ts
+	deno run --allow-net=localhost:8000 --allow-env --allow-sys --no-check ./setup/setup.ts
 
 .PHONY: test
 test:

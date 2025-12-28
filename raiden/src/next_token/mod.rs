@@ -9,6 +9,7 @@ impl NextToken {
     pub fn new(token: impl Into<String>) -> Self {
         Self(token.into())
     }
+    #[allow(clippy::result_large_err)]
     pub fn into_attr_values(self) -> Result<super::AttributeValues, super::RaidenError> {
         let decoded = match STANDARD.decode(self.0) {
             Ok(decoded) => decoded,

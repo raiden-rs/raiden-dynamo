@@ -1,9 +1,10 @@
 [package]
 name = "raiden-derive"
-version = "0.1.0"
-authors = ["bokuweb <bokuweb12@gmail.com>"]
-edition = "2018"
+authors.workspace = true
+edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+version.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,11 +12,11 @@ license.workspace = true
 proc-macro = true
 
 [dependencies]
-convert_case = "^0.6.0"
+convert_case = "^0.8.0"
 ident_case = "^1.0.1"
-proc-macro2 = "^1.0.84"
-quote = "^1.0.36"
-syn = "^2.0.66"
+proc-macro2 = "^1.0.95"
+quote = "^1.0.40"
+syn = "^2.0.104"
 
 [features]
 default = ["rusoto"]

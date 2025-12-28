@@ -126,6 +126,7 @@ pub(crate) fn find_sort_key_field(fields: &syn::FieldsNamed) -> Option<syn::Fiel
     if fields.len() > 1 {
         panic!("sort key should be only one.")
     }
+
     fields.first().cloned()
 }
 

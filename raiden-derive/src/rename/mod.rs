@@ -23,7 +23,7 @@ impl FromStr for RenameAllType {
             "snake_case" => Ok(RenameAllType::SnakeCase),
             "SCREAMING_SNAKE_CASE" => Ok(RenameAllType::ScreamingSnakeCase),
             "kebab-case" => Ok(RenameAllType::KebabCase),
-            _ => panic!("{} is not support type.", s),
+            _ => panic!("{s} is not support type."),
         }
     }
 }
@@ -48,7 +48,7 @@ pub fn rename(t: RenameAllType, base: String) -> String {
         crate::rename::RenameAllType::KebabCase => {
             ident_case::RenameRule::KebabCase.apply_to_field(base)
         }
-        _ => panic!("{} is not supported rename type", base),
+        _ => panic!("{base} is not supported rename type"),
     }
 }
 

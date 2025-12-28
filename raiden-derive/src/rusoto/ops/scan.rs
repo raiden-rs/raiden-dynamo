@@ -35,7 +35,7 @@ pub(crate) fn expand_scan(
             pub policy: ::raiden::Policy,
             pub condition: &'a ::raiden::retry::RetryCondition,
             pub next_token: Option<::raiden::NextToken>,
-            pub limit: Option<i64>
+            pub limit: Option<i64>,
         }
 
         impl #trait_name for #client_name {
@@ -90,27 +90,28 @@ pub(crate) fn expand_scan(
                 self
             }
 
-            pub async fn run(mut self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
-                if let Some(token) = self.next_token {
-                    self.input.exclusive_start_key = Some(token.into_attr_values()?);
+            pub async fn run(self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
+                let Self { client, mut input, next_token, mut limit, policy, condition } = self;
+                let policy: ::raiden::RetryPolicy = policy.into();
+
+                if let Some(token) = next_token {
+                    input.exclusive_start_key = Some(token.into_attr_values()?);
                 }
 
                 let mut items: Vec<#struct_name> = vec![];
 
                 loop {
-                    if let Some(limit) = self.limit {
-                        self.input.limit = Some(limit);
+                    if let Some(limit) = limit {
+                        input.limit = Some(limit);
                     }
 
                     let res = {
-                        let policy: ::raiden::RetryPolicy = self.policy.clone().into();
-                        let client = self.client;
-                        let input = self.input.clone();
+                        let c = client.clone();
+                        let i = input.clone();
                         policy.retry_if(move || {
-                            let client = client.clone();
-                            let input = input.clone();
-                            async { #call_inner_run }
-                        }, self.condition).await?
+                            let (client, input) = (c.clone(), i.clone());
+                            async move { #call_inner_run }
+                        }, condition).await?
                     };
 
                     if let Some(res_items) = res.items {
@@ -125,9 +126,9 @@ pub(crate) fn expand_scan(
                     let scanned = &res.scanned_count.unwrap_or(0);
 
                     let mut has_next = true;
-                    if let Some(limit) = self.limit {
-                        has_next = limit - scanned > 0;
-                        self.limit = Some(limit - scanned);
+                    if let Some(l) = limit {
+                        has_next = l - scanned > 0;
+                        limit = Some(l - scanned);
                     }
                     if res.last_evaluated_key.is_none() || !has_next {
                         return Ok(::raiden::scan::ScanOutput {
@@ -138,7 +139,7 @@ pub(crate) fn expand_scan(
                             scanned_count: res.scanned_count,
                         })
                     }
-                    self.input.exclusive_start_key = res.last_evaluated_key;
+                    input.exclusive_start_key = res.last_evaluated_key;
                 }
             }
 

@@ -106,14 +106,13 @@ pub(crate) fn expand_delete_item(
             }
 
             pub async fn run(self) -> Result<(), ::raiden::RaidenError> {
-                let policy: ::raiden::RetryPolicy = self.policy.into();
-                let client = self.client;
-                let input = self.input;
+                let Self { client, input, policy, condition } = self;
+                let policy: ::raiden::RetryPolicy = policy.into();
                 policy.retry_if(move || {
                     let client = client.clone();
                     let input = input.clone();
                     async { #call_inner_run }
-                }, self.condition).await?;
+                }, condition).await?;
 
                 Ok(())
             }

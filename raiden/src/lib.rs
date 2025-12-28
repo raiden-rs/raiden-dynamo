@@ -75,8 +75,6 @@ impl std::fmt::Display for AttributeType {
 pub type AttributeNames = std::collections::HashMap<String, String>;
 pub type AttributeValues = std::collections::HashMap<String, AttributeValue>;
 
-pub struct Attributes(AttributeValues);
-
 pub trait IntoAttrName: Sized + Copy {
     fn into_attr_name(self) -> String;
 }

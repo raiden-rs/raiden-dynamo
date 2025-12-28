@@ -354,6 +354,7 @@ pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
     a == &AttributeValue::default()
 }
 
+#[allow(clippy::result_large_err)]
 pub(crate) fn deserialize_attr_value(s: &str) -> Result<AttributeValues, RaidenError> {
     match serde_json::from_str(s) {
         Ok(deserialized) => Ok(deserialized),

@@ -1,6 +1,5 @@
-pub use again::RetryPolicy;
-
 use again::Condition;
+pub use again::RetryPolicy;
 use std::time::Duration;
 
 use super::RaidenError;
