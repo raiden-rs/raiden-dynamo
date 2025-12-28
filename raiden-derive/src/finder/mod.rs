@@ -105,7 +105,7 @@ pub(crate) fn find_partition_key_field(fields: &syn::FieldsNamed) -> Option<syn:
     let fields: Vec<syn::Field> = fields
         .named
         .iter()
-        .filter(|&f| include_unary_attr(&f.attrs, "partition_key"))
+        .filter(|f| include_unary_attr(&f.attrs, "partition_key"))
         .cloned()
         .collect();
 

@@ -112,7 +112,9 @@ pub(crate) fn expand_delete_item(
                     let client = client.clone();
                     let input = input.clone();
                     async { #call_inner_run }
-                }, condition).await
+                }, condition).await?;
+
+                Ok(())
             }
 
             async fn inner_run(

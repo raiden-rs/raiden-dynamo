@@ -19,5 +19,7 @@ quote = "^1.0.40"
 syn = "^2.0.104"
 
 [features]
-default = []
+default = ["rusoto"]
+aws-sdk = []
+rusoto = []
 tracing = []

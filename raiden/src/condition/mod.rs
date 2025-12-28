@@ -154,6 +154,8 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
         use md5::{Digest, Md5};
 
         let mut m: super::AttributeValues = std::collections::HashMap::new();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         match self {
             Self::AttributeType(_path, t) => {
                 m.insert(
@@ -184,6 +186,30 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                         s: Some(s),
                         ..super::AttributeValue::default()
                     },
+                );
+            }
+            _ => {}
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        match self {
+            Self::AttributeType(_path, t) => {
+                m.insert(format!(":type{t}"), super::AttributeValue::S(t.to_string()));
+            }
+            Self::BeginsWith(_path, s) => {
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
+                m.insert(
+                    format!(":begins_with_{:x}", hasher.finalize()),
+                    super::AttributeValue::S(s),
+                );
+            }
+            Self::Contains(_path, s) => {
+                let mut hasher = Md5::new();
+                hasher.update(s.as_bytes());
+                m.insert(
+                    format!(":contains_{:x}", hasher.finalize()),
+                    super::AttributeValue::S(s),
                 );
             }
             _ => {}

@@ -19,80 +19,62 @@ mod tests {
         option_i16: Option<i16>,
     }
 
-    #[test]
-    fn test_user_get_item() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+    #[tokio::test]
+    async fn test_user_get_item() {
+        let client = crate::all::create_client_from_struct!(User);
+        let res = client.get("user_primary_key").run().await;
 
-            let res = client.get("user_primary_key").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: User {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        num_usize: 42,
-                        num_u8: 255,
-                        num_i8: -127,
-                        option_u16: None,
-                        option_i16: Some(-1),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: User {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    num_usize: 42,
+                    num_u8: 255,
+                    num_i8: -127,
+                    option_u16: None,
+                    option_i16: Some(-1),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
-    #[test]
-    fn test_user_get_item_with_consistent_read() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserClient::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: User {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        num_usize: 42,
-                        num_u8: 255,
-                        num_i8: -127,
-                        option_u16: None,
-                        option_i16: Some(-1),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_user_get_item_with_consistent_read() {
+        let client = crate::all::create_client!(UserClient);
+        let res = client.get("user_primary_key").consistent().run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: User {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    num_usize: 42,
+                    num_u8: 255,
+                    num_i8: -127,
+                    option_u16: None,
+                    option_i16: Some(-1),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
-    #[test]
-    fn test_user_get_item_with_not_found_error() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserClient::new(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("not_exist_key").consistent().run().await;
-            assert_eq!(
-                res,
-                Err(RaidenError::ResourceNotFound(
-                    "resource not found".to_owned()
-                )),
-            );
+    #[tokio::test]
+    async fn test_user_get_item_with_not_found_error() {
+        let client = crate::all::create_client!(UserClient);
+        let res = client.get("not_exist_key").consistent().run().await;
+
+        assert!(res.is_err());
+
+        if let RaidenError::ResourceNotFound(msg) = res.unwrap_err() {
+            assert_eq!("resource not found", msg);
+        } else {
+            panic!("err should be RaidenError::ResourceNotFound");
         }
-        rt.block_on(example());
     }
 
     #[derive(Raiden)]
@@ -105,26 +87,18 @@ mod tests {
         unstored: usize,
     }
 
-    #[test]
-    fn test_get_unstored_value() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithUnStored::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            assert_eq!(
-                res,
-                // Err(RaidenError::AttributeValueNotFoundError {
-                //     attr_name: "unstored".to_owned(),
-                // }),
-                Err(RaidenError::AttributeConvertError {
-                    attr_name: "unstored".to_owned(),
-                }),
-            );
+    #[tokio::test]
+    async fn test_get_unstored_value() {
+        let client = crate::all::create_client_from_struct!(UserWithUnStored);
+        let res = client.get("user_primary_key").consistent().run().await;
+
+        assert!(res.is_err());
+
+        if let RaidenError::AttributeConvertError { attr_name } = res.unwrap_err() {
+            assert_eq!("unstored", attr_name);
+        } else {
+            panic!("err should be RaidenError::AttributeConvertError");
         }
-        rt.block_on(example());
     }
 
     #[derive(Raiden)]
@@ -137,28 +111,22 @@ mod tests {
         empty_set: std::collections::HashSet<usize>,
     }
 
-    #[test]
-    fn test_get_empty_hashset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithEmptyHashSet::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithEmptyHashSet {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        empty_set: std::collections::HashSet::new(),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_get_empty_hashset() {
+        let client = crate::all::create_client_from_struct!(UserWithEmptyHashSet);
+        let res = client.get("user_primary_key").consistent().run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithEmptyHashSet {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    empty_set: std::collections::HashSet::new(),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -171,28 +139,22 @@ mod tests {
         empty_vec: Vec<usize>,
     }
 
-    #[test]
-    fn test_get_empty_vec() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithEmptyVec::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithEmptyVec {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        empty_vec: vec![],
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_get_empty_vec() {
+        let client = crate::all::create_client_from_struct!(UserWithEmptyVec);
+        let res = client.get("user_primary_key").consistent().run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithEmptyVec {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    empty_vec: vec![],
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -205,30 +167,24 @@ mod tests {
         string_set: std::collections::HashSet<String>,
     }
 
-    #[test]
-    fn test_get_stringset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithStringSet::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            let mut set = std::collections::HashSet::new();
-            set.insert("Hello".to_owned());
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithStringSet {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        string_set: set,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_get_stringset() {
+        let client = crate::all::create_client_from_struct!(UserWithStringSet);
+        let res = client.get("user_primary_key").consistent().run().await;
+        let mut set = std::collections::HashSet::new();
+        set.insert("Hello".to_owned());
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithStringSet {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    string_set: set,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -241,30 +197,24 @@ mod tests {
         string_set: std::collections::BTreeSet<String>,
     }
 
-    #[test]
-    fn test_get_btree_stringset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithStringBTreeSet::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            let mut set = std::collections::BTreeSet::new();
-            set.insert("Hello".to_owned());
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithStringBTreeSet {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        string_set: set,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_get_btree_stringset() {
+        let client = crate::all::create_client_from_struct!(UserWithStringBTreeSet);
+        let res = client.get("user_primary_key").consistent().run().await;
+        let mut set = std::collections::BTreeSet::new();
+        set.insert("Hello".to_owned());
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithStringBTreeSet {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    string_set: set,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -292,30 +242,24 @@ mod tests {
         pub string_set: std::collections::HashSet<CustomSSItem>,
     }
 
-    #[test]
-    fn test_get_custom_stringset() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithCustomStringSet::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("user_primary_key").consistent().run().await;
-            let mut set = std::collections::HashSet::new();
-            set.insert(CustomSSItem("Hello".to_owned()));
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithCustomStringSet {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        string_set: set,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_get_custom_stringset() {
+        let client = crate::all::create_client_from_struct!(UserWithCustomStringSet);
+        let res = client.get("user_primary_key").consistent().run().await;
+        let mut set = std::collections::HashSet::new();
+        set.insert(CustomSSItem("Hello".to_owned()));
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithCustomStringSet {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    string_set: set,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden, Debug, PartialEq)]
@@ -329,30 +273,23 @@ mod tests {
         num: usize,
     }
 
-    #[test]
-    fn test_user_get_item_with_sort_key() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UserWithSortKey::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+    #[tokio::test]
+    async fn test_user_get_item_with_sort_key() {
+        let client = crate::all::create_client_from_struct!(UserWithSortKey);
+        let res = client.get("id1", 2003_usize).run().await;
 
-            let res = client.get("id1", 2003_usize).run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UserWithSortKey {
-                        id: "id1".to_owned(),
-                        name: "bob".to_owned(),
-                        year: 2003,
-                        num: 300,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UserWithSortKey {
+                    id: "id1".to_owned(),
+                    name: "bob".to_owned(),
+                    year: 2003,
+                    num: 300,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -363,28 +300,21 @@ mod tests {
         name: String,
     }
 
-    #[test]
-    fn test_get_empty_string() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = EmptyStringTestData0::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+    #[tokio::test]
+    async fn test_get_empty_string() {
+        let client = crate::all::create_client_from_struct!(EmptyStringTestData0);
+        let res = client.get("id0").run().await;
 
-            let res = client.get("id0").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: EmptyStringTestData0 {
-                        id: "id0".to_owned(),
-                        name: "".to_owned(),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: EmptyStringTestData0 {
+                    id: "id0".to_owned(),
+                    name: "".to_owned(),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden, Debug, Clone, PartialEq)]
@@ -400,12 +330,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_use_default_for_null() {
-        let client = UseDefaultForNull::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-
+        let client = crate::all::create_client_from_struct!(UseDefaultForNull);
         let res = client.get("id0").run().await;
+
         assert_eq!(
             res.unwrap(),
             get::GetOutput {
@@ -435,37 +362,24 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_retry() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let _ = client
-                .with_retries(Box::new(MyRetryStrategy))
-                .get("anonymous")
-                .run()
-                .await;
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_retry() {
+        let client = crate::all::create_client_from_struct!(User);
+        let _ = client
+            .with_retries(Box::new(MyRetryStrategy))
+            .get("anonymous")
+            .run()
+            .await;
+
         assert_eq!(RETRY_COUNT.load(Ordering::Relaxed), 4)
     }
 
-    #[test]
-    fn test_should_build_with_twice_retry() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = User::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            })
-            .with_retries(Box::new(MyRetryStrategy));
-            let _ = client.get("anonymous").run().await;
-            let _ = client.get("anonymous").run().await;
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_should_build_with_twice_retry() {
+        let client =
+            crate::all::create_client_from_struct!(User).with_retries(Box::new(MyRetryStrategy));
+        let _ = client.get("anonymous").run().await;
+        let _ = client.get("anonymous").run().await;
     }
 
     #[derive(Raiden)]
@@ -478,29 +392,22 @@ mod tests {
         num_usize: usize,
     }
 
-    #[test]
-    fn test_user_get_item_for_projection_expression() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = PartialUser::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
+    #[tokio::test]
+    async fn test_user_get_item_for_projection_expression() {
+        let client = crate::all::create_client_from_struct!(PartialUser);
+        let res = client.get("user_primary_key").run().await;
 
-            let res = client.get("user_primary_key").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: PartialUser {
-                        id: "user_primary_key".to_owned(),
-                        name: "bokuweb".to_owned(),
-                        num_usize: 42,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: PartialUser {
+                    id: "user_primary_key".to_owned(),
+                    name: "bokuweb".to_owned(),
+                    num_usize: 42,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -513,27 +420,21 @@ mod tests {
         r#type: String,
     }
 
-    #[test]
-    fn test_reserved_keyword() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = Reserved::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("id0").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: Reserved {
-                        id: "id0".to_owned(),
-                        r#type: "reserved".to_owned(),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_reserved_keyword() {
+        let client = crate::all::create_client_from_struct!(Reserved);
+        let res = client.get("id0").run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: Reserved {
+                    id: "id0".to_owned(),
+                    r#type: "reserved".to_owned(),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -546,27 +447,21 @@ mod tests {
         some_type: String,
     }
 
-    #[test]
-    fn test_rename_with_reserved() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = ReservedWithRename::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("id0").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: ReservedWithRename {
-                        id: "id0".to_owned(),
-                        some_type: "reserved".to_owned(),
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_rename_with_reserved() {
+        let client = crate::all::create_client_from_struct!(ReservedWithRename);
+        let res = client.get("id0").run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: ReservedWithRename {
+                    id: "id0".to_owned(),
+                    some_type: "reserved".to_owned(),
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -579,27 +474,21 @@ mod tests {
         is_ok: bool,
     }
 
-    #[test]
-    fn test_use_default() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = UseDefault::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("id0").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: UseDefault {
-                        id: "id0".to_owned(),
-                        is_ok: false,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_use_default() {
+        let client = crate::all::create_client_from_struct!(UseDefault);
+        let res = client.get("id0").run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: UseDefault {
+                    id: "id0".to_owned(),
+                    is_ok: false,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 
     #[derive(Raiden)]
@@ -612,27 +501,21 @@ mod tests {
         float64: f64,
     }
 
-    #[test]
-    fn test_float() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
-        async fn example() {
-            let client = FloatTest::client(Region::Custom {
-                endpoint: "http://localhost:8000".into(),
-                name: "ap-northeast-1".into(),
-            });
-            let res = client.get("primary_key").run().await;
-            assert_eq!(
-                res.unwrap(),
-                get::GetOutput {
-                    item: FloatTest {
-                        id: "primary_key".to_owned(),
-                        float32: 1.23,
-                        float64: 2.34,
-                    },
-                    consumed_capacity: None,
-                }
-            );
-        }
-        rt.block_on(example());
+    #[tokio::test]
+    async fn test_float() {
+        let client = crate::all::create_client_from_struct!(FloatTest);
+        let res = client.get("primary_key").run().await;
+
+        assert_eq!(
+            res.unwrap(),
+            get::GetOutput {
+                item: FloatTest {
+                    id: "primary_key".to_owned(),
+                    float32: 1.23,
+                    float64: 2.34,
+                },
+                consumed_capacity: None,
+            }
+        );
     }
 }

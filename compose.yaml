@@ -1,12 +1,19 @@
-name: "raiden-dynamo"
+name: "raiden-rs-raiden-dynamo"
 
 services:
   dynamodb:
-    image: "amazon/dynamodb-local"
+    image: "amazon/dynamodb-local:latest"
+    command: "-jar DynamoDBLocal.jar -sharedDb"
     ports:
       - "127.0.0.1:8000:8000"
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:8000/shell || exit 1"]
-      interval: "30s"
-      start_period: "10s"
-      timeout: "5s"
+
+  aws-cli:
+    image: "amazon/aws-cli:latest"
+    command: "dynamodb list-tables --endpoint-url http://dynamodb:8000"
+    depends_on:
+      - "dynamodb"
+    environment:
+      AWS_ACCESS_KEY_ID: "dummy"
+      AWS_SECRET_ACCESS_KEY: "dummy"
+      AWS_REGION: "ap-northeast-1"
+    restart: "on-failure"

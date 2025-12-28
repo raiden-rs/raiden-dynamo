@@ -44,6 +44,12 @@ impl RetryCondition {
     pub fn new() -> Self {
         Default::default()
     }
+
+    pub fn never() -> Self {
+        Self {
+            strategy: Box::new(NopRetryStrategy),
+        }
+    }
 }
 
 impl Default for RetryCondition {
@@ -70,7 +76,8 @@ pub struct DefaultRetryStrategy;
 
 impl RetryStrategy for DefaultRetryStrategy {
     fn should_retry(&self, error: &RaidenError) -> bool {
-        matches!(
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        return matches!(
             error,
             RaidenError::InternalServerError(_)
                 | RaidenError::ProvisionedThroughputExceeded(_)
@@ -83,10 +90,37 @@ impl RetryStrategy for DefaultRetryStrategy {
                 //       This is because, sometimes throttlingException is included in unknown error.
                 //       please make more rigorous classification of errors.
                 | RaidenError::Unknown(_)
-        )
+        );
+
+        #[cfg(feature = "aws-sdk")]
+        return matches!(
+            error,
+            RaidenError::InternalServerError(_)
+                | RaidenError::ProvisionedThroughputExceeded(_)
+                | RaidenError::RequestLimitExceeded(_)
+                | RaidenError::HttpDispatch(_)
+                | RaidenError::Timeout(_)
+                // INFO: For now, return true, when unknown error detected.
+                //       This is because, sometimes throttlingException is included in unknown error.
+                //       please make more rigorous classification of errors.
+                | RaidenError::Unknown(_)
+        );
     }
 
     fn policy(&self) -> Policy {
         Policy::default()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub struct NopRetryStrategy;
+
+impl RetryStrategy for NopRetryStrategy {
+    fn should_retry(&self, _: &RaidenError) -> bool {
+        false
+    }
+
+    fn policy(&self) -> Policy {
+        Policy::None
     }
 }

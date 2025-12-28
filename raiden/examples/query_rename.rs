@@ -4,7 +4,7 @@ use tracing_subscriber::{
     EnvFilter,
 };
 
-#[derive(Raiden)]
+#[derive(Raiden, Debug)]
 #[raiden(table_name = "Project")]
 #[raiden(rename_all = "camelCase")]
 pub struct Project {
@@ -12,6 +12,49 @@ pub struct Project {
     pub id: String,
     pub org_id: String,
     pub updated_at: String,
+}
+
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+async fn example() {
+    let client = Project::client(Region::Custom {
+        endpoint: "http://localhost:8000".into(),
+        name: "ap-northeast-1".into(),
+    });
+    let cond = Project::key_condition(Project::org_id()).eq("myOrg");
+    let res = client
+        .query()
+        .index("orgIndex")
+        .limit(11)
+        .key_condition(cond)
+        .run()
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
+}
+
+#[cfg(feature = "aws-sdk")]
+async fn example() {
+    let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
+        ::raiden::aws_sdk::config::BehaviorVersion::latest(),
+    )
+    .endpoint_url("http://localhost:8000")
+    .region(::raiden::config::Region::from_static("ap-northeast-1"))
+    .load()
+    .await;
+    let sdk_client = ::raiden::Client::new(&sdk_config);
+    let client = Project::client_with(sdk_client);
+    let cond = Project::key_condition(Project::org_id()).eq("myOrg");
+    let res = client
+        .query()
+        .index("orgIndex")
+        .limit(11)
+        .key_condition(cond)
+        .run()
+        .await;
+
+    dbg!(&res);
+    assert!(res.is_ok());
 }
 
 fn main() {
@@ -24,20 +67,5 @@ fn main() {
         .with_timer(UtcTime::rfc_3339())
         .init();
 
-    let rt = tokio::runtime::Runtime::new().unwrap();
-    async fn example() {
-        let client = Project::client(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
-            name: "ap-northeast-1".into(),
-        });
-        let cond = Project::key_condition(Project::org_id()).eq("myOrg");
-        let _res = client
-            .query()
-            .index("orgIndex")
-            .limit(11)
-            .key_condition(cond)
-            .run()
-            .await;
-    }
-    rt.block_on(example());
+    tokio::runtime::Runtime::new().unwrap().block_on(example());
 }

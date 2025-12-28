@@ -1,7 +1,5 @@
 use std::fmt;
 
-use thiserror::Error;
-
 const TRANSACTION_CANCELLED_MESSAGE_PREFIX: &str =
     "Transaction cancelled, please refer cancellation reasons for specific reasons";
 
@@ -11,7 +9,7 @@ pub struct RaidenTransactionCancellationReasons(
 );
 
 impl RaidenTransactionCancellationReasons {
-    // If `message` is unexcepted format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
+    // If `message` is unexpected format, [RaidenTransactionCancellationReason::Unknown] is returned instead of Err(_)
     // TODO: Fix it later.
     #[allow(clippy::should_implement_trait)]
     pub fn from_str(message: &str) -> Self {
@@ -80,7 +78,7 @@ impl fmt::Display for RaidenTransactionCancellationReasons {
     }
 }
 
-#[derive(Error, Clone, Debug, PartialEq)]
+#[derive(thiserror::Error, Clone, Debug, PartialEq)]
 pub enum RaidenTransactionCancellationReason {
     #[error("Unknown")]
     Unknown,
@@ -109,7 +107,7 @@ impl RaidenTransactionCancellationReason {
             "ProvisionedThroughputExceeded" => Self::ProvisionedThroughputExceeded,
             "ThrottlingError" => Self::ThrottlingError,
             "ValidationError" => Self::ValidationError,
-            // If `reason` is unexcepted, Self::Unknown is returned instead of Err(_)
+            // If `reason` is unexpected, Self::Unknown is returned instead of Err(_)
             _ => Self::Unknown,
         }
     }

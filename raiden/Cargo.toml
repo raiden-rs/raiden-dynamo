@@ -9,41 +9,63 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-again = "^0.1.2"
-base64 = "^0.22.1"
-md-5 = "^0.10.6"
-raiden-derive = { version = "*", path = "../raiden-derive" }
-rusoto_core_default = { package = "rusoto_core", version = "0.48.0", optional = true }
-rusoto_core_rustls = { package = "rusoto_core", version = "0.48.0", default-features = false, features = [
-    "rustls",
-], optional = true }
-rusoto_credential = "0.48.0"
-rusoto_dynamodb_default = { package = "rusoto_dynamodb", version = "0.48.0", features = [
-    "serialize_structs",
-], optional = true }
-rusoto_dynamodb_rustls = { package = "rusoto_dynamodb", version = "0.48.0", default-features = false, features = [
-    "rustls",
+again = "0.1"
+aws-config = { version = "^1", optional = true }
+aws-sdk-dynamodb = { version = "^1", optional = true }
+aws-smithy-runtime-api = { version = "^1", optional = true }
+base64 = "^0.22"
+md-5 = "^0.10"
+paste = { version = "1.0.15", optional = true }
+raiden-derive = { version = "*", path = "../raiden-derive", default-features = false }
+rusoto_core = { package = "rusoto_core", version = "0.48", default-features = false, optional = true }
+rusoto_credential = { version = "0.48", optional = true }
+rusoto_dynamodb = { package = "rusoto_dynamodb", version = "0.48", default-features = false, features = [
     "serialize_structs",
 ], optional = true }
 safe-builder = { tag = "0.0.6", git = "https://github.com/raiden-rs/safe-builder.git" }
-serde = { version = "^1.0.219", features = ["derive"] }
-serde_derive = "^1.0.219"
-serde_json = "^1.0.142"
-thiserror = "^2.0.12"
-tracing = { version = "^0.1.41", optional = true }
-uuid = { version = "^1.17.0", features = ["v4"] }
+serde = { version = "^1", features = ["derive"] }
+serde_derive = "^1"
+serde_json = "^1"
+thiserror = "^1"
+tracing = { version = "0.1", optional = true }
+uuid = { version = "^1.8", features = ["v4"] }
 
 [dev-dependencies]
-pretty_assertions = "^1.4.1"
+aws-credential-types = { version = "^1" }
+aws-smithy-runtime = { version = "^1" }
+hyper-rustls = { version = "=0.25.0", features = ["http2"] }
+pretty_assertions = "1.4.0"
 raiden = { path = "./", features = ["tracing"], default-features = false }
-time = "^0.3.41"
-tokio = "^1.47.1"
-tracing-subscriber = { version = "^0.3.19", features = ["env-filter", "time"] }
+time = "0.3.36"
+tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "time"] }
 
 [features]
-default = ["rusoto_core_default", "rusoto_dynamodb_default"]
-rustls = ["rusoto_core_rustls", "rusoto_dynamodb_rustls"]
+default = ["rusoto"]
+aws-sdk = [
+    "dep:aws-config",
+    "dep:aws-sdk-dynamodb",
+    "dep:aws-smithy-runtime-api",
+    "dep:paste",
+    "raiden-derive/aws-sdk",
+]
+rusoto = [
+    "rusoto_core/default",
+    "rusoto_credential",
+    "rusoto_dynamodb/default",
+    "raiden-derive/rusoto",
+]
+rusoto_rustls = [
+    "rusoto_core/rustls",
+    "rusoto_credential",
+    "rusoto_dynamodb/rustls",
+    "raiden-derive/rusoto",
+]
+rustls = ["rusoto_rustls"]
 tracing = ["dep:tracing", "raiden-derive/tracing"]
 
 [package.metadata.cargo-machete]
-ignored = ["md-5"]
+ignored = ["rust-crypto"]
+
+[package.metadata.cargo-udeps.ignore]
+development = ["aws-credential-types", "aws-smithy-runtime", "hyper-rustls"]
