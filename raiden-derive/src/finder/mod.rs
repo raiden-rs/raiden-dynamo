@@ -250,16 +250,6 @@ pub(crate) fn validate_omit_gsi_fields(fields: &syn::FieldsNamed, gsi_names: &[S
                 );
             }
         }
-
-        if !omit_gsi_names.is_empty()
-            && !is_option(&field.ty)
-            && !include_unary_attr(&field.attrs, "use_default")
-        {
-            panic!(
-                "field `{}` uses omit_gsi and must be Option<T> or #[raiden(use_default)]",
-                ident
-            );
-        }
     }
 }
 

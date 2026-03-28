@@ -226,6 +226,16 @@ struct User {
     org_id: String,
     created_at: String,
     status: String,
+    #[raiden(omit_gsi = "userIndex")]
+    internal_note: String,
+}
+
+#[derive(RaidenIndex, Debug, PartialEq)]
+#[raiden(source = "User", gsi = "userIndex")]
+struct UserIndexItem {
+    org_id: String,
+    created_at: String,
+    status: String,
 }
 
 #[tokio::main]
@@ -241,7 +251,7 @@ async fn main() {
         .query()
         .user_index()
         .key_condition(cond)
-        .run()
+        .run_with::<UserIndexItem>()
         .await;
 }
 ```
@@ -249,8 +259,9 @@ async fn main() {
 Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
-- `#[raiden(omit_gsi = "userIndex")]` removes the field from typed GSI query/scan projection while keeping the deprecated `.index("userIndex")` path unchanged
-- `omit_gsi` currently requires the field to be `Option<T>` or `#[raiden(use_default)]`, so omitted attributes can still be deserialized safely
+- `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `run_with::<YourIndexType>()`
+- typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `run_with::<...>()` or `project::<...>()`
+- `#[raiden(omit_gsi = "userIndex")]` is metadata for index-specific projection design, but projection shape is determined by the `RaidenIndex` struct
 - composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
 - the old `.index("userIndex")` API is still available for backward compatibility, but it is deprecated

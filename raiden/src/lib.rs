@@ -186,6 +186,16 @@ pub trait ResolveAttribute: Sized + FromAttribute {
     }
 }
 
+pub trait RaidenItem: Sized {
+    fn attribute_names() -> Option<AttributeNames>;
+    fn projection_expression() -> Option<String>;
+    fn from_item(item: AttributeValues) -> Result<Self, RaidenError>;
+}
+
+pub trait RaidenIndexItem<Source>: RaidenItem {
+    const GSI_NAME: &'static str;
+}
+
 pub fn merge_map<T>(
     map1: std::collections::HashMap<String, T>,
     map2: std::collections::HashMap<String, T>,

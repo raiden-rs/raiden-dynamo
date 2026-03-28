@@ -11,6 +11,7 @@ mod condition;
 mod filter_expression;
 mod finder;
 mod helpers;
+mod item;
 mod key;
 mod key_condition;
 mod rename;
@@ -166,6 +167,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         &fields,
         &rename_all_type,
     );
+    let raiden_item = item::expand_raiden_item_impl(&struct_name, &fields, rename_all_type);
 
     let expanded = quote! {
         use ::raiden::IntoAttribute as _;
@@ -211,8 +213,66 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
         #client_constructor
 
+        #raiden_item
+
         impl ::raiden::IdGenerator for #struct_name {}
     };
     // Hand the output tokens back to the compiler.
+    proc_macro::TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(RaidenIndex, attributes(raiden))]
+pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as DeriveInput);
+
+    let struct_name = input.ident;
+    let attrs = input.attrs;
+
+    let source = attrs
+        .iter()
+        .find_map(|attr| {
+            if attr.path().segments[0].ident != "raiden" {
+                return None;
+            }
+            finder::find_eq_string_from(attr, "source")
+        })
+        .unwrap_or_else(|| panic!("RaidenIndex requires #[raiden(source = \"...\")]"));
+    let gsi_name = attrs
+        .iter()
+        .find_map(|attr| {
+            if attr.path().segments[0].ident != "raiden" {
+                return None;
+            }
+            finder::find_eq_string_from(attr, "gsi")
+        })
+        .unwrap_or_else(|| panic!("RaidenIndex requires #[raiden(gsi = \"...\")]"));
+
+    let rename_all = finder::find_rename_all(&attrs);
+    let rename_all_type = if let Some(rename_all) = rename_all {
+        rename::RenameAllType::from_str(&rename_all).unwrap()
+    } else {
+        rename::RenameAllType::None
+    };
+
+    let fields = match input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(n),
+            ..
+        }) => n,
+        _ => unimplemented!(),
+    };
+
+    let source_ty: Type = syn::parse_str(&source)
+        .unwrap_or_else(|_| panic!("invalid source type `{source}` for RaidenIndex"));
+    let raiden_item = item::expand_raiden_item_impl(&struct_name, &fields, rename_all_type);
+
+    let expanded = quote! {
+        #raiden_item
+
+        impl ::raiden::RaidenIndexItem<#source_ty> for #struct_name {
+            const GSI_NAME: &'static str = #gsi_name;
+        }
+    };
+
     proc_macro::TokenStream::from(expanded)
 }

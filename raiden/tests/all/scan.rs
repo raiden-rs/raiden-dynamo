@@ -109,13 +109,21 @@ mod tests {
     #[raiden(table_name = "LastEvaluateKeyData")]
     #[raiden(gsi(name = "testGSI", partition_key = "ref_id"))]
     #[allow(dead_code)]
-    pub struct TypedGsiProjectionScanTest {
+    pub struct TypedGsiProjectionScanSource {
         #[raiden(partition_key)]
         id: String,
         ref_id: String,
         long_text: String,
         #[raiden(omit_gsi = "testGSI")]
-        omitted: Option<String>,
+        omitted: String,
+    }
+
+    #[derive(RaidenIndex, Debug, PartialEq)]
+    #[raiden(source = "TypedGsiProjectionScanSource", gsi = "testGSI")]
+    #[allow(dead_code)]
+    pub struct TypedGsiProjectionScanItem {
+        ref_id: String,
+        long_text: String,
     }
 
     #[tokio::test]
@@ -127,8 +135,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_typed_gsi_scan_omits_marked_fields_from_projection() {
-        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanTest);
+    async fn test_typed_gsi_scan_keeps_full_projection_without_projection_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
         let builder = client.scan().test_gsi();
 
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
@@ -147,11 +155,11 @@ mod tests {
             assert!(projection.contains("#id"));
             assert!(projection.contains("#ref_id"));
             assert!(projection.contains("#long_text"));
-            assert!(!projection.contains("#omitted"));
+            assert!(projection.contains("#omitted"));
             assert!(names.contains_key("#id"));
             assert!(names.contains_key("#ref_id"));
             assert!(names.contains_key("#long_text"));
-            assert!(!names.contains_key("#omitted"));
+            assert!(names.contains_key("#omitted"));
         }
 
         #[cfg(feature = "aws-sdk")]
@@ -170,8 +178,56 @@ mod tests {
             assert!(projection.contains("#id"));
             assert!(projection.contains("#ref_id"));
             assert!(projection.contains("#long_text"));
-            assert!(!projection.contains("#omitted"));
+            assert!(projection.contains("#omitted"));
             assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_project_sets_projection_from_index_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let builder = client.scan().test_gsi().project::<TypedGsiProjectionScanItem>();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#id"));
+            assert!(!names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#id"));
+            assert!(!names.contains_key("#id"));
             assert!(names.contains_key("#ref_id"));
             assert!(names.contains_key("#long_text"));
             assert!(!names.contains_key("#omitted"));
@@ -179,8 +235,14 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_typed_gsi_scan_run_with_accepts_index_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let _future = client.scan().test_gsi().run_with::<TypedGsiProjectionScanItem>();
+    }
+
+    #[tokio::test]
     async fn test_deprecated_index_scan_keeps_full_projection() {
-        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanTest);
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
         #[allow(deprecated)]
         let builder = client.scan().index("testGSI");
 
