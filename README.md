@@ -249,6 +249,8 @@ async fn main() {
 Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
+- `#[raiden(omit_gsi = "userIndex")]` removes the field from typed GSI query/scan projection while keeping the deprecated `.index("userIndex")` path unchanged
+- `omit_gsi` currently requires the field to be `Option<T>` or `#[raiden(use_default)]`, so omitted attributes can still be deserialized safely
 - composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
 - the old `.index("userIndex")` API is still available for backward compatibility, but it is deprecated

@@ -250,6 +250,19 @@ mod tests {
         long_text: String,
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(name = "testGSI", partition_key = "ref_id"))]
+    #[allow(dead_code)]
+    pub struct TypedGsiProjectionTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+        #[raiden(omit_gsi = "testGSI")]
+        omitted: Option<String>,
+    }
+
     #[test]
     fn test_gsi_partition_key_condition_builds() {
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
@@ -323,6 +336,85 @@ mod tests {
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         #[allow(deprecated)]
         let _builder = client.query().index("testGSI").key_condition(cond);
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_query_omits_marked_fields_from_projection() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionTest);
+        let builder = client.query().test_gsi();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_deprecated_index_query_keeps_full_projection() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionTest);
+        #[allow(deprecated)]
+        let builder = client.query().index("testGSI");
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let names = builder
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let names = builder
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(names.contains_key("#omitted"));
+        }
     }
 
     #[tokio::test]

@@ -207,11 +207,60 @@ pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
     None
 }
 
+pub(crate) fn find_string_values(attrs: &[syn::Attribute], name: &str) -> Vec<String> {
+    let mut values = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        if let Some(lit) = find_eq_string_from(attr, name) {
+            values.push(lit);
+        }
+    }
+
+    values
+}
+
+pub(crate) fn find_omit_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    find_string_values(attrs, "omit_gsi")
+}
+
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
     !attrs.is_empty()
         && attrs.iter().any(|attr| {
             attr.path().segments[0].ident == "raiden" && find_unary_attr(attr, name).is_some()
         })
+}
+
+pub(crate) fn validate_omit_gsi_fields(fields: &syn::FieldsNamed, gsi_names: &[String]) {
+    for field in fields.named.iter() {
+        let ident = field
+            .ident
+            .as_ref()
+            .expect("raiden only supports named fields");
+        let omit_gsi_names = find_omit_gsi_names(&field.attrs);
+
+        for gsi_name in omit_gsi_names.iter() {
+            if !gsi_names.iter().any(|known_name| known_name == gsi_name) {
+                panic!(
+                    "unknown gsi `{}` specified in omit_gsi for field `{}`",
+                    gsi_name, ident
+                );
+            }
+        }
+
+        if !omit_gsi_names.is_empty()
+            && !is_option(&field.ty)
+            && !include_unary_attr(&field.attrs, "use_default")
+        {
+            panic!(
+                "field `{}` uses omit_gsi and must be Option<T> or #[raiden(use_default)]",
+                ident
+            );
+        }
+    }
 }
 
 // TODO: Add validation

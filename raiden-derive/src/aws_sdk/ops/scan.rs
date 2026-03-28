@@ -1,6 +1,59 @@
 use convert_case::{Case, Casing};
 use quote::*;
 
+fn create_gsi_projection_method_name(index_name: &str) -> proc_macro2::Ident {
+    format_ident!("__{}_projection", index_name.to_case(Case::Snake))
+}
+
+fn expand_gsi_projection_method(
+    fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
+    index_name: &str,
+) -> proc_macro2::TokenStream {
+    let method_name = create_gsi_projection_method_name(index_name);
+    let projection_fields = fields.named.iter().filter_map(|field| {
+        let omit_gsi_names = crate::finder::find_omit_gsi_names(&field.attrs);
+        if omit_gsi_names.iter().any(|name| name == index_name) {
+            return None;
+        }
+
+        let ident = field
+            .ident
+            .as_ref()
+            .expect("raiden only supports named fields");
+        let attr_name = crate::rename::create_renamed(
+            ident.to_string(),
+            crate::finder::find_rename_value(&field.attrs),
+            rename_all_type,
+        );
+
+        Some(quote! {
+            names.insert(format!("#{}", #attr_name), #attr_name.to_owned());
+            projection.push(format!("#{}", #attr_name));
+        })
+    });
+
+    quote! {
+        fn #method_name() -> (Option<::raiden::AttributeNames>, Option<String>) {
+            let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
+            let mut projection: Vec<String> = vec![];
+            #(#projection_fields)*
+
+            let projection_expression = if projection.is_empty() {
+                None
+            } else {
+                Some(projection.join(", "))
+            };
+            let attribute_names = if names.is_empty() {
+                None
+            } else {
+                Some(names)
+            };
+            (attribute_names, projection_expression)
+        }
+    }
+}
+
 pub(crate) fn expand_scan(
     struct_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
@@ -12,6 +65,9 @@ pub(crate) fn expand_scan(
     let builder_name = format_ident!("{}ScanBuilder", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
+    let gsi_projection_methods = gsi_names
+        .iter()
+        .map(|index_name| expand_gsi_projection_method(fields, rename_all_type, index_name));
     let gsi_methods = gsi_names.iter().map(|index_name| {
         let method_name = index_name.to_case(Case::Snake);
         let method_ident = if crate::helpers::is_reserved(&method_name) {
@@ -19,10 +75,15 @@ pub(crate) fn expand_scan(
         } else {
             format_ident!("{}", method_name)
         };
+        let projection_method_name = create_gsi_projection_method_name(index_name);
 
         quote! {
             pub fn #method_ident(mut self) -> Self {
-                self.builder = self.builder.index_name(#index_name);
+                let (attribute_names, projection_expression) = Self::#projection_method_name();
+                self.builder = self.builder
+                    .index_name(#index_name)
+                    .set_projection_expression(projection_expression)
+                    .set_expression_attribute_names(attribute_names);
                 self
             }
         }
@@ -74,6 +135,8 @@ pub(crate) fn expand_scan(
         }
 
         impl<'a> #builder_name<'a> {
+            #(#gsi_projection_methods)*
+
             #[deprecated(note = "use generated typed index method instead")]
             pub fn index(mut self, index: impl Into<String>) -> Self {
                 self.builder = self.builder.index_name(index.into());

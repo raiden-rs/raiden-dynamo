@@ -36,6 +36,59 @@ fn create_gsi_terminal_token_name(
     )
 }
 
+fn create_gsi_projection_method_name(index_name: &str) -> proc_macro2::Ident {
+    format_ident!("__{}_projection", index_name.to_case(Case::Snake))
+}
+
+fn expand_gsi_projection_method(
+    fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
+    index_name: &str,
+) -> proc_macro2::TokenStream {
+    let method_name = create_gsi_projection_method_name(index_name);
+    let projection_fields = fields.named.iter().filter_map(|field| {
+        let omit_gsi_names = crate::finder::find_omit_gsi_names(&field.attrs);
+        if omit_gsi_names.iter().any(|name| name == index_name) {
+            return None;
+        }
+
+        let ident = field
+            .ident
+            .as_ref()
+            .expect("raiden only supports named fields");
+        let attr_name = crate::rename::create_renamed(
+            ident.to_string(),
+            crate::finder::find_rename_value(&field.attrs),
+            rename_all_type,
+        );
+
+        Some(quote! {
+            names.insert(format!("#{}", #attr_name), #attr_name.to_owned());
+            projection.push(format!("#{}", #attr_name));
+        })
+    });
+
+    quote! {
+        fn #method_name() -> (Option<::raiden::AttributeNames>, Option<String>) {
+            let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
+            let mut projection: Vec<String> = vec![];
+            #(#projection_fields)*
+
+            let projection_expression = if projection.is_empty() {
+                None
+            } else {
+                Some(projection.join(", "))
+            };
+            let attribute_names = if names.is_empty() {
+                None
+            } else {
+                Some(names)
+            };
+            (attribute_names, projection_expression)
+        }
+    }
+}
+
 fn resolve_attr_name(
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
@@ -73,6 +126,9 @@ pub(crate) fn expand_query(
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
+    let gsi_projection_methods = gsi_names
+        .iter()
+        .map(|index_name| expand_gsi_projection_method(fields, rename_all_type, index_name));
     let gsi_tokens = gsi_definitions.iter().flat_map(|gsi| {
         let mut tokens = vec![];
         if gsi.partition_key.is_none() {
@@ -199,6 +255,7 @@ pub(crate) fn expand_query(
         } else {
             format_ident!("{}", method_name)
         };
+        let projection_method_name = create_gsi_projection_method_name(index_name);
         let typed_token_name = gsi_definitions
             .iter()
             .find(|gsi| gsi.name == *index_name && gsi.partition_key.is_some())
@@ -216,10 +273,13 @@ pub(crate) fn expand_query(
                         condition,
                         ..
                     } = self;
+                    let (expression_attribute_names, projection_expression) = Self::#projection_method_name();
                     #builder_name {
                         client,
                         input: ::raiden::QueryInput {
                             index_name: Some(#index_name.to_owned()),
+                            expression_attribute_names,
+                            projection_expression,
                             ..input
                         },
                         next_token,
@@ -233,7 +293,10 @@ pub(crate) fn expand_query(
         } else {
             quote! {
                 pub fn #method_ident(mut self) -> Self {
+                    let (expression_attribute_names, projection_expression) = Self::#projection_method_name();
                     self.input.index_name = Some(#index_name.to_owned());
+                    self.input.expression_attribute_names = expression_attribute_names;
+                    self.input.projection_expression = projection_expression;
                     self
                 }
             }
@@ -302,6 +365,8 @@ pub(crate) fn expand_query(
         }
 
         impl<'a, T> #builder_name<'a, T> {
+            #(#gsi_projection_methods)*
+
             #[deprecated(note = "use generated typed index method instead")]
             pub fn index(mut self, index: impl Into<String>) -> Self {
                 self.input.index_name = Some(index.into());

@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/ui/omit_gsi/non_optional_field.rs:3:10
+  |
+3 | #[derive(Raiden)]
+  |          ^^^^^^
+  |
+  = help: message: field `name` uses omit_gsi and must be Option<T> or #[raiden(use_default)]

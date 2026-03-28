@@ -74,6 +74,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         _ => unimplemented!(),
     };
 
+    finder::validate_omit_gsi_fields(&fields, &gsi_names);
+
     let partition_key = key::fetch_partition_key(&fields, rename_all_type);
     let sort_key = key::fetch_sort_key(&fields, rename_all_type);
 
