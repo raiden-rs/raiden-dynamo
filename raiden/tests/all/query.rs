@@ -203,6 +203,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi = "testGSI")]
     #[allow(dead_code)]
     pub struct Test {
         #[raiden(partition_key)]
@@ -211,13 +212,41 @@ mod tests {
         long_text: String,
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(name = "testGSI", partition_key = "ref_id"))]
+    #[allow(dead_code)]
+    pub struct TypedGsiPartitionKeyTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+    }
+
+    #[test]
+    fn test_gsi_partition_key_condition_builds() {
+        let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_values.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_accepts_gsi_partition_key_condition() {
+        let client = crate::all::create_client_from_struct!(TypedGsiPartitionKeyTest);
+        let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
+        let _builder = client.query().test_gsi().key_condition(cond);
+    }
+
     #[tokio::test]
     async fn test_query_limit_1() {
         let client = crate::all::create_client_from_struct!(Test);
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .limit(1)
             .key_condition(cond)
             .run()
@@ -231,7 +260,7 @@ mod tests {
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .limit(5)
             .key_condition(cond)
             .run()
@@ -243,12 +272,7 @@ mod tests {
     async fn test_query_no_limit() {
         let client = crate::all::create_client_from_struct!(Test);
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
-        let res = client
-            .query()
-            .index("testGSI")
-            .key_condition(cond)
-            .run()
-            .await;
+        let res = client.query().test_gsi().key_condition(cond).run().await;
         assert_eq!(res.unwrap().items.len(), 10);
     }
 
@@ -258,7 +282,7 @@ mod tests {
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .limit(11)
             .key_condition(cond)
             .run()
@@ -272,7 +296,7 @@ mod tests {
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .limit(9)
             .key_condition(cond)
             .run()
@@ -283,7 +307,7 @@ mod tests {
         let cond = Test::key_condition(Test::ref_id()).eq("id0");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .limit(10)
             .next_token(res.next_token.unwrap())
             .key_condition(cond)
@@ -296,6 +320,7 @@ mod tests {
     #[derive(Raiden)]
     #[raiden(table_name = "Project")]
     #[raiden(rename_all = "camelCase")]
+    #[raiden(gsi = "orgIndex")]
     #[allow(dead_code)]
     pub struct Project {
         #[raiden(partition_key)]
@@ -310,7 +335,7 @@ mod tests {
         let cond = Project::key_condition(Project::org_id()).eq("myOrg");
         let res = client
             .query()
-            .index("orgIndex")
+            .org_index()
             .limit(11)
             .key_condition(cond)
             .run()
@@ -396,6 +421,7 @@ mod tests {
 
     #[derive(Raiden, Debug, PartialEq)]
     #[raiden(table_name = "QueryLargeDataTest")]
+    #[raiden(gsi = "testGSI")]
     pub struct QueryLargeDataTest {
         #[raiden(partition_key)]
         id: String,
@@ -407,12 +433,7 @@ mod tests {
     async fn should_be_obtainable_when_the_size_is_1mb_or_larger() {
         let client = crate::all::create_client_from_struct!(QueryLargeDataTest);
         let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
-        let res = client
-            .query()
-            .index("testGSI")
-            .key_condition(cond)
-            .run()
-            .await;
+        let res = client.query().test_gsi().key_condition(cond).run().await;
 
         assert_eq!(res.unwrap().items.len(), 100);
     }
@@ -423,7 +444,7 @@ mod tests {
         let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .key_condition(cond)
             .limit(40)
             .run()
@@ -437,7 +458,7 @@ mod tests {
         let cond = QueryLargeDataTest::key_condition(QueryLargeDataTest::ref_id()).eq("ref");
         let res = client
             .query()
-            .index("testGSI")
+            .test_gsi()
             .key_condition(cond)
             .next_token(token.unwrap())
             .run()

@@ -1,15 +1,32 @@
+use convert_case::{Case, Casing};
 use quote::*;
 
 pub(crate) fn expand_scan(
     struct_name: &proc_macro2::Ident,
     fields: &syn::FieldsNamed,
     rename_all_type: crate::rename::RenameAllType,
+    gsi_names: &[String],
 ) -> proc_macro2::TokenStream {
     let trait_name = format_ident!("{}Scan", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}ScanBuilder", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
+    let gsi_methods = gsi_names.iter().map(|index_name| {
+        let method_name = index_name.to_case(Case::Snake);
+        let method_ident = if crate::helpers::is_reserved(&method_name) {
+            format_ident!("r#{}", method_name)
+        } else {
+            format_ident!("{}", method_name)
+        };
+
+        quote! {
+            pub fn #method_ident(mut self) -> Self {
+                self.builder = self.builder.index_name(#index_name);
+                self
+            }
+        }
+    });
     let from_item = super::expand_attr_to_item(format_ident!("res_item"), fields, rename_all_type);
     let api_call_token = super::api_call_token!("scan");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
@@ -57,10 +74,13 @@ pub(crate) fn expand_scan(
         }
 
         impl<'a> #builder_name<'a> {
+            #[deprecated(note = "use generated typed index method instead")]
             pub fn index(mut self, index: impl Into<String>) -> Self {
                 self.builder = self.builder.index_name(index.into());
                 self
             }
+
+            #(#gsi_methods)*
 
             pub fn consistent(mut self) -> Self {
                 self.builder = self.builder.consistent_read(true);

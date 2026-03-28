@@ -63,6 +63,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     } else {
         rename::RenameAllType::None
     };
+    let gsi_names = finder::find_gsi_names(&attrs);
+    let gsi_definitions = finder::find_gsi_definitions(&attrs);
 
     let fields = match input.data {
         Data::Struct(DataStruct {
@@ -99,9 +101,15 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         rename_all_type,
     );
 
-    let query = ops::expand_query(&struct_name, &fields, rename_all_type);
+    let query = ops::expand_query(
+        &struct_name,
+        &fields,
+        rename_all_type,
+        &gsi_names,
+        &gsi_definitions,
+    );
 
-    let scan = ops::expand_scan(&struct_name, &fields, rename_all_type);
+    let scan = ops::expand_scan(&struct_name, &fields, rename_all_type, &gsi_names);
 
     let batch_get = ops::expand_batch_get(
         &partition_key,

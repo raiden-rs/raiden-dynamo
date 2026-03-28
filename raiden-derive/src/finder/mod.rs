@@ -1,5 +1,11 @@
 use syn::{punctuated::Punctuated, Expr, ExprLit, Lit, Meta, MetaNameValue, Token};
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct GsiDefinition {
+    pub name: String,
+    pub partition_key: Option<String>,
+}
+
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
     match attr.meta {
         Meta::List(ref list) => {
@@ -77,6 +83,101 @@ pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
     }
 
     None
+}
+
+pub(crate) fn find_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    let mut names = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        if let Some(lit) = find_eq_string_from(attr, "gsi") {
+            names.push(lit);
+        }
+    }
+
+    for gsi in find_gsi_definitions(attrs) {
+        if !names.iter().any(|name| name == &gsi.name) {
+            names.push(gsi.name);
+        }
+    }
+
+    names
+}
+
+pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinition> {
+    let mut defs = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        let Meta::List(ref list) = attr.meta else {
+            continue;
+        };
+
+        let Ok(parsed) = list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+        else {
+            continue;
+        };
+
+        for meta in parsed.iter() {
+            let Meta::List(gsi_list) = meta else {
+                continue;
+            };
+
+            if gsi_list.path.segments[0].ident != "gsi" {
+                continue;
+            }
+
+            let Ok(gsi_args) =
+                gsi_list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+            else {
+                continue;
+            };
+
+            let mut name = None;
+            let mut partition_key = None;
+
+            for gsi_arg in gsi_args.iter() {
+                match gsi_arg {
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "name" => {
+                        name = Some(lit.value());
+                    }
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "partition_key" => {
+                        partition_key = Some(lit.value());
+                    }
+                    _ => {}
+                }
+            }
+
+            if let Some(name) = name {
+                defs.push(GsiDefinition {
+                    name,
+                    partition_key,
+                });
+            }
+        }
+    }
+
+    defs
 }
 
 pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {

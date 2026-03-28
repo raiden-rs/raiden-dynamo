@@ -6,6 +6,7 @@ use tracing_subscriber::{
 
 #[derive(Raiden, Debug)]
 #[raiden(table_name = "LastEvaluateKeyData")]
+#[raiden(gsi = "testGSI")]
 pub struct Test {
     #[raiden(partition_key)]
     pub id: String,
@@ -66,7 +67,7 @@ async fn example() {
     let cond = Test::key_condition(Test::ref_id()).eq("id0");
     let res = client
         .query()
-        .index("testGSI")
+        .test_gsi()
         .limit(5)
         .key_condition(cond)
         .run()
@@ -91,7 +92,7 @@ async fn example() {
     let cond = Test::key_condition(Test::ref_id()).eq("id0");
     let res = client
         .query()
-        .index("testGSI")
+        .test_gsi()
         .limit(5)
         .key_condition(cond)
         .run()

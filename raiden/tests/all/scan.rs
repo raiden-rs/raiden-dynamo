@@ -38,6 +38,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi = "testGSI")]
     #[allow(dead_code)]
     pub struct Test {
         #[raiden(partition_key)]
@@ -76,6 +77,14 @@ mod tests {
         let res = client.scan().limit(11).run().await;
 
         assert_eq!(res.unwrap().items.len(), 10);
+    }
+
+    #[tokio::test]
+    async fn test_scan_index_limit_5() {
+        let client = crate::all::create_client_from_struct!(Test);
+        let res = client.scan().test_gsi().limit(5).run().await;
+
+        assert_eq!(res.unwrap().items.len(), 5);
     }
 
     #[derive(Raiden)]
