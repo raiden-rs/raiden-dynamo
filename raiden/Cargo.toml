@@ -39,6 +39,7 @@ raiden = { path = "./", features = ["tracing"], default-features = false }
 time = "0.3.36"
 tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter", "time"] }
+trybuild = "1.0.116"
 
 [features]
 default = ["rusoto"]

@@ -10,11 +10,12 @@ pub fn expand_key_condition_builder(
         pub struct #key_condition_token_name;
 
         impl #struct_name {
-            pub fn key_condition(attr: #attr_enum_name) -> ::raiden::KeyCondition<#key_condition_token_name> {
+            pub fn key_condition(attr: #attr_enum_name) -> ::raiden::KeyCondition<#key_condition_token_name, #key_condition_token_name> {
                 let attr = attr.into_attr_name();
                 ::raiden::KeyCondition {
                     attr,
                     _token: std::marker::PhantomData,
+                    _next_token: std::marker::PhantomData,
                 }
             }
         }

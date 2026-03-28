@@ -1,9 +1,36 @@
 use convert_case::{Case, Casing};
 use quote::*;
 
-fn create_gsi_token_name(struct_name: &proc_macro2::Ident, index_name: &str) -> proc_macro2::Ident {
+fn create_gsi_partition_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+) -> proc_macro2::Ident {
     format_ident!(
-        "{}{}KeyConditionToken",
+        "{}{}PartitionKeyConditionToken",
+        struct_name,
+        index_name.to_case(Case::Pascal)
+    )
+}
+
+fn create_gsi_sort_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+    index: usize,
+) -> proc_macro2::Ident {
+    format_ident!(
+        "{}{}Sort{}KeyConditionToken",
+        struct_name,
+        index_name.to_case(Case::Pascal),
+        index + 1
+    )
+}
+
+fn create_gsi_terminal_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+) -> proc_macro2::Ident {
+    format_ident!(
+        "{}{}TerminalKeyConditionToken",
         struct_name,
         index_name.to_case(Case::Pascal)
     )
@@ -46,34 +73,108 @@ pub(crate) fn expand_query(
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let key_condition_token_name = format_ident!("{}KeyConditionToken", struct_name);
-    let gsi_tokens = gsi_definitions
-        .iter()
-        .filter(|gsi| gsi.partition_key.is_some())
-        .map(|gsi| {
-            let token_name = create_gsi_token_name(struct_name, &gsi.name);
-            quote! {
-                pub struct #token_name;
-            }
-        });
-    let gsi_key_condition_methods = gsi_definitions.iter().filter_map(|gsi| {
-        let partition_key = gsi.partition_key.as_ref()?;
+    let gsi_tokens = gsi_definitions.iter().flat_map(|gsi| {
+        let mut tokens = vec![];
+        if gsi.partition_key.is_none() {
+            return tokens;
+        }
+
+        let partition_token_name = create_gsi_partition_token_name(struct_name, &gsi.name);
+        let terminal_token_name = create_gsi_terminal_token_name(struct_name, &gsi.name);
+        tokens.push(quote! { pub struct #partition_token_name; });
+        tokens.push(quote! { pub struct #terminal_token_name; });
+
+        for index in 0..gsi.sort_keys.len() {
+            let sort_token_name = create_gsi_sort_token_name(struct_name, &gsi.name, index);
+            tokens.push(quote! { pub struct #sort_token_name; });
+        }
+
+        tokens
+    });
+    let gsi_key_condition_methods = gsi_definitions.iter().flat_map(|gsi| {
+        let mut methods = vec![];
+        let Some(partition_key) = gsi.partition_key.as_ref() else {
+            return methods;
+        };
+        let partition_token_name = create_gsi_partition_token_name(struct_name, &gsi.name);
+        let terminal_token_name = create_gsi_terminal_token_name(struct_name, &gsi.name);
+        let partition_next_token_name = if gsi.sort_keys.is_empty() {
+            terminal_token_name.clone()
+        } else {
+            create_gsi_sort_token_name(struct_name, &gsi.name, 0)
+        };
+
         let method_name = format!("{}_key_condition", gsi.name.to_case(Case::Snake));
         let method_ident = if crate::helpers::is_reserved(&method_name) {
             format_ident!("r#{}", method_name)
         } else {
             format_ident!("{}", method_name)
         };
-        let token_name = create_gsi_token_name(struct_name, &gsi.name);
         let attr_name = resolve_attr_name(fields, rename_all_type, partition_key);
 
-        Some(quote! {
-            pub fn #method_ident() -> ::raiden::KeyCondition<#token_name> {
+        methods.push(quote! {
+            pub fn #method_ident() -> ::raiden::KeyCondition<#partition_token_name, #partition_next_token_name> {
                 ::raiden::KeyCondition {
                     attr: #attr_name.to_owned(),
                     _token: std::marker::PhantomData,
+                    _next_token: std::marker::PhantomData,
                 }
             }
-        })
+        });
+
+        if gsi.sort_keys.len() == 1 {
+            let sort_key = &gsi.sort_keys[0];
+            let sort_token_name = create_gsi_sort_token_name(struct_name, &gsi.name, 0);
+            let method_name = format!("{}_sort_key_condition", gsi.name.to_case(Case::Snake));
+            let method_ident = if crate::helpers::is_reserved(&method_name) {
+                format_ident!("r#{}", method_name)
+            } else {
+                format_ident!("{}", method_name)
+            };
+            let attr_name = resolve_attr_name(fields, rename_all_type, sort_key);
+
+            methods.push(quote! {
+                pub fn #method_ident() -> ::raiden::KeyCondition<#sort_token_name, #terminal_token_name> {
+                    ::raiden::KeyCondition {
+                        attr: #attr_name.to_owned(),
+                        _token: std::marker::PhantomData,
+                        _next_token: std::marker::PhantomData,
+                    }
+                }
+            });
+        } else {
+            for (index, sort_key) in gsi.sort_keys.iter().enumerate() {
+                let sort_token_name = create_gsi_sort_token_name(struct_name, &gsi.name, index);
+                let next_token_name = if index + 1 < gsi.sort_keys.len() {
+                    create_gsi_sort_token_name(struct_name, &gsi.name, index + 1)
+                } else {
+                    terminal_token_name.clone()
+                };
+                let method_name = format!(
+                    "{}_sort_key_condition_{}",
+                    gsi.name.to_case(Case::Snake),
+                    index + 1
+                );
+                let method_ident = if crate::helpers::is_reserved(&method_name) {
+                    format_ident!("r#{}", method_name)
+                } else {
+                    format_ident!("{}", method_name)
+                };
+                let attr_name = resolve_attr_name(fields, rename_all_type, sort_key);
+
+                methods.push(quote! {
+                    pub fn #method_ident() -> ::raiden::KeyCondition<#sort_token_name, #next_token_name> {
+                        ::raiden::KeyCondition {
+                            attr: #attr_name.to_owned(),
+                            _token: std::marker::PhantomData,
+                            _next_token: std::marker::PhantomData,
+                        }
+                    }
+                });
+            }
+        }
+
+        methods
     });
     let gsi_methods = gsi_names.iter().map(|index_name| {
         let method_name = index_name.to_case(Case::Snake);
@@ -85,7 +186,7 @@ pub(crate) fn expand_query(
         let typed_token_name = gsi_definitions
             .iter()
             .find(|gsi| gsi.name == *index_name && gsi.partition_key.is_some())
-            .map(|gsi| create_gsi_token_name(struct_name, &gsi.name));
+            .map(|gsi| create_gsi_partition_token_name(struct_name, &gsi.name));
 
         if let Some(token_name) = typed_token_name {
             quote! {
@@ -239,7 +340,7 @@ pub(crate) fn expand_query(
                 self
             }
 
-            pub fn key_condition(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<T>) -> Self {
+            pub fn key_condition<U>(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<T, U>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
 
                 if !attr_values.is_empty() {

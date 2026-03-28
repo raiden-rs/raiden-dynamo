@@ -223,6 +223,33 @@ mod tests {
         long_text: String,
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(name = "testGSI", partition_key = "ref_id", sort_key = "id"))]
+    #[allow(dead_code)]
+    pub struct TypedGsiSortKeyTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(
+        name = "testGSI",
+        partition_key = "ref_id",
+        sort_key = "id",
+        sort_key = "long_text"
+    ))]
+    #[allow(dead_code)]
+    pub struct TypedCompositeGsiSortKeyTest {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+    }
+
     #[test]
     fn test_gsi_partition_key_condition_builds() {
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
@@ -237,6 +264,56 @@ mod tests {
     async fn test_query_builder_accepts_gsi_partition_key_condition() {
         let client = crate::all::create_client_from_struct!(TypedGsiPartitionKeyTest);
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
+        let _builder = client.query().test_gsi().key_condition(cond);
+    }
+
+    #[test]
+    fn test_gsi_sort_key_condition_builds() {
+        let cond = TypedGsiSortKeyTest::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedGsiSortKeyTest::test_gsi_sort_key_condition().begins_with("id"));
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert!(cond_str.contains("begins_with(#id, :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_names.get("#id"), Some(&"id".to_owned()));
+        assert_eq!(attr_values.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_accepts_gsi_sort_key_condition() {
+        let client = crate::all::create_client_from_struct!(TypedGsiSortKeyTest);
+        let cond = TypedGsiSortKeyTest::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedGsiSortKeyTest::test_gsi_sort_key_condition().begins_with("id"));
+        let _builder = client.query().test_gsi().key_condition(cond);
+    }
+
+    #[test]
+    fn test_composite_gsi_sort_key_conditions_build_in_order() {
+        let cond = TypedCompositeGsiSortKeyTest::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_1().eq("id1"))
+            .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_2().begins_with("long"));
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert!(cond_str.contains("#id = :value"));
+        assert!(cond_str.contains("begins_with(#long_text, :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_names.get("#id"), Some(&"id".to_owned()));
+        assert_eq!(attr_names.get("#long_text"), Some(&"long_text".to_owned()));
+        assert_eq!(attr_values.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_accepts_composite_gsi_sort_key_conditions() {
+        let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
+        let cond = TypedCompositeGsiSortKeyTest::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_1().eq("id1"))
+            .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_2().begins_with("long"));
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 

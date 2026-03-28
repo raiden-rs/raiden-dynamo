@@ -1,0 +1,16 @@
+error[E0277]: the trait bound `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>: raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken, _>` is not satisfied
+  --> tests/ui/gsi_key_conditions/continue_after_terminal.rs:26:22
+   |
+26 |     let _ = cond.and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_1().eq("id2"));
+   |                  --- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+   |                  |
+   |                  required by a bound introduced by this call
+   |
+   = help: the trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>`
+           but trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>` is implemented for it
+   = help: for that trait implementation, expected `TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken`, found `TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken`
+note: required by a bound in `KeyConditionFilled::<T, U>::and`
+  --> src/key_condition/mod.rs
+   |
+   |     pub fn and<V>(mut self, cond: impl KeyConditionBuilder<U, V>) -> KeyConditionFilled<T, V> {
+   |                                        ^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `KeyConditionFilled::<T, U>::and`

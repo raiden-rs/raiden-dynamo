@@ -4,6 +4,7 @@ use syn::{punctuated::Punctuated, Expr, ExprLit, Lit, Meta, MetaNameValue, Token
 pub(crate) struct GsiDefinition {
     pub name: String,
     pub partition_key: Option<String>,
+    pub sort_keys: Vec<String>,
 }
 
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
@@ -141,6 +142,7 @@ pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinitio
 
             let mut name = None;
             let mut partition_key = None;
+            let mut sort_keys = vec![];
 
             for gsi_arg in gsi_args.iter() {
                 match gsi_arg {
@@ -164,6 +166,16 @@ pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinitio
                     }) if path.segments[0].ident == "partition_key" => {
                         partition_key = Some(lit.value());
                     }
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "sort_key" => {
+                        sort_keys.push(lit.value());
+                    }
                     _ => {}
                 }
             }
@@ -172,6 +184,7 @@ pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinitio
                 defs.push(GsiDefinition {
                     name,
                     partition_key,
+                    sort_keys,
                 });
             }
         }
