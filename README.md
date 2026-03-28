@@ -232,6 +232,14 @@ struct User {
 
 #[derive(RaidenIndex, Debug, PartialEq)]
 #[raiden(source = "User", gsi = "userIndex")]
+#[raiden(
+    gsi(
+        name = "userIndex",
+        partition_key = "org_id",
+        sort_key = "created_at",
+        sort_key = "status"
+    )
+)]
 struct UserIndexItem {
     org_id: String,
     created_at: String,
@@ -242,10 +250,10 @@ struct UserIndexItem {
 async fn main() {
     let client = /* generate client */;
 
-    let cond = User::user_index_key_condition()
+    let cond = UserIndexItem::user_index_key_condition()
         .eq("org_1")
-        .and(User::user_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
-        .and(User::user_index_sort_key_condition_2().begins_with("active"));
+        .and(UserIndexItem::user_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
+        .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("active"));
 
     let _res = client
         .query()
@@ -260,6 +268,7 @@ Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
 - `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `run_with::<YourIndexType>()`
+- add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself
 - typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `run_with::<...>()` or `project::<...>()`
 - `#[raiden(omit_gsi = "userIndex")]` is metadata for index-specific projection design, but projection shape is determined by the `RaidenIndex` struct
 - composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...

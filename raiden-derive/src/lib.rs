@@ -2,6 +2,7 @@
 compile_error!("feature \"aws-sdk\" and \"rusoto\" cannot be enabled at the same time.");
 
 use proc_macro::TokenStream;
+use convert_case::{Case, Casing};
 use quote::*;
 
 use syn::*;
@@ -28,6 +29,165 @@ use aws_sdk::*;
 
 use crate::rename::*;
 use std::str::FromStr;
+
+fn create_gsi_partition_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+) -> proc_macro2::Ident {
+    format_ident!(
+        "{}{}PartitionKeyConditionToken",
+        struct_name,
+        index_name.to_case(Case::Pascal)
+    )
+}
+
+fn create_gsi_sort_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+    index: usize,
+) -> proc_macro2::Ident {
+    format_ident!(
+        "{}{}Sort{}KeyConditionToken",
+        struct_name,
+        index_name.to_case(Case::Pascal),
+        index + 1
+    )
+}
+
+fn create_gsi_terminal_token_name(
+    struct_name: &proc_macro2::Ident,
+    index_name: &str,
+) -> proc_macro2::Ident {
+    format_ident!(
+        "{}{}TerminalKeyConditionToken",
+        struct_name,
+        index_name.to_case(Case::Pascal)
+    )
+}
+
+fn resolve_attr_name_for_fields(
+    fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
+    field_name: &str,
+) -> String {
+    let field = fields
+        .named
+        .iter()
+        .find(|field| {
+            field
+                .ident
+                .as_ref()
+                .is_some_and(|ident| ident == field_name)
+        })
+        .unwrap_or_else(|| panic!("unknown field `{field_name}` for gsi key definition"));
+
+    crate::rename::create_renamed(
+        field_name.to_owned(),
+        crate::finder::find_rename_value(&field.attrs),
+        rename_all_type,
+    )
+}
+
+fn expand_gsi_key_condition_methods_for_owner(
+    method_owner_name: &proc_macro2::Ident,
+    token_owner_name: &proc_macro2::Ident,
+    fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
+    gsi_definitions: &[crate::finder::GsiDefinition],
+) -> proc_macro2::TokenStream {
+    let gsi_key_condition_methods = gsi_definitions.iter().flat_map(|gsi| {
+        let mut methods = vec![];
+        let Some(partition_key) = gsi.partition_key.as_ref() else {
+            return methods;
+        };
+
+        let partition_token_name = create_gsi_partition_token_name(token_owner_name, &gsi.name);
+        let terminal_token_name = create_gsi_terminal_token_name(token_owner_name, &gsi.name);
+        let partition_next_token_name = if gsi.sort_keys.is_empty() {
+            terminal_token_name.clone()
+        } else {
+            create_gsi_sort_token_name(token_owner_name, &gsi.name, 0)
+        };
+
+        let method_name = format!("{}_key_condition", gsi.name.to_case(Case::Snake));
+        let method_ident = if crate::helpers::is_reserved(&method_name) {
+            format_ident!("r#{}", method_name)
+        } else {
+            format_ident!("{}", method_name)
+        };
+        let attr_name = resolve_attr_name_for_fields(fields, rename_all_type, partition_key);
+
+        methods.push(quote! {
+            pub fn #method_ident() -> ::raiden::KeyCondition<#partition_token_name, #partition_next_token_name> {
+                ::raiden::KeyCondition {
+                    attr: #attr_name.to_owned(),
+                    _token: std::marker::PhantomData,
+                    _next_token: std::marker::PhantomData,
+                }
+            }
+        });
+
+        if gsi.sort_keys.len() == 1 {
+            let sort_key = &gsi.sort_keys[0];
+            let sort_token_name = create_gsi_sort_token_name(token_owner_name, &gsi.name, 0);
+            let method_name = format!("{}_sort_key_condition", gsi.name.to_case(Case::Snake));
+            let method_ident = if crate::helpers::is_reserved(&method_name) {
+                format_ident!("r#{}", method_name)
+            } else {
+                format_ident!("{}", method_name)
+            };
+            let attr_name = resolve_attr_name_for_fields(fields, rename_all_type, sort_key);
+
+            methods.push(quote! {
+                pub fn #method_ident() -> ::raiden::KeyCondition<#sort_token_name, #terminal_token_name> {
+                    ::raiden::KeyCondition {
+                        attr: #attr_name.to_owned(),
+                        _token: std::marker::PhantomData,
+                        _next_token: std::marker::PhantomData,
+                    }
+                }
+            });
+        } else {
+            for (index, sort_key) in gsi.sort_keys.iter().enumerate() {
+                let sort_token_name = create_gsi_sort_token_name(token_owner_name, &gsi.name, index);
+                let next_token_name = if index + 1 < gsi.sort_keys.len() {
+                    create_gsi_sort_token_name(token_owner_name, &gsi.name, index + 1)
+                } else {
+                    terminal_token_name.clone()
+                };
+                let method_name = format!(
+                    "{}_sort_key_condition_{}",
+                    gsi.name.to_case(Case::Snake),
+                    index + 1
+                );
+                let method_ident = if crate::helpers::is_reserved(&method_name) {
+                    format_ident!("r#{}", method_name)
+                } else {
+                    format_ident!("{}", method_name)
+                };
+                let attr_name = resolve_attr_name_for_fields(fields, rename_all_type, sort_key);
+
+                methods.push(quote! {
+                    pub fn #method_ident() -> ::raiden::KeyCondition<#sort_token_name, #next_token_name> {
+                        ::raiden::KeyCondition {
+                            attr: #attr_name.to_owned(),
+                            _token: std::marker::PhantomData,
+                            _next_token: std::marker::PhantomData,
+                        }
+                    }
+                });
+            }
+        }
+
+        methods
+    });
+
+    quote! {
+        impl #method_owner_name {
+            #(#gsi_key_condition_methods)*
+        }
+    }
+}
 
 #[proc_macro_derive(Raiden, attributes(raiden))]
 pub fn derive_raiden(input: TokenStream) -> TokenStream {
@@ -237,15 +397,15 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
             finder::find_eq_string_from(attr, "source")
         })
         .unwrap_or_else(|| panic!("RaidenIndex requires #[raiden(source = \"...\")]"));
-    let gsi_name = attrs
-        .iter()
-        .find_map(|attr| {
-            if attr.path().segments[0].ident != "raiden" {
-                return None;
-            }
-            finder::find_eq_string_from(attr, "gsi")
-        })
-        .unwrap_or_else(|| panic!("RaidenIndex requires #[raiden(gsi = \"...\")]"));
+    let gsi_names = finder::find_gsi_names(&attrs);
+    if gsi_names.is_empty() {
+        panic!("RaidenIndex requires #[raiden(gsi = \"...\")]");
+    }
+    if gsi_names.len() > 1 {
+        panic!("RaidenIndex currently supports exactly one gsi");
+    }
+    let gsi_name = gsi_names[0].clone();
+    let gsi_definitions = finder::find_gsi_definitions(&attrs);
 
     let rename_all = finder::find_rename_all(&attrs);
     let rename_all_type = if let Some(rename_all) = rename_all {
@@ -264,7 +424,24 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
 
     let source_ty: Type = syn::parse_str(&source)
         .unwrap_or_else(|_| panic!("invalid source type `{source}` for RaidenIndex"));
+    let source_struct_ident = match &source_ty {
+        Type::Path(type_path) => type_path
+            .path
+            .segments
+            .last()
+            .expect("source path should not be empty")
+            .ident
+            .clone(),
+        _ => panic!("RaidenIndex source must be a path type"),
+    };
     let raiden_item = item::expand_raiden_item_impl(&struct_name, &fields, rename_all_type);
+    let gsi_key_condition_methods = expand_gsi_key_condition_methods_for_owner(
+        &struct_name,
+        &source_struct_ident,
+        &fields,
+        rename_all_type,
+        &gsi_definitions,
+    );
 
     let expanded = quote! {
         #raiden_item
@@ -272,6 +449,8 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
         impl ::raiden::RaidenIndexItem<#source_ty> for #struct_name {
             const GSI_NAME: &'static str = #gsi_name;
         }
+
+        #gsi_key_condition_methods
     };
 
     proc_macro::TokenStream::from(expanded)

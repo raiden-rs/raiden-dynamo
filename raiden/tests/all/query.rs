@@ -265,9 +265,27 @@ mod tests {
 
     #[derive(RaidenIndex, Debug, PartialEq)]
     #[raiden(source = "TypedGsiProjectionSource", gsi = "testGSI")]
+    #[raiden(gsi(name = "testGSI", partition_key = "ref_id"))]
     #[allow(dead_code)]
     pub struct TypedGsiProjectionItem {
         ref_id: String,
+        long_text: String,
+    }
+
+    #[derive(RaidenIndex, Debug, PartialEq)]
+    #[raiden(source = "TypedCompositeGsiSortKeyTest", gsi = "testGSI")]
+    #[raiden(
+        gsi(
+            name = "testGSI",
+            partition_key = "ref_id",
+            sort_key = "id",
+            sort_key = "long_text"
+        )
+    )]
+    #[allow(dead_code)]
+    pub struct TypedCompositeGsiProjectionItem {
+        ref_id: String,
+        id: String,
         long_text: String,
     }
 
@@ -281,10 +299,27 @@ mod tests {
         assert_eq!(attr_values.len(), 1);
     }
 
+    #[test]
+    fn test_gsi_projection_item_partition_key_condition_builds() {
+        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_values.len(), 1);
+    }
+
     #[tokio::test]
     async fn test_query_builder_accepts_gsi_partition_key_condition() {
         let client = crate::all::create_client_from_struct!(TypedGsiPartitionKeyTest);
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
+        let _builder = client.query().test_gsi().key_condition(cond);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_accepts_projection_item_partition_key_condition() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 
@@ -328,6 +363,23 @@ mod tests {
         assert_eq!(attr_values.len(), 3);
     }
 
+    #[test]
+    fn test_composite_gsi_projection_item_sort_key_conditions_build_in_order() {
+        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert!(cond_str.contains("#id = :value"));
+        assert!(cond_str.contains("begins_with(#long_text, :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_names.get("#id"), Some(&"id".to_owned()));
+        assert_eq!(attr_names.get("#long_text"), Some(&"long_text".to_owned()));
+        assert_eq!(attr_values.len(), 3);
+    }
+
     #[tokio::test]
     async fn test_query_builder_accepts_composite_gsi_sort_key_conditions() {
         let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
@@ -335,6 +387,16 @@ mod tests {
             .eq("id0")
             .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_1().eq("id1"))
             .and(TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_2().begins_with("long"));
+        let _builder = client.query().test_gsi().key_condition(cond);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_accepts_composite_projection_item_gsi_sort_key_conditions() {
+        let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
+        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 
