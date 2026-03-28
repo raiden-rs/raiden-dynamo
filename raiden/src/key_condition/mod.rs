@@ -36,6 +36,9 @@ pub trait KeyConditionBuilder<T, U> {
     );
 }
 
+pub trait SupportsEqCondition {}
+pub trait SupportsRangeCondition {}
+
 #[derive(Debug, Clone)]
 pub struct KeyCondition<T, U = T> {
     pub attr: String,
@@ -231,7 +234,10 @@ impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilled<T, U> {
     }
 }
 
-impl<T, U> KeyCondition<T, U> {
+impl<T, U> KeyCondition<T, U>
+where
+    T: SupportsEqCondition,
+{
     pub fn eq(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Eq(placeholder, value.into_attr());
@@ -242,7 +248,12 @@ impl<T, U> KeyCondition<T, U> {
             _next_token: std::marker::PhantomData,
         }
     }
+}
 
+impl<T, U> KeyCondition<T, U>
+where
+    T: SupportsRangeCondition,
+{
     pub fn gt(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Gt(placeholder, value.into_attr());

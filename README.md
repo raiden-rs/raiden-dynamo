@@ -205,6 +205,54 @@ async fn main() {
 }
 ```
 
+#### query with typed GSI
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+#[raiden(
+    gsi(
+        name = "userIndex",
+        partition_key = "org_id",
+        sort_key = "created_at",
+        sort_key = "status"
+    )
+)]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    org_id: String,
+    created_at: String,
+    status: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+
+    let cond = User::user_index_key_condition()
+        .eq("org_1")
+        .and(User::user_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
+        .and(User::user_index_sort_key_condition_2().begins_with("active"));
+
+    let _res = client
+        .query()
+        .user_index()
+        .key_condition(cond)
+        .run()
+        .await;
+}
+```
+
+Notes:
+
+- typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
+- composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
+- range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
+- the old `.index("userIndex")` API is still available for backward compatibility, but it is deprecated
+
 ## Support `tokio-rs/tracing`
 
 `raiden` supports making span for Tracing ( span name is `dynamodb::action` with table name and api name in field ).  

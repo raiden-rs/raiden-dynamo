@@ -87,6 +87,13 @@ mod tests {
         assert_eq!(res.unwrap().items.len(), 5);
     }
 
+    #[tokio::test]
+    async fn test_scan_builder_keeps_deprecated_index_compatibility() {
+        let client = crate::all::create_client_from_struct!(Test);
+        #[allow(deprecated)]
+        let _builder = client.scan().index("testGSI").limit(5);
+    }
+
     #[derive(Raiden)]
     #[raiden(table_name = "Project")]
     #[raiden(rename_all = "camelCase")]

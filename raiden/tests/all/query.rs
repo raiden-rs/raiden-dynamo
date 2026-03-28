@@ -318,6 +318,14 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_query_builder_keeps_deprecated_index_compatibility() {
+        let client = crate::all::create_client_from_struct!(Test);
+        let cond = Test::key_condition(Test::ref_id()).eq("id0");
+        #[allow(deprecated)]
+        let _builder = client.query().index("testGSI").key_condition(cond);
+    }
+
+    #[tokio::test]
     async fn test_query_limit_1() {
         let client = crate::all::create_client_from_struct!(Test);
         let cond = Test::key_condition(Test::ref_id()).eq("id0");

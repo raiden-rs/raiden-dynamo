@@ -81,12 +81,28 @@ pub(crate) fn expand_query(
 
         let partition_token_name = create_gsi_partition_token_name(struct_name, &gsi.name);
         let terminal_token_name = create_gsi_terminal_token_name(struct_name, &gsi.name);
-        tokens.push(quote! { pub struct #partition_token_name; });
-        tokens.push(quote! { pub struct #terminal_token_name; });
+        tokens.push(quote! {
+            pub struct #partition_token_name;
+            impl ::raiden::key_condition::SupportsEqCondition for #partition_token_name {}
+        });
+        tokens.push(quote! {
+            pub struct #terminal_token_name;
+        });
 
         for index in 0..gsi.sort_keys.len() {
             let sort_token_name = create_gsi_sort_token_name(struct_name, &gsi.name, index);
-            tokens.push(quote! { pub struct #sort_token_name; });
+            if index + 1 == gsi.sort_keys.len() {
+                tokens.push(quote! {
+                    pub struct #sort_token_name;
+                    impl ::raiden::key_condition::SupportsEqCondition for #sort_token_name {}
+                    impl ::raiden::key_condition::SupportsRangeCondition for #sort_token_name {}
+                });
+            } else {
+                tokens.push(quote! {
+                    pub struct #sort_token_name;
+                    impl ::raiden::key_condition::SupportsEqCondition for #sort_token_name {}
+                });
+            }
         }
 
         tokens
