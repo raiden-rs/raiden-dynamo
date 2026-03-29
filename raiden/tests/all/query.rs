@@ -468,11 +468,13 @@ mod tests {
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         {
             let projection = builder
+                .inner
                 .input
                 .projection_expression
                 .clone()
                 .expect("projection should exist");
             let names = builder
+                .inner
                 .input
                 .expression_attribute_names
                 .clone()
@@ -489,11 +491,13 @@ mod tests {
         #[cfg(feature = "aws-sdk")]
         {
             let projection = builder
+                .inner
                 .builder
                 .get_projection_expression()
                 .clone()
                 .expect("projection should exist");
             let names = builder
+                .inner
                 .builder
                 .get_expression_attribute_names()
                 .clone()
@@ -512,6 +516,63 @@ mod tests {
     async fn test_typed_gsi_query_run_with_accepts_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
         let _future = client.query().test_gsi().run_with::<TypedGsiProjectionItem>();
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_query_project_can_chain_into_run_with() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        assert_future_type(
+            client
+                .query()
+                .test_gsi()
+                .project::<TypedGsiProjectionItem>()
+                .run_with::<TypedGsiProjectionItem>(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_query_project_run_returns_projection_output_type() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        assert_future_type(client.query().test_gsi().project::<TypedGsiProjectionItem>().run());
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_query_project_preserves_output_type_after_key_condition() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        let cond =
+            TypedGsiProjectionSource::test_gsi_key_condition().eq("id0");
+        assert_future_type(
+            client
+                .query()
+                .test_gsi()
+                .project::<TypedGsiProjectionItem>()
+                .key_condition(cond)
+                .run(),
+        );
     }
 
     #[tokio::test]

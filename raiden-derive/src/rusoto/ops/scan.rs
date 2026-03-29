@@ -10,6 +10,7 @@ pub(crate) fn expand_scan(
     let trait_name = format_ident!("{}Scan", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}ScanBuilder", struct_name);
+    let projected_builder_name = format_ident!("{}ProjectedScanBuilder", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
     let gsi_methods = gsi_names.iter().map(|index_name| {
@@ -53,6 +54,15 @@ pub(crate) fn expand_scan(
             pub limit: Option<i64>,
         }
 
+        /// A typed scan builder that decodes results into a projection item.
+        ///
+        /// This wrapper preserves the current scan state while changing the
+        /// projection expression and output item type to `I`.
+        pub struct #projected_builder_name<'a, I> {
+            pub inner: #builder_name<'a>,
+            pub _item: std::marker::PhantomData<fn() -> I>,
+        }
+
         impl #trait_name for #client_name {
             #![allow(clippy::field_reassign_with_default)]
             fn scan(&self) -> #builder_name {
@@ -80,14 +90,21 @@ pub(crate) fn expand_scan(
 
             #(#gsi_methods)*
 
-            pub fn project<I>(mut self) -> Self
+            /// Switches the builder to an index projection type.
+            ///
+            /// This updates the projection expression and returns a typed
+            /// wrapper whose `run()` method decodes items into `I`.
+            pub fn project<I>(mut self) -> #projected_builder_name<'a, I>
             where
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
                 self.input.index_name = Some(I::GSI_NAME.to_owned());
                 self.input.expression_attribute_names = I::attribute_names();
                 self.input.projection_expression = I::projection_expression();
-                self
+                #projected_builder_name {
+                    inner: self,
+                    _item: std::marker::PhantomData,
+                }
             }
 
             pub fn consistent(mut self) -> Self {
@@ -118,22 +135,26 @@ pub(crate) fn expand_scan(
                 self
             }
 
+            /// Runs the scan and decodes items into the builder output type.
             pub async fn run(self) -> Result<::raiden::scan::ScanOutput<#struct_name>, ::raiden::RaidenError> {
                 self.run_inner::<#struct_name>().await
             }
 
+            /// Runs the scan using the given index projection type.
+            ///
+            /// This is kept as a convenience wrapper for backward compatibility.
             pub async fn run_with<I>(self) -> Result<::raiden::scan::ScanOutput<I>, ::raiden::RaidenError>
             where
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
-                self.project::<I>().run_inner::<I>().await
+                self.project::<I>().run().await
             }
 
             async fn run_inner<I>(self) -> Result<::raiden::scan::ScanOutput<I>, ::raiden::RaidenError>
             where
                 I: ::raiden::RaidenItem,
             {
-                let Self { client, mut input, next_token, mut limit, policy, condition } = self;
+                let Self { client, mut input, next_token, mut limit, policy, condition, .. } = self;
                 let policy: ::raiden::RetryPolicy = policy.into();
 
                 if let Some(token) = next_token {
@@ -188,6 +209,56 @@ pub(crate) fn expand_scan(
                 input: ::raiden::ScanInput,
             ) -> Result<::raiden::ScanOutput, ::raiden::RaidenError> {
                 Ok(#api_call_token?)
+            }
+        }
+
+        impl<'a, I> #projected_builder_name<'a, I>
+        where
+            I: ::raiden::RaidenIndexItem<#struct_name>,
+        {
+            /// Replaces the projection item type while keeping scan state.
+            pub fn project<J>(self) -> #projected_builder_name<'a, J>
+            where
+                J: ::raiden::RaidenIndexItem<#struct_name>,
+            {
+                self.inner.project::<J>()
+            }
+
+            /// Enables strongly consistent reads for the scan.
+            pub fn consistent(mut self) -> Self {
+                self.inner = self.inner.consistent();
+                self
+            }
+
+            /// Applies a filter expression while preserving the projection type.
+            pub fn filter(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
+                self.inner = self.inner.filter(cond);
+                self
+            }
+
+            /// Sets the pagination token used to resume the scan.
+            pub fn next_token(mut self, token: ::raiden::NextToken) -> Self {
+                self.inner = self.inner.next_token(token);
+                self
+            }
+
+            /// Limits the number of returned items.
+            pub fn limit(mut self, limit: usize) -> Self {
+                self.inner = self.inner.limit(limit);
+                self
+            }
+
+            /// Runs the scan and decodes items into the projection item type.
+            pub async fn run(self) -> Result<::raiden::scan::ScanOutput<I>, ::raiden::RaidenError> {
+                self.inner.run_inner::<I>().await
+            }
+
+            /// Runs the scan with another projection item type.
+            pub async fn run_with<J>(self) -> Result<::raiden::scan::ScanOutput<J>, ::raiden::RaidenError>
+            where
+                J: ::raiden::RaidenIndexItem<#struct_name>,
+            {
+                self.project::<J>().run().await
             }
         }
     }

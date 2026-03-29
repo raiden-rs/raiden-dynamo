@@ -258,8 +258,9 @@ async fn main() {
     let _res = client
         .query()
         .user_index()
+        .project::<UserIndexItem>()
         .key_condition(cond)
-        .run_with::<UserIndexItem>()
+        .run()
         .await;
 }
 ```
@@ -267,9 +268,10 @@ async fn main() {
 Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
-- `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `run_with::<YourIndexType>()`
+- `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `project::<YourIndexType>().run()`
 - add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself
-- typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `run_with::<...>()` or `project::<...>()`
+- typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `project::<...>()`
+- `run_with::<...>()` remains available as a backward-compatible convenience wrapper
 - `#[raiden(omit_gsi = "userIndex")]` is metadata for index-specific projection design, but projection shape is determined by the `RaidenIndex` struct
 - composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key

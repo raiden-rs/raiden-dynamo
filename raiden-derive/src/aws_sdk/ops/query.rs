@@ -69,6 +69,7 @@ pub(crate) fn expand_query(
     let trait_name = format_ident!("{}Query", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}QueryBuilder", struct_name);
+    let projected_builder_name = format_ident!("{}ProjectedQueryBuilder", struct_name);
     let query_output_item = format_ident!("{}QueryOutput", struct_name);
 
     let filter_expression_token_name = format_ident!("{}FilterExpressionToken", struct_name);
@@ -223,7 +224,7 @@ pub(crate) fn expand_query(
                         limit,
                         policy,
                         condition,
-                        _token: std::marker::PhantomData,
+                        _token: std::marker::PhantomData::<fn() -> #token_name>,
                     }
                 }
             }
@@ -269,6 +270,15 @@ pub(crate) fn expand_query(
             pub _token: std::marker::PhantomData<fn() -> T>,
         }
 
+        /// A typed query builder that decodes results into a projection item.
+        ///
+        /// This wrapper preserves the current query state while changing the
+        /// projection expression and output item type to `I`.
+        pub struct #projected_builder_name<'a, T, I> {
+            pub inner: #builder_name<'a, T>,
+            pub _item: std::marker::PhantomData<fn() -> I>,
+        }
+
         struct #query_output_item {
             consumed_capacity: Option<::raiden::aws_sdk::types::ConsumedCapacity>,
             count: Option<i64>,
@@ -295,7 +305,7 @@ pub(crate) fn expand_query(
                     limit: None,
                     policy: self.retry_condition.strategy.policy(),
                     condition: &self.retry_condition,
-                    _token: std::marker::PhantomData,
+                    _token: std::marker::PhantomData::<fn() -> #key_condition_token_name>,
                 }
             }
         }
@@ -313,7 +323,11 @@ pub(crate) fn expand_query(
 
             #(#gsi_methods)*
 
-            pub fn project<I>(mut self) -> Self
+            /// Switches the builder to an index projection type.
+            ///
+            /// This updates the projection expression and returns a typed
+            /// wrapper whose `run()` method decodes items into `I`.
+            pub fn project<I>(mut self) -> #projected_builder_name<'a, T, I>
             where
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
@@ -321,7 +335,10 @@ pub(crate) fn expand_query(
                     .index_name(I::GSI_NAME)
                     .set_projection_expression(I::projection_expression())
                     .set_expression_attribute_names(I::attribute_names());
-                self
+                #projected_builder_name {
+                    inner: self,
+                    _item: std::marker::PhantomData,
+                }
             }
 
             pub fn consistent(mut self) -> Self {
@@ -385,15 +402,19 @@ pub(crate) fn expand_query(
                 self
             }
 
+            /// Runs the query and decodes items into the builder output type.
             pub async fn run(self) -> Result<::raiden::query::QueryOutput<#struct_name>, ::raiden::RaidenError> {
                 self.run_inner::<#struct_name>().await
             }
 
+            /// Runs the query using the given index projection type.
+            ///
+            /// This is kept as a convenience wrapper for backward compatibility.
             pub async fn run_with<I>(self) -> Result<::raiden::query::QueryOutput<I>, ::raiden::RaidenError>
             where
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
-                self.project::<I>().run_inner::<I>().await
+                self.project::<I>().run().await
             }
 
             async fn run_inner<I>(mut self) -> Result<::raiden::query::QueryOutput<I>, ::raiden::RaidenError>
@@ -470,6 +491,77 @@ pub(crate) fn expand_query(
                     last_evaluated_key: res.last_evaluated_key,
                     scanned_count: Some(res.scanned_count as i64),
                 })
+            }
+        }
+
+        impl<'a, T, I> #projected_builder_name<'a, T, I>
+        where
+            I: ::raiden::RaidenIndexItem<#struct_name>,
+        {
+            /// Replaces the projection item type while keeping query state.
+            pub fn project<J>(self) -> #projected_builder_name<'a, T, J>
+            where
+                J: ::raiden::RaidenIndexItem<#struct_name>,
+            {
+                self.inner.project::<J>()
+            }
+
+            /// Enables strongly consistent reads for the query.
+            pub fn consistent(mut self) -> Self {
+                self.inner = self.inner.consistent();
+                self
+            }
+
+            /// Sets the pagination token used to resume the query.
+            pub fn next_token(mut self, token: ::raiden::NextToken) -> Self {
+                self.inner = self.inner.next_token(token);
+                self
+            }
+
+            /// Requests results in descending sort-key order.
+            pub fn desc(mut self) -> Self {
+                self.inner = self.inner.desc();
+                self
+            }
+
+            /// Requests results in ascending sort-key order.
+            pub fn asc(mut self) -> Self {
+                self.inner = self.inner.asc();
+                self
+            }
+
+            /// Limits the number of returned items.
+            pub fn limit(mut self, limit: usize) -> Self {
+                self.inner = self.inner.limit(limit);
+                self
+            }
+
+            /// Applies a filter expression while preserving the projection type.
+            pub fn filter(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
+                self.inner = self.inner.filter(cond);
+                self
+            }
+
+            /// Applies a key condition while preserving the projection type.
+            pub fn key_condition<U>(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<T, U>) -> Self {
+                self.inner = self.inner.key_condition(cond);
+                self
+            }
+
+            /// Runs the query and decodes items into the projection item type.
+            pub async fn run(self) -> Result<::raiden::query::QueryOutput<I>, ::raiden::RaidenError> {
+                self.inner.run_inner::<I>().await
+            }
+
+            /// Runs the query with another projection item type.
+            ///
+            /// This remains available as a convenience wrapper when callers want
+            /// to switch projection types late in the builder chain.
+            pub async fn run_with<J>(self) -> Result<::raiden::query::QueryOutput<J>, ::raiden::RaidenError>
+            where
+                J: ::raiden::RaidenIndexItem<#struct_name>,
+            {
+                self.project::<J>().run().await
             }
         }
     }
