@@ -287,6 +287,24 @@ mod tests {
         long_text: String,
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(
+        name = "userIndex",
+        partition_key = "ref_id",
+        sort_key = "id",
+        sort_key = "long_text"
+    ))]
+    #[allow(dead_code)]
+    pub struct User {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+        #[raiden(omit_gsi = "userIndex")]
+        omitted: String,
+    }
+
     #[test]
     fn test_gsi_partition_key_condition_builds() {
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");
@@ -370,6 +388,23 @@ mod tests {
                 TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
                     .begins_with("long"),
             );
+        let (cond_str, attr_names, attr_values) = cond.build();
+
+        assert!(cond_str.starts_with("#ref_id = :value"));
+        assert!(cond_str.contains("#id = :value"));
+        assert!(cond_str.contains("begins_with(#long_text, :value"));
+        assert_eq!(attr_names.get("#ref_id"), Some(&"ref_id".to_owned()));
+        assert_eq!(attr_names.get("#id"), Some(&"id".to_owned()));
+        assert_eq!(attr_names.get("#long_text"), Some(&"long_text".to_owned()));
+        assert_eq!(attr_values.len(), 3);
+    }
+
+    #[test]
+    fn test_auto_generated_gsi_projection_item_sort_key_conditions_build_in_order() {
+        let cond = UserIndexItem::user_index_key_condition()
+            .eq("id0")
+            .and(UserIndexItem::user_index_sort_key_condition_1().eq("id1"))
+            .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("long"));
         let (cond_str, attr_names, attr_values) = cond.build();
 
         assert!(cond_str.starts_with("#ref_id = :value"));
@@ -520,6 +555,60 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_auto_generated_gsi_query_project_sets_projection_from_omit_gsi() {
+        let client = crate::all::create_client_from_struct!(User);
+        let builder = client.query().user_index().project::<UserIndexItem>();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .inner
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .inner
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
     async fn test_typed_gsi_query_run_with_accepts_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
         let _future = client
@@ -607,6 +696,22 @@ mod tests {
                 .key_condition(cond)
                 .run(),
         );
+    }
+
+    #[tokio::test]
+    async fn test_auto_generated_projection_item_query_starts_typed_query_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<Output = Result<query::QueryOutput<UserIndexItem>, RaidenError>>,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(User);
+        let cond = UserIndexItem::user_index_key_condition()
+            .eq("id0")
+            .and(UserIndexItem::user_index_sort_key_condition_1().eq("id1"))
+            .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("long"));
+        assert_future_type(UserIndexItem::query(&client).key_condition(cond).run());
     }
 
     #[tokio::test]

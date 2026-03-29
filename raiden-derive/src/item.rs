@@ -1,11 +1,11 @@
 use quote::*;
 
-pub(crate) fn expand_raiden_item_impl(
+fn expand_raiden_item_impl_from_fields(
     struct_name: &proc_macro2::Ident,
-    fields: &syn::FieldsNamed,
+    fields: &[syn::Field],
     rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
-    let insertion_attribute_name = fields.named.iter().map(|f| {
+    let insertion_attribute_name = fields.iter().map(|f| {
         let ident = f.ident.as_ref().expect("raiden only supports named fields");
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let result = crate::rename::create_renamed(ident.to_string(), renamed, rename_all_type);
@@ -17,7 +17,7 @@ pub(crate) fn expand_raiden_item_impl(
         }
     });
 
-    let from_item = fields.named.iter().map(|f| {
+    let from_item = fields.iter().map(|f| {
         let ident = &f.ident.clone().unwrap();
         let use_default = crate::finder::include_unary_attr(&f.attrs, "use_default");
         let renamed = crate::finder::find_rename_value(&f.attrs);
@@ -113,4 +113,21 @@ pub(crate) fn expand_raiden_item_impl(
             }
         }
     }
+}
+
+pub(crate) fn expand_raiden_item_impl(
+    struct_name: &proc_macro2::Ident,
+    fields: &syn::FieldsNamed,
+    rename_all_type: crate::rename::RenameAllType,
+) -> proc_macro2::TokenStream {
+    let fields: Vec<syn::Field> = fields.named.iter().cloned().collect();
+    expand_raiden_item_impl_from_fields(struct_name, &fields, rename_all_type)
+}
+
+pub(crate) fn expand_raiden_item_impl_for_fields(
+    struct_name: &proc_macro2::Ident,
+    fields: &[syn::Field],
+    rename_all_type: crate::rename::RenameAllType,
+) -> proc_macro2::TokenStream {
+    expand_raiden_item_impl_from_fields(struct_name, fields, rename_all_type)
 }

@@ -230,22 +230,6 @@ struct User {
     internal_note: String,
 }
 
-#[derive(RaidenIndex, Debug, PartialEq)]
-#[raiden(source = "User", gsi = "userIndex")]
-#[raiden(
-    gsi(
-        name = "userIndex",
-        partition_key = "org_id",
-        sort_key = "created_at",
-        sort_key = "status"
-    )
-)]
-struct UserIndexItem {
-    org_id: String,
-    created_at: String,
-    status: String,
-}
-
 #[tokio::main]
 async fn main() {
     let client = /* generate client */;
@@ -273,15 +257,18 @@ async fn main() {
 Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
-- `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `project::<YourIndexType>().run()`
+- `#[raiden(omit_gsi = "userIndex")]` also generates a default projection type such as `UserIndexItem`, so the common case does not require writing `#[derive(RaidenIndex)]` manually
+- `#[derive(RaidenIndex)]` remains available when you want to override the generated projection shape or name, or when you prefer to declare the projection item explicitly
 - `#[derive(RaidenIndex)]` also generates `YourIndexType::query(&client)` and `YourIndexType::scan(&client)` helpers for projection-first access
 - add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself
 - typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `project::<...>()`
+- `client.query().user_index().project::<UserIndexItem>()` and `UserIndexItem::query(&client)` are equivalent entrypoints; choose whichever style is clearer for your call site
+- `client.scan().user_index().project::<UserIndexItem>()` and `UserIndexItem::scan(&client)` are also equivalent entrypoints
 - `run_with::<...>()` remains available as a backward-compatible convenience wrapper
-- `#[raiden(omit_gsi = "userIndex")]` is metadata for index-specific projection design, but projection shape is determined by the `RaidenIndex` struct
+- the legacy `.index("userIndex")` API is still available for backward compatibility, and existing typed GSI builders still default to the source-item projection unless you opt into a projection item
 - composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
-- the old `.index("userIndex")` API is still available for backward compatibility, but it is deprecated
+- the old `.index("userIndex")` API is deprecated, but preserved for compatibility while migrating to typed GSI helpers
 
 ## Support `tokio-rs/tracing`
 
