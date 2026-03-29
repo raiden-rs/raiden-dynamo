@@ -576,6 +576,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_projection_item_query_starts_typed_query_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        assert_future_type(TypedGsiProjectionItem::query(&client).key_condition(cond).run());
+    }
+
+    #[tokio::test]
+    async fn test_composite_projection_item_query_starts_typed_query_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<query::QueryOutput<TypedCompositeGsiProjectionItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
+        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+            .eq("id0")
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
+        assert_future_type(
+            TypedCompositeGsiProjectionItem::query(&client)
+                .key_condition(cond)
+                .run(),
+        );
+    }
+
+    #[tokio::test]
     async fn test_deprecated_index_query_keeps_full_projection() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
         #[allow(deprecated)]

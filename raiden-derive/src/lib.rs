@@ -434,6 +434,24 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
             .clone(),
         _ => panic!("RaidenIndex source must be a path type"),
     };
+    let source_client_ident = format_ident!("{}Client", source_struct_ident);
+    let source_query_trait_ident = format_ident!("{}Query", source_struct_ident);
+    let source_scan_trait_ident = format_ident!("{}Scan", source_struct_ident);
+    let source_query_builder_ident = format_ident!("{}QueryBuilder", source_struct_ident);
+    let source_scan_builder_ident = format_ident!("{}ScanBuilder", source_struct_ident);
+    let source_projected_query_builder_ident =
+        format_ident!("{}ProjectedQueryBuilder", source_struct_ident);
+    let source_projected_scan_builder_ident =
+        format_ident!("{}ProjectedScanBuilder", source_struct_ident);
+    let source_key_condition_token_ident = format_ident!("{}KeyConditionToken", source_struct_ident);
+    let query_token_ident = if gsi_definitions
+        .iter()
+        .any(|gsi| gsi.name == gsi_name && gsi.partition_key.is_some())
+    {
+        create_gsi_partition_token_name(&source_struct_ident, &gsi_name)
+    } else {
+        source_key_condition_token_ident.clone()
+    };
     let raiden_item = item::expand_raiden_item_impl(&struct_name, &fields, rename_all_type);
     let gsi_key_condition_methods = expand_gsi_key_condition_methods_for_owner(
         &struct_name,
@@ -442,6 +460,125 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
         rename_all_type,
         &gsi_definitions,
     );
+    let index_entrypoints = if cfg!(feature = "aws-sdk") {
+        quote! {
+            impl #struct_name {
+                /// Starts a typed query for this projection type.
+                ///
+                /// The returned builder is already bound to the associated GSI
+                /// and decodes results into this projection type.
+                pub fn query<'a>(
+                    client: &'a #source_client_ident,
+                ) -> #source_projected_query_builder_ident<'a, #query_token_ident, Self> {
+                    let builder = <#source_client_ident as #source_query_trait_ident>::query(client);
+                    let #source_query_builder_ident {
+                        client,
+                        builder,
+                        next_token,
+                        limit,
+                        policy,
+                        condition,
+                        ..
+                    } = builder;
+                    #source_query_builder_ident {
+                        client,
+                        builder: builder.index_name(#gsi_name),
+                        next_token,
+                        limit,
+                        policy,
+                        condition,
+                        _token: std::marker::PhantomData::<fn() -> #query_token_ident>,
+                    }
+                    .project::<Self>()
+                }
+
+                /// Starts a typed scan for this projection type.
+                ///
+                /// The returned builder is already bound to the associated GSI
+                /// and decodes results into this projection type.
+                pub fn scan<'a>(
+                    client: &'a #source_client_ident,
+                ) -> #source_projected_scan_builder_ident<'a, Self> {
+                    let builder = <#source_client_ident as #source_scan_trait_ident>::scan(client);
+                    let #source_scan_builder_ident {
+                        client,
+                        builder,
+                        next_token,
+                        limit,
+                    } = builder;
+                    #source_scan_builder_ident {
+                        client,
+                        builder: builder.index_name(#gsi_name),
+                        next_token,
+                        limit,
+                    }
+                    .project::<Self>()
+                }
+            }
+        }
+    } else {
+        quote! {
+            impl #struct_name {
+                /// Starts a typed query for this projection type.
+                ///
+                /// The returned builder is already bound to the associated GSI
+                /// and decodes results into this projection type.
+                pub fn query<'a>(
+                    client: &'a #source_client_ident,
+                ) -> #source_projected_query_builder_ident<'a, #query_token_ident, Self> {
+                    let builder = <#source_client_ident as #source_query_trait_ident>::query(client);
+                    let #source_query_builder_ident {
+                        client,
+                        mut input,
+                        next_token,
+                        limit,
+                        policy,
+                        condition,
+                        ..
+                    } = builder;
+                    input.index_name = Some(#gsi_name.to_owned());
+                    #source_query_builder_ident {
+                        client,
+                        input,
+                        next_token,
+                        limit,
+                        policy,
+                        condition,
+                        _token: std::marker::PhantomData::<fn() -> #query_token_ident>,
+                    }
+                    .project::<Self>()
+                }
+
+                /// Starts a typed scan for this projection type.
+                ///
+                /// The returned builder is already bound to the associated GSI
+                /// and decodes results into this projection type.
+                pub fn scan<'a>(
+                    client: &'a #source_client_ident,
+                ) -> #source_projected_scan_builder_ident<'a, Self> {
+                    let builder = <#source_client_ident as #source_scan_trait_ident>::scan(client);
+                    let #source_scan_builder_ident {
+                        client,
+                        mut input,
+                        policy,
+                        condition,
+                        next_token,
+                        limit,
+                    } = builder;
+                    input.index_name = Some(#gsi_name.to_owned());
+                    #source_scan_builder_ident {
+                        client,
+                        input,
+                        policy,
+                        condition,
+                        next_token,
+                        limit,
+                    }
+                    .project::<Self>()
+                }
+            }
+        }
+    };
 
     let expanded = quote! {
         #raiden_item
@@ -449,6 +586,8 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
         impl ::raiden::RaidenIndexItem<#source_ty> for #struct_name {
             const GSI_NAME: &'static str = #gsi_name;
         }
+
+        #index_entrypoints
 
         #gsi_key_condition_methods
     };

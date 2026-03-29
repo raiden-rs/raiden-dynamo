@@ -302,6 +302,40 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_projection_item_scan_starts_typed_scan_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        assert_future_type(TypedGsiProjectionScanItem::scan(&client).run());
+    }
+
+    #[tokio::test]
+    async fn test_projection_item_scan_keeps_output_type_after_filter() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+                >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let filter = TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
+            .eq("id0");
+        assert_future_type(
+            TypedGsiProjectionScanItem::scan(&client)
+                .filter(filter)
+                .run(),
+        );
+    }
+
+    #[tokio::test]
     async fn test_deprecated_index_scan_keeps_full_projection() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
         #[allow(deprecated)]

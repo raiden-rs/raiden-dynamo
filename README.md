@@ -262,6 +262,11 @@ async fn main() {
         .key_condition(cond)
         .run()
         .await;
+
+    let _res = UserIndexItem::query(&client)
+        .key_condition(UserIndexItem::user_index_key_condition().eq("user#1"))
+        .run()
+        .await;
 }
 ```
 
@@ -269,6 +274,7 @@ Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
 - `#[derive(RaidenIndex)]` lets you define a dedicated projection type for a typed GSI and use `project::<YourIndexType>().run()`
+- `#[derive(RaidenIndex)]` also generates `YourIndexType::query(&client)` and `YourIndexType::scan(&client)` helpers for projection-first access
 - add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself
 - typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `project::<...>()`
 - `run_with::<...>()` remains available as a backward-compatible convenience wrapper
