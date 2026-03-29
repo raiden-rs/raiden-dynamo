@@ -254,6 +254,92 @@ async fn main() {
 }
 ```
 
+If you want to override the generated projection shape or type name, declare a
+`RaidenIndex` explicitly:
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+#[raiden(gsi(name = "userIndex", partition_key = "org_id"))]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    org_id: String,
+    display_name: String,
+    avatar_url: String,
+    #[raiden(omit_gsi = "userIndex")]
+    internal_note: String,
+}
+
+#[derive(RaidenIndex, Debug, PartialEq)]
+#[raiden(source = "User", gsi = "userIndex")]
+#[raiden(gsi(name = "userIndex", partition_key = "org_id"))]
+struct PublicUserIndexItem {
+    org_id: String,
+    display_name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+    let cond = PublicUserIndexItem::user_index_key_condition().eq("org_1");
+
+    let _res = PublicUserIndexItem::query(&client)
+        .key_condition(cond)
+        .run()
+        .await;
+}
+```
+
+Composite GSIs with multiple sort-key segments are also supported:
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+#[raiden(
+    gsi(
+        name = "activityIndex",
+        partition_key = "org_id",
+        sort_key = "created_at",
+        sort_key = "status"
+    )
+)]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    org_id: String,
+    created_at: String,
+    status: String,
+    #[raiden(omit_gsi = "activityIndex")]
+    internal_note: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+
+    let cond = UserActivityIndexItem::activity_index_key_condition()
+        .eq("org_1")
+        .and(UserActivityIndexItem::activity_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
+        .and(UserActivityIndexItem::activity_index_sort_key_condition_2().begins_with("active"));
+
+    let _res = UserActivityIndexItem::query(&client)
+        .key_condition(cond)
+        .run()
+        .await;
+}
+```
+
+The composite helper methods enforce DynamoDB's ordering rules:
+
+- start with the partition key
+- then chain sort key segment 1, sort key segment 2, and so on
+- use range operators such as `gt`, `between`, and `begins_with` only on the last sort key segment
+
 Notes:
 
 - typed GSI methods such as `user_index()` are generated from `#[raiden(gsi = "...")]` or `#[raiden(gsi(...))]`
