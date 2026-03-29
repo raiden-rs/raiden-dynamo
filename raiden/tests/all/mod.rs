@@ -17,7 +17,7 @@ mod update;
 macro_rules! create_client {
     ($ty: ty) => {
         <$ty>::new(raiden::Region::Custom {
-            endpoint: "http://localhost:8000".into(),
+            endpoint: "http://127.0.0.1:8000".into(),
             name: "ap-northeast-1".into(),
         })
     };
@@ -27,7 +27,7 @@ macro_rules! create_client {
 macro_rules! create_client_from_struct {
     ($ty: ty) => {
         <$ty>::client(raiden::Region::Custom {
-            endpoint: "http://localhost:8000".into(),
+            endpoint: "http://127.0.0.1:8000".into(),
             name: "ap-northeast-1".into(),
         })
     };
@@ -39,7 +39,7 @@ macro_rules! create_client {
         let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
             ::raiden::aws_sdk::config::BehaviorVersion::latest(),
         )
-        .endpoint_url("http://localhost:8000")
+        .endpoint_url("http://127.0.0.1:8000")
         .region(::raiden::config::Region::from_static("ap-northeast-1"))
         .load()
         .await;
@@ -55,7 +55,7 @@ macro_rules! create_client_from_struct {
         let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
             ::raiden::aws_sdk::config::BehaviorVersion::latest(),
         )
-        .endpoint_url("http://localhost:8000")
+        .endpoint_url("http://127.0.0.1:8000")
         .region(::raiden::config::Region::from_static("ap-northeast-1"))
         .load()
         .await;

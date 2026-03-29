@@ -1,8 +1,8 @@
 #[cfg(all(feature = "aws-sdk", feature = "rusoto"))]
 compile_error!("feature \"aws-sdk\" and \"rusoto\" cannot be enabled at the same time.");
 
-use proc_macro::TokenStream;
 use convert_case::{Case, Casing};
+use proc_macro::TokenStream;
 use quote::*;
 
 use syn::*;
@@ -443,7 +443,8 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
         format_ident!("{}ProjectedQueryBuilder", source_struct_ident);
     let source_projected_scan_builder_ident =
         format_ident!("{}ProjectedScanBuilder", source_struct_ident);
-    let source_key_condition_token_ident = format_ident!("{}KeyConditionToken", source_struct_ident);
+    let source_key_condition_token_ident =
+        format_ident!("{}KeyConditionToken", source_struct_ident);
     let query_token_ident = if gsi_definitions
         .iter()
         .any(|gsi| gsi.name == gsi_name && gsi.partition_key.is_some())

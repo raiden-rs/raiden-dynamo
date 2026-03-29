@@ -264,7 +264,7 @@ async fn main() {
         .await;
 
     let _res = UserIndexItem::query(&client)
-        .key_condition(UserIndexItem::user_index_key_condition().eq("user#1"))
+        .key_condition(cond)
         .run()
         .await;
 }

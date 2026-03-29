@@ -189,7 +189,10 @@ mod tests {
     #[tokio::test]
     async fn test_typed_gsi_scan_project_sets_projection_from_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
-        let builder = client.scan().test_gsi().project::<TypedGsiProjectionScanItem>();
+        let builder = client
+            .scan()
+            .test_gsi()
+            .project::<TypedGsiProjectionScanItem>();
 
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         {
@@ -241,7 +244,10 @@ mod tests {
     #[tokio::test]
     async fn test_typed_gsi_scan_run_with_accepts_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
-        let _future = client.scan().test_gsi().run_with::<TypedGsiProjectionScanItem>();
+        let _future = client
+            .scan()
+            .test_gsi()
+            .run_with::<TypedGsiProjectionScanItem>();
     }
 
     #[tokio::test]
@@ -249,8 +255,8 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
-                >,
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
         {
         }
 
@@ -269,13 +275,19 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
-                >,
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
-        assert_future_type(client.scan().test_gsi().project::<TypedGsiProjectionScanItem>().run());
+        assert_future_type(
+            client
+                .scan()
+                .test_gsi()
+                .project::<TypedGsiProjectionScanItem>()
+                .run(),
+        );
     }
 
     #[tokio::test]
@@ -283,14 +295,15 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
-                >,
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
-        let filter = TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
-            .eq("id0");
+        let filter =
+            TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
+                .eq("id0");
         assert_future_type(
             client
                 .scan()
@@ -306,8 +319,8 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
-                >,
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
         {
         }
 
@@ -316,18 +329,35 @@ mod tests {
     }
 
     #[tokio::test]
+    #[ignore = "requires a DynamoDB-compatible endpoint on localhost:8000"]
+    async fn test_projection_item_scan_decodes_projection_items() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let res = TypedGsiProjectionScanItem::scan(&client)
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(res.items.len(), 10);
+        assert!(res
+            .items
+            .iter()
+            .all(|item| item.ref_id == "id0" && !item.long_text.is_empty()));
+    }
+
+    #[tokio::test]
     async fn test_projection_item_scan_keeps_output_type_after_filter() {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
-                >,
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
-        let filter = TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
-            .eq("id0");
+        let filter =
+            TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
+                .eq("id0");
         assert_future_type(
             TypedGsiProjectionScanItem::scan(&client)
                 .filter(filter)

@@ -244,10 +244,7 @@ pub(crate) fn validate_omit_gsi_fields(fields: &syn::FieldsNamed, gsi_names: &[S
 
         for gsi_name in omit_gsi_names.iter() {
             if !gsi_names.iter().any(|known_name| known_name == gsi_name) {
-                panic!(
-                    "unknown gsi `{}` specified in omit_gsi for field `{}`",
-                    gsi_name, ident
-                );
+                panic!("unknown gsi `{gsi_name}` specified in omit_gsi for field `{ident}`");
             }
         }
     }

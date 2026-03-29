@@ -3,7 +3,7 @@ mod tests {
     #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     async fn create_client() -> ::raiden::WriteTx {
         ::raiden::WriteTx::new(Region::Custom {
-            endpoint: "http://localhost:8000".into(),
+            endpoint: "http://127.0.0.1:8000".into(),
             name: "ap-northeast-1".into(),
         })
     }
@@ -13,7 +13,7 @@ mod tests {
         let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
             ::raiden::aws_sdk::config::BehaviorVersion::latest(),
         )
-        .endpoint_url("http://localhost:8000")
+        .endpoint_url("http://127.0.0.1:8000")
         .region(::raiden::config::Region::from_static("ap-northeast-1"))
         .load()
         .await;

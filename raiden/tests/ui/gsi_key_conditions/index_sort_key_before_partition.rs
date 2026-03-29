@@ -33,11 +33,12 @@ struct TypedCompositeGsiProjectionItem {
     long_text: String,
 }
 
+fn create_client() -> TypedCompositeGsiSortKeyTestClient {
+    unimplemented!()
+}
+
 fn main() {
-    let client = TypedCompositeGsiSortKeyTest::client(Region::Custom {
-        endpoint: "http://localhost:8000".into(),
-        name: "ap-northeast-1".into(),
-    });
+    let client = create_client();
 
     let cond = TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1");
     let _ = client.query().test_gsi().key_condition(cond);

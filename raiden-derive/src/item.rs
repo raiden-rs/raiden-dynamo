@@ -6,10 +6,7 @@ pub(crate) fn expand_raiden_item_impl(
     rename_all_type: crate::rename::RenameAllType,
 ) -> proc_macro2::TokenStream {
     let insertion_attribute_name = fields.named.iter().map(|f| {
-        let ident = f
-            .ident
-            .as_ref()
-            .expect("raiden only supports named fields");
+        let ident = f.ident.as_ref().expect("raiden only supports named fields");
         let renamed = crate::finder::find_rename_value(&f.attrs);
         let result = crate::rename::create_renamed(ident.to_string(), renamed, rename_all_type);
         quote! {

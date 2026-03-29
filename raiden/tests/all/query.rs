@@ -274,14 +274,12 @@ mod tests {
 
     #[derive(RaidenIndex, Debug, PartialEq)]
     #[raiden(source = "TypedCompositeGsiSortKeyTest", gsi = "testGSI")]
-    #[raiden(
-        gsi(
-            name = "testGSI",
-            partition_key = "ref_id",
-            sort_key = "id",
-            sort_key = "long_text"
-        )
-    )]
+    #[raiden(gsi(
+        name = "testGSI",
+        partition_key = "ref_id",
+        sort_key = "id",
+        sort_key = "long_text"
+    ))]
     #[allow(dead_code)]
     pub struct TypedCompositeGsiProjectionItem {
         ref_id: String,
@@ -368,7 +366,10 @@ mod tests {
         let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
             .eq("id0")
             .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
+            .and(
+                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
+                    .begins_with("long"),
+            );
         let (cond_str, attr_names, attr_values) = cond.build();
 
         assert!(cond_str.starts_with("#ref_id = :value"));
@@ -396,7 +397,10 @@ mod tests {
         let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
             .eq("id0")
             .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
+            .and(
+                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
+                    .begins_with("long"),
+            );
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 
@@ -463,7 +467,10 @@ mod tests {
     #[tokio::test]
     async fn test_typed_gsi_query_project_sets_projection_from_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let builder = client.query().test_gsi().project::<TypedGsiProjectionItem>();
+        let builder = client
+            .query()
+            .test_gsi()
+            .project::<TypedGsiProjectionItem>();
 
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         {
@@ -515,7 +522,10 @@ mod tests {
     #[tokio::test]
     async fn test_typed_gsi_query_run_with_accepts_index_type() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let _future = client.query().test_gsi().run_with::<TypedGsiProjectionItem>();
+        let _future = client
+            .query()
+            .test_gsi()
+            .run_with::<TypedGsiProjectionItem>();
     }
 
     #[tokio::test]
@@ -523,8 +533,8 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
-                >,
+                Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+            >,
         {
         }
 
@@ -543,13 +553,19 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
-                >,
+                Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        assert_future_type(client.query().test_gsi().project::<TypedGsiProjectionItem>().run());
+        assert_future_type(
+            client
+                .query()
+                .test_gsi()
+                .project::<TypedGsiProjectionItem>()
+                .run(),
+        );
     }
 
     #[tokio::test]
@@ -557,14 +573,13 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
-                >,
+                Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let cond =
-            TypedGsiProjectionSource::test_gsi_key_condition().eq("id0");
+        let cond = TypedGsiProjectionSource::test_gsi_key_condition().eq("id0");
         assert_future_type(
             client
                 .query()
@@ -580,14 +595,36 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
-                >,
+                Output = Result<query::QueryOutput<TypedGsiProjectionItem>, RaidenError>,
+            >,
         {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
         let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
-        assert_future_type(TypedGsiProjectionItem::query(&client).key_condition(cond).run());
+        assert_future_type(
+            TypedGsiProjectionItem::query(&client)
+                .key_condition(cond)
+                .run(),
+        );
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a DynamoDB-compatible endpoint on localhost:8000"]
+    async fn test_projection_item_query_decodes_projection_items() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
+        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let res = TypedGsiProjectionItem::query(&client)
+            .key_condition(cond)
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(res.items.len(), 10);
+        assert!(res
+            .items
+            .iter()
+            .all(|item| item.ref_id == "id0" && !item.long_text.is_empty()));
     }
 
     #[tokio::test]
@@ -595,8 +632,8 @@ mod tests {
         fn assert_future_type<F>(_: F)
         where
             F: std::future::Future<
-                    Output = Result<query::QueryOutput<TypedCompositeGsiProjectionItem>, RaidenError>,
-                >,
+                Output = Result<query::QueryOutput<TypedCompositeGsiProjectionItem>, RaidenError>,
+            >,
         {
         }
 
@@ -604,7 +641,10 @@ mod tests {
         let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
             .eq("id0")
             .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2().begins_with("long"));
+            .and(
+                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
+                    .begins_with("long"),
+            );
         assert_future_type(
             TypedCompositeGsiProjectionItem::query(&client)
                 .key_condition(cond)
