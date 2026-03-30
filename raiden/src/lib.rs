@@ -13,6 +13,7 @@ compile_error!(
 extern crate serde_derive;
 
 pub mod condition;
+mod document;
 pub mod errors;
 pub mod filter_expression;
 pub mod id_generator;
@@ -37,6 +38,7 @@ pub mod aws_sdk;
 pub use self::aws_sdk::{types::AttributeValue, *};
 
 pub use condition::*;
+pub use document::*;
 pub use errors::*;
 pub use filter_expression::*;
 pub use key_condition::*;
@@ -99,10 +101,23 @@ pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
 }
 
+/// Marker trait for types that should be serialized as DynamoDB documents.
+///
+/// This trait is typically implemented via `#[derive(RaidenDocument)]`.
+/// Its default method uses `serde` to encode the value into DynamoDB's
+/// document model.
+pub trait IntoDocumentAttr: serde::Serialize + Sized {
+    /// Serializes `self` into a DynamoDB attribute value.
+    fn into_document_attr(self) -> Result<AttributeValue, ConversionError> {
+        crate::document::serialize_document(self)
+    }
+}
+
 #[derive(Debug)]
 pub enum ConversionError {
     ValueIsNone,
     ParseInt,
+    Serde(String),
 }
 
 impl std::fmt::Display for ConversionError {
@@ -110,6 +125,7 @@ impl std::fmt::Display for ConversionError {
         match self {
             ConversionError::ValueIsNone => write!(f, "Value is none"),
             ConversionError::ParseInt => write!(f, "Parsing error of integer"),
+            ConversionError::Serde(message) => write!(f, "{message}"),
         }
     }
 }
@@ -118,6 +134,18 @@ impl std::error::Error for ConversionError {}
 
 pub trait FromAttribute: Sized {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError>;
+}
+
+/// Marker trait for types that should be decoded from DynamoDB documents.
+///
+/// This trait is typically implemented via `#[derive(RaidenDocument)]`.
+/// Its default method uses `serde` to rebuild the Rust value from a DynamoDB
+/// document attribute.
+pub trait FromDocumentAttr: serde::de::DeserializeOwned + Sized {
+    /// Deserializes a DynamoDB attribute value into `Self`.
+    fn from_document_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
+        crate::document::deserialize_document(value)
+    }
 }
 
 impl<T: FromAttribute> ResolveAttribute for T {}

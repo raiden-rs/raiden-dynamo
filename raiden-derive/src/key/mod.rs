@@ -13,8 +13,8 @@ pub fn fetch_partition_key(
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = find_rename_value(&key.attrs);
-            if renamed.is_some() {
-                (format_ident!("{}", renamed.unwrap()), key.ty)
+            if let Some(renamed) = renamed {
+                (format_ident!("{}", renamed), key.ty)
             } else if rename_all_type != RenameAllType::None {
                 let ident = format_ident!(
                     "{}",
@@ -37,8 +37,8 @@ pub fn fetch_sort_key(
         Some(key) => {
             // Rename partition key if renamed.
             let renamed = find_rename_value(&key.attrs);
-            if renamed.is_some() {
-                Some((format_ident!("{}", renamed.unwrap()), key.ty))
+            if let Some(renamed) = renamed {
+                Some((format_ident!("{}", renamed), key.ty))
             } else if rename_all_type != RenameAllType::None {
                 let ident = format_ident!(
                     "{}",

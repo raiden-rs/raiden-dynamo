@@ -477,6 +477,7 @@ fn expand_auto_gsi_projection_items(
     }
 }
 
+/// Derives the main table model, typed builders, and query helpers.
 #[proc_macro_derive(Raiden, attributes(raiden))]
 pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
@@ -681,6 +682,7 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     proc_macro::TokenStream::from(expanded)
 }
 
+/// Derives a typed projection model for a secondary index.
 #[proc_macro_derive(RaidenIndex, attributes(raiden))]
 pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
@@ -745,6 +747,45 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
         &gsi_name,
         &gsi_definitions,
     );
+
+    proc_macro::TokenStream::from(expanded)
+}
+
+/// Derives DynamoDB document conversion support for a nested type.
+///
+/// The generated implementation marks the type as a document with
+/// `IntoDocumentAttr` and `FromDocumentAttr`, and also provides
+/// `IntoAttribute` / `FromAttribute` so the type can be used directly as a
+/// field in `#[derive(Raiden)]` models without wrapping it in `Document<T>`.
+#[proc_macro_derive(RaidenDocument)]
+pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
+    let input = syn::parse_macro_input!(input as DeriveInput);
+    let struct_name = input.ident;
+
+    let expanded = quote! {
+        impl ::raiden::IntoDocumentAttr for #struct_name {}
+
+        impl ::raiden::FromDocumentAttr for #struct_name {}
+
+        impl ::raiden::IntoAttribute for #struct_name {
+            fn into_attr(self) -> ::raiden::AttributeValue {
+                <Self as ::raiden::IntoDocumentAttr>::into_document_attr(self)
+                    .expect(concat!(
+                        "RaidenDocument serialization failed for `",
+                        stringify!(#struct_name),
+                        "`."
+                    ))
+            }
+        }
+
+        impl ::raiden::FromAttribute for #struct_name {
+            fn from_attr(
+                value: Option<::raiden::AttributeValue>,
+            ) -> Result<Self, ::raiden::ConversionError> {
+                <Self as ::raiden::FromDocumentAttr>::from_document_attr(value)
+            }
+        }
+    };
 
     proc_macro::TokenStream::from(expanded)
 }
