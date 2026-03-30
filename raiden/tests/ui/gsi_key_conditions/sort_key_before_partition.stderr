@@ -6,12 +6,16 @@ error[E0277]: the trait bound `KeyConditionFilledOrWaitOperator<TypedCompositeGs
    |                                       |
    |                                       required by a bound introduced by this call
    |
-   = help: the trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>`
-           but trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>` is implemented for it
+help: the trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>`
+      but trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>` is implemented for it
+  --> src/key_condition/mod.rs
+   |
+   | impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilledOrWaitOperator<T, U> {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
    = help: for that trait implementation, expected `TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken`, found `TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken`
 note: required by a bound in `TypedCompositeGsiSortKeyTestQueryBuilder::<'a, T>::key_condition`
   --> tests/ui/gsi_key_conditions/sort_key_before_partition.rs:3:10
    |
-3  | #[derive(Raiden)]
+ 3 | #[derive(Raiden)]
    |          ^^^^^^ required by this bound in `TypedCompositeGsiSortKeyTestQueryBuilder::<'a, T>::key_condition`
    = note: this error originates in the derive macro `Raiden` (in Nightly builds, run with -Z macro-backtrace for more info)

@@ -122,7 +122,7 @@ fn expand_gsi_key_condition_methods_for_owner(
             create_gsi_sort_token_name(token_owner_name, &gsi.name, 0)
         };
 
-        let method_name = format!("{}_key_condition", gsi.name.to_case(Case::Snake));
+        let method_name = partition_key.to_case(Case::Snake);
         let method_ident = if crate::helpers::is_reserved(&method_name) {
             format_ident!("r#{}", method_name)
         } else {
@@ -147,7 +147,7 @@ fn expand_gsi_key_condition_methods_for_owner(
         if gsi.sort_keys.len() == 1 {
             let sort_key = &gsi.sort_keys[0];
             let sort_token_name = create_gsi_sort_token_name(token_owner_name, &gsi.name, 0);
-            let method_name = format!("{}_sort_key_condition", gsi.name.to_case(Case::Snake));
+            let method_name = sort_key.to_case(Case::Snake);
             let method_ident = if crate::helpers::is_reserved(&method_name) {
                 format_ident!("r#{}", method_name)
             } else {
@@ -176,11 +176,7 @@ fn expand_gsi_key_condition_methods_for_owner(
                 } else {
                     terminal_token_name.clone()
                 };
-                let method_name = format!(
-                    "{}_sort_key_condition_{}",
-                    gsi.name.to_case(Case::Snake),
-                    index + 1
-                );
+                let method_name = sort_key.to_case(Case::Snake);
                 let method_ident = if crate::helpers::is_reserved(&method_name) {
                     format_ident!("r#{}", method_name)
                 } else {
