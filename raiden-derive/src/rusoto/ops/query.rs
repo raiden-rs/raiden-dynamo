@@ -363,6 +363,13 @@ pub(crate) fn expand_query(
 
             pub fn filter(mut self, cond: impl ::raiden::filter_expression::FilterExpressionBuilder<#filter_expression_token_name>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    if let Some(v) = self.input.expression_attribute_names {
+                        self.input.expression_attribute_names = Some(::raiden::merge_map(attr_names, v));
+                    } else {
+                        self.input.expression_attribute_names = Some(attr_names);
+                    }
+                }
                 if !attr_values.is_empty() {
                     if let Some(v) = self.input.expression_attribute_values {
                         self.input.expression_attribute_values = Some(::raiden::merge_map(attr_values, v));
@@ -376,6 +383,13 @@ pub(crate) fn expand_query(
 
             pub fn key_condition<U>(mut self, cond: impl ::raiden::key_condition::KeyConditionBuilder<T, U>) -> Self {
                 let (cond_str, attr_names, attr_values) = cond.build();
+                if !attr_names.is_empty() {
+                    if let Some(v) = self.input.expression_attribute_names {
+                        self.input.expression_attribute_names = Some(::raiden::merge_map(attr_names, v));
+                    } else {
+                        self.input.expression_attribute_names = Some(attr_names);
+                    }
+                }
                 if !attr_values.is_empty() {
                     if let Some(v) = self.input.expression_attribute_values {
                         self.input.expression_attribute_values = Some(::raiden::merge_map(attr_values, v));

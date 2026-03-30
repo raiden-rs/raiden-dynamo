@@ -1,7 +1,7 @@
 // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.OperatorsAndFunctions.html
 use super::*;
 
-pub type AttrName = String;
+pub type AttrName = super::AttrPath;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ConditionFunctionExpression {
@@ -106,24 +106,24 @@ impl std::fmt::Display for ConditionFunctionExpression {
         use md5::{Digest, Md5};
 
         match self {
-            Self::AttributeExists(path) => write!(f, "attribute_exists(#{path})"),
-            Self::AttributeNotExists(path) => write!(f, "attribute_not_exists(#{path})"),
+            Self::AttributeExists(path) => write!(f, "attribute_exists({path})"),
+            Self::AttributeNotExists(path) => write!(f, "attribute_not_exists({path})"),
             Self::AttributeType(path, attribute_type) => {
-                write!(f, "attribute_type(#{path}, :type{attribute_type})")
+                write!(f, "attribute_type({path}, :type{attribute_type})")
             }
             Self::BeginsWith(path, s) => {
                 let mut hasher = Md5::new();
                 hasher.update(s.as_bytes());
                 write!(
                     f,
-                    "begins_with(#{path}, :begins_with_{:x})",
+                    "begins_with({path}, :begins_with_{:x})",
                     hasher.finalize()
                 )
             }
             Self::Contains(path, s) => {
                 let mut hasher = Md5::new();
                 hasher.update(s.as_bytes());
-                write!(f, "contains(#{path}, :contains_{:x})", hasher.finalize())
+                write!(f, "contains({path}, :contains_{:x})", hasher.finalize())
             }
             Self::Size(_path) => {
                 unimplemented!("Size condition expression is not implemented yet.")
@@ -134,18 +134,14 @@ impl std::fmt::Display for ConditionFunctionExpression {
 
 impl super::ToAttrNames for ConditionFunctionExpression {
     fn to_attr_names(&self) -> super::AttributeNames {
-        let mut m: super::AttributeNames = std::collections::HashMap::new();
         match self {
             Self::Contains(path, _)
             | Self::BeginsWith(path, _)
             | Self::AttributeType(path, _)
             | Self::AttributeExists(path)
-            | Self::AttributeNotExists(path) => {
-                m.insert(format!("#{path}"), path.clone());
-            }
-            _ => {}
+            | Self::AttributeNotExists(path) => path.attribute_names(),
+            _ => super::AttributeNames::new(),
         }
-        m
     }
 }
 
@@ -232,10 +228,10 @@ impl super::ToAttrNames for ConditionComparisonExpression {
         match self {
             Self::Eq(left, _, right, _) => {
                 if let AttrOrPlaceholder::Attr(l) = left {
-                    m.insert(left.to_string(), l.clone());
+                    m = super::merge_map(m, l.attribute_names());
                 }
                 if let AttrOrPlaceholder::Attr(r) = right {
-                    m.insert(right.to_string(), r.clone());
+                    m = super::merge_map(m, r.attribute_names());
                 }
             }
         }
@@ -263,7 +259,7 @@ impl super::IntoAttrValues for ConditionComparisonExpression {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AttrOrPlaceholder {
-    Attr(String),
+    Attr(super::AttrPath),
     Placeholder(String),
 }
 
@@ -271,7 +267,7 @@ impl std::fmt::Display for AttrOrPlaceholder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Placeholder(p) => write!(f, ":{p}"),
-            Self::Attr(a) => write!(f, "#{a}"),
+            Self::Attr(a) => write!(f, "{a}"),
         }
     }
 }

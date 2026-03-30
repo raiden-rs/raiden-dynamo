@@ -246,6 +246,64 @@ Notes:
 - `Document<T>` remains available as an explicit wrapper when you prefer opt-in at the field type level
 - empty maps are preserved as empty DynamoDB `M` values rather than being dropped
 
+#### query nested map and document values
+
+```rust
+use std::collections::HashMap;
+
+use raiden::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, RaidenDocument)]
+struct Profile {
+    display_name: String,
+    level: usize,
+}
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    metadata: HashMap<String, usize>,
+    profile: Profile,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+
+    let key = User::key_condition(User::id()).eq("user#1");
+
+    let filter = User::filter_expression(User::metadata().key("score"))
+        .ge(40)
+        .and(User::filter_expression(User::profile().field(Profile::level())).eq(3));
+
+    let _res = client
+        .query()
+        .key_condition(key)
+        .filter(filter)
+        .run()
+        .await;
+
+    let condition = User::condition()
+        .attr_exists(User::metadata().key("score"))
+        .and(User::condition().attr(User::profile().field(Profile::level())).eq_value(3));
+
+    // `condition` can be passed to `put`, `update`, `delete`,
+    // transaction writes, and other conditional operations.
+}
+```
+
+Notes:
+
+- use `.key("...")` for dynamic map keys such as `metadata.score`
+- use `.field(...)` with `#[derive(RaidenDocument)]` accessors for nested document fields such as `profile.level`
+- document paths are supported in `filter_expression` and `condition`
+- `key_condition` still follows DynamoDB key rules, so nested map/document values are not valid partition or sort keys unless you project them to top-level attributes or an index
+- `.index(usize)` is also available when you need to address list elements in a document path
+- path segments are emitted through expression attribute names, so reserved words remain escaped correctly
+
 #### batch_get_item
 
 ```rust
