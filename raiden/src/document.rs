@@ -48,16 +48,6 @@ impl<T> Document<T> {
     pub fn into_inner(self) -> T {
         self.0
     }
-
-    /// Returns an immutable reference to the wrapped value.
-    pub fn as_ref(&self) -> &T {
-        &self.0
-    }
-
-    /// Returns a mutable reference to the wrapped value.
-    pub fn as_mut(&mut self) -> &mut T {
-        &mut self.0
-    }
 }
 
 impl<T> From<T> for Document<T> {
@@ -96,7 +86,9 @@ fn conversion_error(message: impl Into<String>) -> ConversionError {
     ConversionError::Serde(message.into())
 }
 
-pub(crate) fn serialize_document<T: Serialize>(value: T) -> Result<AttributeValue, ConversionError> {
+pub(crate) fn serialize_document<T: Serialize>(
+    value: T,
+) -> Result<AttributeValue, ConversionError> {
     let value = serde_json::to_value(value)
         .map_err(|err| conversion_error(format!("document serialization failed: {err}")))?;
 
@@ -193,7 +185,9 @@ fn number_string_to_json(value: String) -> Result<Value, ConversionError> {
     }
 }
 
-pub(crate) fn json_value_to_attribute_value(value: Value) -> Result<AttributeValue, ConversionError> {
+pub(crate) fn json_value_to_attribute_value(
+    value: Value,
+) -> Result<AttributeValue, ConversionError> {
     match value {
         Value::Null => Ok(attr_null()),
         Value::Bool(value) => Ok(attr_bool(value)),
@@ -219,7 +213,9 @@ pub(crate) fn json_value_to_attribute_value(value: Value) -> Result<AttributeVal
 }
 
 #[cfg(feature = "aws-sdk")]
-pub(crate) fn attribute_value_to_json_value(value: AttributeValue) -> Result<Value, ConversionError> {
+pub(crate) fn attribute_value_to_json_value(
+    value: AttributeValue,
+) -> Result<Value, ConversionError> {
     match value {
         AttributeValue::Null(_) => Ok(Value::Null),
         AttributeValue::Bool(value) => Ok(Value::Bool(value)),
@@ -254,7 +250,9 @@ pub(crate) fn deserialize_document<T: DeserializeOwned>(
 }
 
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
-pub(crate) fn attribute_value_to_json_value(value: AttributeValue) -> Result<Value, ConversionError> {
+pub(crate) fn attribute_value_to_json_value(
+    value: AttributeValue,
+) -> Result<Value, ConversionError> {
     match value {
         AttributeValue {
             null: Some(true), ..
@@ -309,7 +307,9 @@ impl<T: FromAttribute> FromAttribute for HashMap<String, T> {
 
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         let values = match value {
-            Some(AttributeValue { m: Some(values), .. }) => values,
+            Some(AttributeValue {
+                m: Some(values), ..
+            }) => values,
             _ => return Err(ConversionError::ValueIsNone),
         };
 
@@ -341,7 +341,9 @@ impl<T: FromAttribute> FromAttribute for BTreeMap<String, T> {
 
         #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
         let values = match value {
-            Some(AttributeValue { m: Some(values), .. }) => values,
+            Some(AttributeValue {
+                m: Some(values), ..
+            }) => values,
             _ => return Err(ConversionError::ValueIsNone),
         };
 

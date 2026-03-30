@@ -201,7 +201,10 @@ mod tests {
         let item = input.item.unwrap();
 
         assert_eq!(item.get("id"), Some(&"user#empty".to_owned().into_attr()));
-        assert_eq!(item.get("metadata"), Some(&HashMap::<String, usize>::new().into_attr()));
+        assert_eq!(
+            item.get("metadata"),
+            Some(&HashMap::<String, usize>::new().into_attr())
+        );
         assert_eq!(
             item.get("flags"),
             Some(&BTreeMap::<String, bool>::new().into_attr())
