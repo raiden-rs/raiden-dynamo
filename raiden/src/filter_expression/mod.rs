@@ -54,14 +54,14 @@ pub trait FilterExpressionBuilder<T> {
 
 #[derive(Debug, Clone)]
 pub struct FilterExpression<T> {
-    pub attr: String,
+    pub attr: crate::AttrPath,
     pub is_size: bool,
     pub _token: std::marker::PhantomData<fn() -> T>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilledOrWaitOperator<T> {
-    attr: String,
+    attr: crate::AttrPath,
     is_size: bool,
     cond: FilterExpressionTypes,
     _token: std::marker::PhantomData<fn() -> T>,
@@ -69,7 +69,7 @@ pub struct FilterExpressionFilledOrWaitOperator<T> {
 
 #[derive(Debug, Clone)]
 pub struct FilterExpressionFilled<T> {
-    attr: String,
+    attr: crate::AttrPath,
     is_size: bool,
     cond: FilterExpressionTypes,
     operator: FilterExpressionOperator,
@@ -101,15 +101,14 @@ impl<T> FilterExpressionFilledOrWaitOperator<T> {
 
 impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
-        let attr_name = self.attr;
-        let mut attr_names: super::AttributeNames = std::collections::HashMap::new();
+        let attr = self.attr;
+        let attr_names = attr.attribute_names();
         let mut attr_values: super::AttributeValues = std::collections::HashMap::new();
 
-        attr_names.insert(format!("#{attr_name}"), attr_name.clone());
         let left_cond = if self.is_size {
-            format!("size(#{attr_name})")
+            format!("size({})", attr.expression())
         } else {
-            format!("#{attr_name}")
+            attr.expression()
         };
         match self.cond {
             FilterExpressionTypes::Eq(placeholder, value) => {
@@ -187,25 +186,25 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("begins_with(#{attr_name}, {placeholder})"),
+                    format!("begins_with({}, {placeholder})", attr.expression()),
                     attr_names,
                     attr_values,
                 )
             }
             FilterExpressionTypes::AttributeExists() => (
-                format!("attribute_exists(#{attr_name})"),
+                format!("attribute_exists({})", attr.expression()),
                 attr_names,
                 attr_values,
             ),
             FilterExpressionTypes::AttributeNotExists() => (
-                format!("attribute_not_exists(#{attr_name})"),
+                format!("attribute_not_exists({})", attr.expression()),
                 attr_names,
                 attr_values,
             ),
             FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
                 attr_values.insert(placeholder.to_string(), attribute_type.into_attr());
                 (
-                    format!("attribute_type(#{attr_name}, {placeholder})"),
+                    format!("attribute_type({}, {placeholder})", attr.expression()),
                     attr_names,
                     attr_values,
                 )
@@ -213,7 +212,7 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilledOrWaitOperator<T> {
             FilterExpressionTypes::Contains(placeholder, value) => {
                 attr_values.insert(placeholder.to_string(), value);
                 (
-                    format!("contains(#{attr_name}, {placeholder})"),
+                    format!("contains({}, {placeholder})", attr.expression()),
                     attr_names,
                     attr_values,
                 )
@@ -229,14 +228,13 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
             FilterExpressionOperator::Or(s, m, v) => (format!("OR ({s})"), m, v),
         };
 
-        let attr_name = self.attr;
-        let mut left_names: super::AttributeNames = std::collections::HashMap::new();
+        let attr = self.attr;
+        let left_names = attr.attribute_names();
         let mut left_values: super::AttributeValues = std::collections::HashMap::new();
-        left_names.insert(format!("#{attr_name}"), attr_name.clone());
         let left_cond = if self.is_size {
-            format!("size(#{attr_name})")
+            format!("size({})", attr.expression())
         } else {
-            format!("#{attr_name}")
+            attr.expression()
         };
 
         let left_str = match self.cond {
@@ -278,25 +276,25 @@ impl<T> FilterExpressionBuilder<T> for FilterExpressionFilled<T> {
                 for (placeholder, value) in attributes {
                     left_values.insert(placeholder, value);
                 }
-                format!("{attr_name} IN ({placeholders})")
+                format!("{left_cond} IN ({placeholders})")
             }
             FilterExpressionTypes::BeginsWith(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("begins_with(#{attr_name}, {placeholder})")
+                format!("begins_with({}, {placeholder})", attr.expression())
             }
             FilterExpressionTypes::AttributeExists() => {
-                format!("attribute_exists(#{attr_name})")
+                format!("attribute_exists({})", attr.expression())
             }
             FilterExpressionTypes::AttributeNotExists() => {
-                format!("attribute_not_exists(#{attr_name})")
+                format!("attribute_not_exists({})", attr.expression())
             }
             FilterExpressionTypes::AttributeType(placeholder, attribute_type) => {
                 left_values.insert(placeholder.clone(), attribute_type.into_attr());
-                format!("attribute_type(#{attr_name}, {placeholder})")
+                format!("attribute_type({}, {placeholder})", attr.expression())
             }
             FilterExpressionTypes::Contains(placeholder, value) => {
                 left_values.insert(placeholder.clone(), value);
-                format!("contains(#{attr_name}, {placeholder})")
+                format!("contains({}, {placeholder})", attr.expression())
             }
         };
         (

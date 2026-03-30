@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
 
+    use std::collections::HashMap;
+
     #[cfg(test)]
     use pretty_assertions::assert_eq;
     use raiden::*;
@@ -17,6 +19,23 @@ mod tests {
         num: usize,
         #[raiden(rename = "Renamed")]
         rename: usize,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, RaidenDocument)]
+    pub struct Profile {
+        level: usize,
+        nickname: String,
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    #[allow(dead_code)]
+    pub struct UserWithMapQuery {
+        #[raiden(partition_key)]
+        id: String,
+        profile: Profile,
+        metadata: HashMap<String, usize>,
     }
 
     #[test]
@@ -242,6 +261,56 @@ mod tests {
             std::collections::HashMap::new();
         expected_values.insert(":value0".to_owned(), "boku".into_attr());
         assert_eq!(filter_expression, "contains(#name, :value0)".to_owned());
+        assert_eq!(attribute_names, expected_names);
+        assert_eq!(attribute_values, expected_values);
+    }
+
+    #[test]
+    fn test_map_key_filter_expression() {
+        reset_value_id();
+
+        let cond =
+            UserWithMapQuery::filter_expression(UserWithMapQuery::metadata().key("score")).eq(42);
+        let (filter_expression, attribute_names, attribute_values) = cond.build();
+
+        let mut expected_names = std::collections::HashMap::new();
+        expected_names.insert("#metadata".to_owned(), "metadata".to_owned());
+        expected_names.insert("#score".to_owned(), "score".to_owned());
+
+        let placeholder = attribute_values.keys().next().cloned().unwrap();
+        let mut expected_values = std::collections::HashMap::new();
+        expected_values.insert(placeholder.clone(), 42.into_attr());
+
+        assert_eq!(
+            filter_expression,
+            format!("#metadata.#score = {placeholder}")
+        );
+        assert_eq!(attribute_names, expected_names);
+        assert_eq!(attribute_values, expected_values);
+    }
+
+    #[test]
+    fn test_document_field_filter_expression() {
+        reset_value_id();
+
+        let cond = UserWithMapQuery::filter_expression(
+            UserWithMapQuery::profile().field(Profile::level()),
+        )
+        .eq(3);
+        let (filter_expression, attribute_names, attribute_values) = cond.build();
+
+        let mut expected_names = std::collections::HashMap::new();
+        expected_names.insert("#profile".to_owned(), "profile".to_owned());
+        expected_names.insert("#level".to_owned(), "level".to_owned());
+
+        let placeholder = attribute_values.keys().next().cloned().unwrap();
+        let mut expected_values = std::collections::HashMap::new();
+        expected_values.insert(placeholder.clone(), 3.into_attr());
+
+        assert_eq!(
+            filter_expression,
+            format!("#profile.#level = {placeholder}")
+        );
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
     }

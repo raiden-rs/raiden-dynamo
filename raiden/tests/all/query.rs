@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod tests {
 
+    use std::collections::HashMap;
+
     #[cfg(test)]
     use pretty_assertions::assert_eq;
     use raiden::*;
@@ -13,6 +15,23 @@ mod tests {
         year: usize,
         num: usize,
         option: Option<String>,
+    }
+
+    #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, RaidenDocument)]
+    pub struct Profile {
+        level: usize,
+        nickname: String,
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "user")]
+    #[derive(Debug, Clone)]
+    #[allow(dead_code)]
+    pub struct QueryMapPathTest {
+        #[raiden(partition_key)]
+        id: String,
+        profile: Profile,
+        metadata: HashMap<String, usize>,
     }
 
     #[tokio::test]
@@ -87,6 +106,94 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(res.items.len(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_keeps_map_path_attribute_names() {
+        reset_value_id();
+        let client = crate::all::create_client_from_struct!(QueryMapPathTest);
+        let cond = QueryMapPathTest::key_condition(QueryMapPathTest::id()).eq("id0");
+        let filter =
+            QueryMapPathTest::filter_expression(QueryMapPathTest::metadata().key("score")).eq(42);
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        let input = client.query().key_condition(cond).filter(filter).input;
+        #[cfg(feature = "aws-sdk")]
+        let input = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .builder
+            .build()
+            .unwrap();
+
+        let mut expected_names = std::collections::HashMap::new();
+        expected_names.insert("#id".to_owned(), "id".to_owned());
+        expected_names.insert("#profile".to_owned(), "profile".to_owned());
+        expected_names.insert("#metadata".to_owned(), "metadata".to_owned());
+        expected_names.insert("#score".to_owned(), "score".to_owned());
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            assert!(input
+                .filter_expression
+                .as_ref()
+                .is_some_and(|expr| expr.starts_with("#metadata.#score = :value")));
+            assert_eq!(input.expression_attribute_names, Some(expected_names));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            assert!(input
+                .filter_expression()
+                .is_some_and(|expr| expr.starts_with("#metadata.#score = :value")));
+            assert_eq!(input.expression_attribute_names(), Some(&expected_names));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_query_builder_keeps_document_path_attribute_names() {
+        reset_value_id();
+        let client = crate::all::create_client_from_struct!(QueryMapPathTest);
+        let cond = QueryMapPathTest::key_condition(QueryMapPathTest::id()).eq("id0");
+        let filter = QueryMapPathTest::filter_expression(
+            QueryMapPathTest::profile().field(Profile::level()),
+        )
+        .eq(3);
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        let input = client.query().key_condition(cond).filter(filter).input;
+        #[cfg(feature = "aws-sdk")]
+        let input = client
+            .query()
+            .key_condition(cond)
+            .filter(filter)
+            .builder
+            .build()
+            .unwrap();
+
+        let mut expected_names = std::collections::HashMap::new();
+        expected_names.insert("#id".to_owned(), "id".to_owned());
+        expected_names.insert("#profile".to_owned(), "profile".to_owned());
+        expected_names.insert("#metadata".to_owned(), "metadata".to_owned());
+        expected_names.insert("#level".to_owned(), "level".to_owned());
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            assert!(input
+                .filter_expression
+                .as_ref()
+                .is_some_and(|expr| expr.starts_with("#profile.#level = :value")));
+            assert_eq!(input.expression_attribute_names, Some(expected_names));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            assert!(input
+                .filter_expression()
+                .is_some_and(|expr| expr.starts_with("#profile.#level = :value")));
+            assert_eq!(input.expression_attribute_names(), Some(&expected_names));
+        }
     }
 
     #[tokio::test]

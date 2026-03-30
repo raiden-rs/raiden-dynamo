@@ -761,8 +761,68 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
 pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
     let struct_name = input.ident;
+    let fields = match input.data {
+        Data::Struct(DataStruct {
+            fields: Fields::Named(n),
+            ..
+        }) => n,
+        _ => unimplemented!(),
+    };
+    let attr_enum_name = format_ident!("{}DocumentAttrNames", struct_name);
+
+    let names = fields.named.iter().map(|field| {
+        let ident = field.ident.as_ref().expect("named field");
+        let name = ident.to_string().to_case(Case::Pascal);
+        let name = format_ident!("{}", name);
+        quote! { #name }
+    });
+
+    let arms = fields.named.iter().map(|field| {
+        let ident = field.ident.as_ref().expect("named field");
+        let name = ident.to_string().to_case(Case::Pascal);
+        let name = format_ident!("{}", name);
+        let renamed = find_serde_rename(&field.attrs).unwrap_or_else(|| ident.to_string());
+        quote! {
+            #attr_enum_name::#name => #renamed.to_owned()
+        }
+    });
+
+    let getters = fields.named.iter().map(|field| {
+        let ident = field.ident.as_ref().expect("named field");
+        let func_name = format_ident!("{}", ident);
+        let name = ident.to_string().to_case(Case::Pascal);
+        let name = format_ident!("{}", name);
+        quote! {
+            pub fn #func_name() -> #attr_enum_name {
+                #attr_enum_name::#name
+            }
+        }
+    });
 
     let expanded = quote! {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        pub enum #attr_enum_name {
+            #(
+                #names,
+            )*
+        }
+
+        impl ::raiden::IntoAttrName for #attr_enum_name {
+            fn into_attr_name(self) -> String {
+                match self {
+                    #(
+                        #arms,
+                    )*
+                }
+            }
+        }
+
+        impl #struct_name {
+            #(
+                #getters
+            )*
+        }
+
         impl ::raiden::IntoDocumentAttr for #struct_name {}
 
         impl ::raiden::FromDocumentAttr for #struct_name {}
@@ -788,4 +848,25 @@ pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
     };
 
     proc_macro::TokenStream::from(expanded)
+}
+
+fn find_serde_rename(attrs: &[syn::Attribute]) -> Option<String> {
+    let mut renamed = None;
+
+    for attr in attrs {
+        if !attr.path().is_ident("serde") {
+            continue;
+        }
+
+        let _ = attr.parse_nested_meta(|meta| {
+            if meta.path.is_ident("rename") {
+                let value = meta.value()?;
+                let value: syn::LitStr = value.parse()?;
+                renamed = Some(value.value());
+            }
+            Ok(())
+        });
+    }
+
+    renamed
 }

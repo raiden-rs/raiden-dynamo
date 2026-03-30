@@ -20,6 +20,7 @@ pub mod id_generator;
 pub mod key_condition;
 pub mod next_token;
 pub mod ops;
+mod path;
 pub mod retry;
 pub mod types;
 pub mod update_expression;
@@ -44,6 +45,7 @@ pub use filter_expression::*;
 pub use key_condition::*;
 pub use next_token::*;
 pub use ops::*;
+pub use path::*;
 pub use retry::*;
 
 pub use id_generator::*;
