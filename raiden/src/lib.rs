@@ -13,6 +13,7 @@ compile_error!(
 extern crate serde_derive;
 
 pub mod condition;
+mod document;
 pub mod errors;
 pub mod filter_expression;
 pub mod id_generator;
@@ -37,6 +38,7 @@ pub mod aws_sdk;
 pub use self::aws_sdk::{types::AttributeValue, *};
 
 pub use condition::*;
+pub use document::*;
 pub use errors::*;
 pub use filter_expression::*;
 pub use key_condition::*;
@@ -103,6 +105,7 @@ pub trait IntoAttribute: Sized {
 pub enum ConversionError {
     ValueIsNone,
     ParseInt,
+    Serde(String),
 }
 
 impl std::fmt::Display for ConversionError {
@@ -110,6 +113,7 @@ impl std::fmt::Display for ConversionError {
         match self {
             ConversionError::ValueIsNone => write!(f, "Value is none"),
             ConversionError::ParseInt => write!(f, "Parsing error of integer"),
+            ConversionError::Serde(message) => write!(f, "{message}"),
         }
     }
 }
