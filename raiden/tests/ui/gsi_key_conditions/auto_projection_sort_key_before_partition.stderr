@@ -6,16 +6,12 @@ error[E0277]: the trait bound `KeyConditionFilledOrWaitOperator<UserUserIndexSor
    |                                         |
    |                                         required by a bound introduced by this call
    |
-help: the trait `KeyConditionBuilder<UserUserIndexPartitionKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<UserUserIndexSort1KeyConditionToken, UserUserIndexSort2KeyConditionToken>`
-      but trait `KeyConditionBuilder<UserUserIndexSort1KeyConditionToken, UserUserIndexSort2KeyConditionToken>` is implemented for it
-  --> src/key_condition/mod.rs
-   |
-   | impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilledOrWaitOperator<T, U> {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   = help: the trait `KeyConditionBuilder<UserUserIndexPartitionKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<UserUserIndexSort1KeyConditionToken, UserUserIndexSort2KeyConditionToken>`
+           but trait `KeyConditionBuilder<UserUserIndexSort1KeyConditionToken, UserUserIndexSort2KeyConditionToken>` is implemented for it
    = help: for that trait implementation, expected `UserUserIndexSort1KeyConditionToken`, found `UserUserIndexPartitionKeyConditionToken`
 note: required by a bound in `UserQueryBuilder::<'a, T>::key_condition`
   --> tests/ui/gsi_key_conditions/auto_projection_sort_key_before_partition.rs:3:10
    |
- 3 | #[derive(Raiden)]
+3  | #[derive(Raiden)]
    |          ^^^^^^ required by this bound in `UserQueryBuilder::<'a, T>::key_condition`
    = note: this error originates in the derive macro `Raiden` (in Nightly builds, run with -Z macro-backtrace for more info)
