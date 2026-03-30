@@ -41,7 +41,7 @@ import { user } from "./fixtures/user.ts";
 
 const client = new DynamoDBClient({
   region: "ap-northeast-1",
-  endpoint: "http://localhost:8000",
+  endpoint: "http://127.0.0.1:8000",
   credentials: getCredFromEnv(),
 });
 

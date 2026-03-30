@@ -26,7 +26,7 @@ pub enum KeyConditionTypes {
     BeginsWith(super::Placeholder, super::AttributeValue),
 }
 
-pub trait KeyConditionBuilder<T> {
+pub trait KeyConditionBuilder<T, U> {
     fn build(
         self,
     ) -> (
@@ -36,40 +36,69 @@ pub trait KeyConditionBuilder<T> {
     );
 }
 
+pub trait SupportsEqCondition {}
+pub trait SupportsRangeCondition {}
+
 #[derive(Debug, Clone)]
-pub struct KeyCondition<T> {
+pub struct KeyCondition<T, U = T> {
     pub attr: String,
-    pub _token: std::marker::PhantomData<T>,
+    pub _token: std::marker::PhantomData<fn() -> T>,
+    pub _next_token: std::marker::PhantomData<fn() -> U>,
 }
 
 #[derive(Debug, Clone)]
-pub struct KeyConditionFilledOrWaitOperator<T> {
+pub struct KeyConditionFilledOrWaitOperator<T, U> {
     attr: String,
     cond: KeyConditionTypes,
     _token: std::marker::PhantomData<fn() -> T>,
+    _next_token: std::marker::PhantomData<fn() -> U>,
 }
 
 #[derive(Debug, Clone)]
-pub struct KeyConditionFilled<T> {
+pub struct KeyConditionFilled<T, U> {
     attr: String,
     cond: KeyConditionTypes,
-    operator: KeyConditionOperator,
+    operators: Vec<KeyConditionOperator>,
     _token: std::marker::PhantomData<fn() -> T>,
+    _next_token: std::marker::PhantomData<fn() -> U>,
 }
 
-impl<T> KeyConditionFilledOrWaitOperator<T> {
-    pub fn and(self, cond: impl KeyConditionBuilder<T>) -> KeyConditionFilled<T> {
+impl<T, U> KeyConditionFilledOrWaitOperator<T, U> {
+    pub fn and<V>(self, cond: impl KeyConditionBuilder<U, V>) -> KeyConditionFilled<T, V> {
         let (condition_string, attr_names, attr_values) = cond.build();
         KeyConditionFilled {
             attr: self.attr,
             cond: self.cond,
-            operator: KeyConditionOperator::And(condition_string, attr_names, attr_values),
+            operators: vec![KeyConditionOperator::And(
+                condition_string,
+                attr_names,
+                attr_values,
+            )],
             _token: self._token,
+            _next_token: std::marker::PhantomData,
         }
     }
 }
 
-impl<T> KeyConditionBuilder<T> for KeyConditionFilledOrWaitOperator<T> {
+impl<T, U> KeyConditionFilled<T, U> {
+    pub fn and<V>(mut self, cond: impl KeyConditionBuilder<U, V>) -> KeyConditionFilled<T, V> {
+        let (condition_string, attr_names, attr_values) = cond.build();
+        self.operators.push(KeyConditionOperator::And(
+            condition_string,
+            attr_names,
+            attr_values,
+        ));
+        KeyConditionFilled {
+            attr: self.attr,
+            cond: self.cond,
+            operators: self.operators,
+            _token: self._token,
+            _next_token: std::marker::PhantomData,
+        }
+    }
+}
+
+impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilledOrWaitOperator<T, U> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
         let attr_name = self.attr;
         let mut attr_names: super::AttributeNames = std::collections::HashMap::new();
@@ -143,14 +172,8 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilledOrWaitOperator<T> {
     }
 }
 
-impl<T> KeyConditionBuilder<T> for KeyConditionFilled<T> {
+impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilled<T, U> {
     fn build(self) -> (String, super::AttributeNames, super::AttributeValues) {
-        let (right_str, right_names, right_values) = match self.operator {
-            super::key_condition::KeyConditionOperator::And(s, m, v) => {
-                (format!("AND ({s})"), m, v)
-            }
-        };
-
         let attr_name = self.attr;
         let mut left_names: super::AttributeNames = std::collections::HashMap::new();
         let mut left_values: super::AttributeValues = std::collections::HashMap::new();
@@ -192,61 +215,85 @@ impl<T> KeyConditionBuilder<T> for KeyConditionFilled<T> {
                 format!("begins_with(#{attr_name}, {placeholder})")
             }
         };
-        (
-            format!("{left_str} {right_str}"),
-            super::merge_map(left_names, right_names),
-            super::merge_map(left_values, right_values),
-        )
+
+        let mut condition_strings = vec![left_str];
+        let mut merged_names = left_names;
+        let mut merged_values = left_values;
+
+        for operator in self.operators {
+            match operator {
+                super::key_condition::KeyConditionOperator::And(s, m, v) => {
+                    condition_strings.push(format!("AND ({s})"));
+                    merged_names = super::merge_map(merged_names, m);
+                    merged_values = super::merge_map(merged_values, v);
+                }
+            }
+        }
+
+        (condition_strings.join(" "), merged_names, merged_values)
     }
 }
 
-impl<T> KeyCondition<T> {
-    pub fn eq(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T> {
+impl<T, U> KeyCondition<T, U>
+where
+    T: SupportsEqCondition,
+{
+    pub fn eq(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Eq(placeholder, value.into_attr());
         KeyConditionFilledOrWaitOperator {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
+}
 
-    pub fn gt(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T> {
+impl<T, U> KeyCondition<T, U>
+where
+    T: SupportsRangeCondition,
+{
+    pub fn gt(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Gt(placeholder, value.into_attr());
         KeyConditionFilledOrWaitOperator {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
-    pub fn ge(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T> {
+    pub fn ge(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Ge(placeholder, value.into_attr());
         KeyConditionFilledOrWaitOperator {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
 
-    pub fn le(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T> {
+    pub fn le(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Le(placeholder, value.into_attr());
         KeyConditionFilledOrWaitOperator {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
 
-    pub fn lt(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T> {
+    pub fn lt(self, value: impl super::IntoAttribute) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Lt(placeholder, value.into_attr());
         KeyConditionFilledOrWaitOperator {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
 
@@ -254,7 +301,7 @@ impl<T> KeyCondition<T> {
         self,
         value1: impl super::IntoAttribute,
         value2: impl super::IntoAttribute,
-    ) -> KeyConditionFilledOrWaitOperator<T> {
+    ) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder1 = format!(":value{}", super::generate_value_id());
         let placeholder2 = format!(":value{}", super::generate_value_id());
         let cond = super::key_condition::KeyConditionTypes::Between(
@@ -267,6 +314,7 @@ impl<T> KeyCondition<T> {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
 
@@ -274,7 +322,7 @@ impl<T> KeyCondition<T> {
     pub fn begins_with(
         self,
         value: impl super::IntoAttribute,
-    ) -> KeyConditionFilledOrWaitOperator<T> {
+    ) -> KeyConditionFilledOrWaitOperator<T, U> {
         let placeholder = format!(":value{}", super::generate_value_id());
         let cond =
             super::key_condition::KeyConditionTypes::BeginsWith(placeholder, value.into_attr());
@@ -282,6 +330,7 @@ impl<T> KeyCondition<T> {
             attr: self.attr,
             cond,
             _token: std::marker::PhantomData,
+            _next_token: std::marker::PhantomData,
         }
     }
 }

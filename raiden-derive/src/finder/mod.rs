@@ -1,5 +1,12 @@
 use syn::{punctuated::Punctuated, Expr, ExprLit, Lit, Meta, MetaNameValue, Token};
 
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct GsiDefinition {
+    pub name: String,
+    pub partition_key: Option<String>,
+    pub sort_keys: Vec<String>,
+}
+
 pub(crate) fn find_unary_attr(attr: &syn::Attribute, name: &str) -> Option<proc_macro2::Ident> {
     match attr.meta {
         Meta::List(ref list) => {
@@ -79,6 +86,113 @@ pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
     None
 }
 
+pub(crate) fn find_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    let mut names = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        if let Some(lit) = find_eq_string_from(attr, "gsi") {
+            names.push(lit);
+        }
+    }
+
+    for gsi in find_gsi_definitions(attrs) {
+        if !names.iter().any(|name| name == &gsi.name) {
+            names.push(gsi.name);
+        }
+    }
+
+    names
+}
+
+pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinition> {
+    let mut defs = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        let Meta::List(ref list) = attr.meta else {
+            continue;
+        };
+
+        let Ok(parsed) = list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+        else {
+            continue;
+        };
+
+        for meta in parsed.iter() {
+            let Meta::List(gsi_list) = meta else {
+                continue;
+            };
+
+            if gsi_list.path.segments[0].ident != "gsi" {
+                continue;
+            }
+
+            let Ok(gsi_args) =
+                gsi_list.parse_args_with(Punctuated::<Meta, Token![,]>::parse_terminated)
+            else {
+                continue;
+            };
+
+            let mut name = None;
+            let mut partition_key = None;
+            let mut sort_keys = vec![];
+
+            for gsi_arg in gsi_args.iter() {
+                match gsi_arg {
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "name" => {
+                        name = Some(lit.value());
+                    }
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "partition_key" => {
+                        partition_key = Some(lit.value());
+                    }
+                    Meta::NameValue(MetaNameValue {
+                        path,
+                        value:
+                            Expr::Lit(ExprLit {
+                                lit: Lit::Str(lit), ..
+                            }),
+                        ..
+                    }) if path.segments[0].ident == "sort_key" => {
+                        sort_keys.push(lit.value());
+                    }
+                    _ => {}
+                }
+            }
+
+            if let Some(name) = name {
+                defs.push(GsiDefinition {
+                    name,
+                    partition_key,
+                    sort_keys,
+                });
+            }
+        }
+    }
+
+    defs
+}
+
 pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
     for attr in attrs {
         if attr.path().segments[0].ident != "raiden" {
@@ -93,11 +207,47 @@ pub(crate) fn find_rename_value(attrs: &[syn::Attribute]) -> Option<String> {
     None
 }
 
+pub(crate) fn find_string_values(attrs: &[syn::Attribute], name: &str) -> Vec<String> {
+    let mut values = vec![];
+
+    for attr in attrs {
+        if attr.path().segments[0].ident != "raiden" {
+            continue;
+        }
+
+        if let Some(lit) = find_eq_string_from(attr, name) {
+            values.push(lit);
+        }
+    }
+
+    values
+}
+
+pub(crate) fn find_omit_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    find_string_values(attrs, "omit_gsi")
+}
+
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
     !attrs.is_empty()
         && attrs.iter().any(|attr| {
             attr.path().segments[0].ident == "raiden" && find_unary_attr(attr, name).is_some()
         })
+}
+
+pub(crate) fn validate_omit_gsi_fields(fields: &syn::FieldsNamed, gsi_names: &[String]) {
+    for field in fields.named.iter() {
+        let ident = field
+            .ident
+            .as_ref()
+            .expect("raiden only supports named fields");
+        let omit_gsi_names = find_omit_gsi_names(&field.attrs);
+
+        for gsi_name in omit_gsi_names.iter() {
+            if !gsi_names.iter().any(|known_name| known_name == gsi_name) {
+                panic!("unknown gsi `{gsi_name}` specified in omit_gsi for field `{ident}`");
+            }
+        }
+    }
 }
 
 // TODO: Add validation

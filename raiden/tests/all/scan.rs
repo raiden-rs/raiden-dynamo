@@ -38,6 +38,7 @@ mod tests {
 
     #[derive(Raiden)]
     #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi = "testGSI")]
     #[allow(dead_code)]
     pub struct Test {
         #[raiden(partition_key)]
@@ -78,6 +79,21 @@ mod tests {
         assert_eq!(res.unwrap().items.len(), 10);
     }
 
+    #[tokio::test]
+    async fn test_scan_index_limit_5() {
+        let client = crate::all::create_client_from_struct!(Test);
+        let res = client.scan().test_gsi().limit(5).run().await;
+
+        assert_eq!(res.unwrap().items.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn test_scan_builder_keeps_deprecated_index_compatibility() {
+        let client = crate::all::create_client_from_struct!(Test);
+        #[allow(deprecated)]
+        let _builder = client.scan().index("testGSI").limit(5);
+    }
+
     #[derive(Raiden)]
     #[raiden(table_name = "Project")]
     #[raiden(rename_all = "camelCase")]
@@ -89,12 +105,370 @@ mod tests {
         updated_at: String,
     }
 
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(name = "testGSI", partition_key = "ref_id"))]
+    #[allow(dead_code)]
+    pub struct TypedGsiProjectionScanSource {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+        #[raiden(omit_gsi = "testGSI")]
+        omitted: String,
+    }
+
+    #[derive(RaidenIndex, Debug, PartialEq)]
+    #[raiden(source = "TypedGsiProjectionScanSource", gsi = "testGSI")]
+    #[allow(dead_code)]
+    pub struct TypedGsiProjectionScanItem {
+        ref_id: String,
+        long_text: String,
+    }
+
+    #[derive(Raiden)]
+    #[raiden(table_name = "LastEvaluateKeyData")]
+    #[raiden(gsi(name = "userIndex", partition_key = "ref_id"))]
+    #[allow(dead_code)]
+    pub struct User {
+        #[raiden(partition_key)]
+        id: String,
+        ref_id: String,
+        long_text: String,
+        #[raiden(omit_gsi = "userIndex")]
+        omitted: String,
+    }
+
     #[tokio::test]
     async fn test_scan_with_renamed() {
         let client = crate::all::create_client_from_struct!(Project);
         let res = client.scan().limit(11).run().await;
 
         assert_eq!(res.unwrap().items.len(), 10);
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_keeps_full_projection_without_projection_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let builder = client.scan().test_gsi();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_project_sets_projection_from_index_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let builder = client
+            .scan()
+            .test_gsi()
+            .project::<TypedGsiProjectionScanItem>();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .inner
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#id"));
+            assert!(!names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .inner
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#id"));
+            assert!(!names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_auto_generated_gsi_scan_project_sets_projection_from_omit_gsi() {
+        let client = crate::all::create_client_from_struct!(User);
+        let builder = client.scan().user_index().project::<UserIndexItem>();
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let projection = builder
+                .inner
+                .input
+                .projection_expression
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let projection = builder
+                .inner
+                .builder
+                .get_projection_expression()
+                .clone()
+                .expect("projection should exist");
+            let names = builder
+                .inner
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(projection.contains("#id"));
+            assert!(projection.contains("#ref_id"));
+            assert!(projection.contains("#long_text"));
+            assert!(!projection.contains("#omitted"));
+            assert!(names.contains_key("#id"));
+            assert!(names.contains_key("#ref_id"));
+            assert!(names.contains_key("#long_text"));
+            assert!(!names.contains_key("#omitted"));
+        }
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_run_with_accepts_index_type() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let _future = client
+            .scan()
+            .test_gsi()
+            .run_with::<TypedGsiProjectionScanItem>();
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_project_can_chain_into_run_with() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        assert_future_type(
+            client
+                .scan()
+                .test_gsi()
+                .project::<TypedGsiProjectionScanItem>()
+                .run_with::<TypedGsiProjectionScanItem>(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_project_run_returns_projection_output_type() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        assert_future_type(
+            client
+                .scan()
+                .test_gsi()
+                .project::<TypedGsiProjectionScanItem>()
+                .run(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_typed_gsi_scan_project_preserves_output_type_after_filter() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let filter =
+            TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
+                .eq("id0");
+        assert_future_type(
+            client
+                .scan()
+                .test_gsi()
+                .project::<TypedGsiProjectionScanItem>()
+                .filter(filter)
+                .run(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_projection_item_scan_starts_typed_scan_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        assert_future_type(TypedGsiProjectionScanItem::scan(&client).run());
+    }
+
+    #[tokio::test]
+    async fn test_auto_generated_projection_item_scan_starts_typed_scan_builder() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<Output = Result<scan::ScanOutput<UserIndexItem>, RaidenError>>,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(User);
+        assert_future_type(UserIndexItem::scan(&client).run());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires a DynamoDB-compatible endpoint on localhost:8000"]
+    async fn test_projection_item_scan_decodes_projection_items() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let res = TypedGsiProjectionScanItem::scan(&client)
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(res.items.len(), 10);
+        assert!(res
+            .items
+            .iter()
+            .all(|item| item.ref_id == "id0" && !item.long_text.is_empty()));
+    }
+
+    #[tokio::test]
+    async fn test_projection_item_scan_keeps_output_type_after_filter() {
+        fn assert_future_type<F>(_: F)
+        where
+            F: std::future::Future<
+                Output = Result<scan::ScanOutput<TypedGsiProjectionScanItem>, RaidenError>,
+            >,
+        {
+        }
+
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        let filter =
+            TypedGsiProjectionScanSource::filter_expression(TypedGsiProjectionScanSource::ref_id())
+                .eq("id0");
+        assert_future_type(
+            TypedGsiProjectionScanItem::scan(&client)
+                .filter(filter)
+                .run(),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_deprecated_index_scan_keeps_full_projection() {
+        let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
+        #[allow(deprecated)]
+        let builder = client.scan().index("testGSI");
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            let names = builder
+                .input
+                .expression_attribute_names
+                .clone()
+                .expect("attribute names should exist");
+            assert!(names.contains_key("#omitted"));
+        }
+
+        #[cfg(feature = "aws-sdk")]
+        {
+            let names = builder
+                .builder
+                .get_expression_attribute_names()
+                .clone()
+                .expect("attribute names should exist");
+            assert!(names.contains_key("#omitted"));
+        }
     }
 
     #[derive(Raiden, Debug, PartialEq)]

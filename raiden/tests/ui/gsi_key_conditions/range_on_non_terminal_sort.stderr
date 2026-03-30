@@ -1,0 +1,16 @@
+error[E0599]: the method `between` exists for struct `KeyCondition<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>`, but its trait bounds were not satisfied
+  --> tests/ui/gsi_key_conditions/range_on_non_terminal_sort.rs:21:75
+   |
+3  | #[derive(Raiden)]
+   |          ------ doesn't satisfy `_: SupportsRangeCondition`
+...
+21 |     let _ = TypedCompositeGsiSortKeyTest::test_gsi_sort_key_condition_1().between("id0", "id9");
+   |                                                                           ^^^^^^^ method cannot be called due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken: SupportsRangeCondition`
+note: the trait `SupportsRangeCondition` must be implemented
+  --> src/key_condition/mod.rs
+   |
+   | pub trait SupportsRangeCondition {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

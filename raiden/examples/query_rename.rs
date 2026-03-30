@@ -7,6 +7,7 @@ use tracing_subscriber::{
 #[derive(Raiden, Debug)]
 #[raiden(table_name = "Project")]
 #[raiden(rename_all = "camelCase")]
+#[raiden(gsi = "orgIndex")]
 pub struct Project {
     #[raiden(partition_key)]
     pub id: String,
@@ -23,7 +24,7 @@ async fn example() {
     let cond = Project::key_condition(Project::org_id()).eq("myOrg");
     let res = client
         .query()
-        .index("orgIndex")
+        .org_index()
         .limit(11)
         .key_condition(cond)
         .run()
@@ -47,7 +48,7 @@ async fn example() {
     let cond = Project::key_condition(Project::org_id()).eq("myOrg");
     let res = client
         .query()
-        .index("orgIndex")
+        .org_index()
         .limit(11)
         .key_condition(cond)
         .run()

@@ -1,0 +1,16 @@
+error[E0599]: the method `begins_with` exists for struct `KeyCondition<TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken>`, but its trait bounds were not satisfied
+  --> tests/ui/gsi_key_conditions/range_on_partition.rs:21:68
+   |
+3  | #[derive(Raiden)]
+   |          ------ doesn't satisfy `_: SupportsRangeCondition`
+...
+21 |     let _ = TypedCompositeGsiSortKeyTest::test_gsi_key_condition().begins_with("id0");
+   |                                                                    ^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
+   |
+   = note: the following trait bounds were not satisfied:
+           `TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken: SupportsRangeCondition`
+note: the trait `SupportsRangeCondition` must be implemented
+  --> src/key_condition/mod.rs
+   |
+   | pub trait SupportsRangeCondition {}
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
