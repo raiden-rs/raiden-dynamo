@@ -8,7 +8,21 @@ use serde_json::Value;
 
 use crate::{AttributeValue, ConversionError, FromAttribute, IntoAttribute};
 
-/// Explicit wrapper for values stored as DynamoDB documents (`M` / `L` / scalar).
+/// Explicit wrapper for values stored as DynamoDB document attributes.
+///
+/// `Document<T>` is the opt-in wrapper for nested values that should be encoded
+/// into DynamoDB's document model (`M`, `L`, and scalar attribute values)
+/// through `serde`.
+///
+/// This is useful when you want a field to remain explicitly marked as a
+/// document at the type level:
+///
+/// ```rust
+/// # use raiden::Document;
+/// # #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+/// # struct Profile { name: String }
+/// let profile = Document::new(Profile { name: "bokuweb".to_owned() });
+/// ```
 #[derive(
     Debug,
     Clone,
@@ -25,18 +39,22 @@ use crate::{AttributeValue, ConversionError, FromAttribute, IntoAttribute};
 pub struct Document<T>(pub T);
 
 impl<T> Document<T> {
+    /// Creates a new document wrapper around `value`.
     pub fn new(value: T) -> Self {
         Self(value)
     }
 
+    /// Consumes the wrapper and returns the inner value.
     pub fn into_inner(self) -> T {
         self.0
     }
 
+    /// Returns an immutable reference to the wrapped value.
     pub fn as_ref(&self) -> &T {
         &self.0
     }
 
+    /// Returns a mutable reference to the wrapped value.
     pub fn as_mut(&mut self) -> &mut T {
         &mut self.0
     }
@@ -76,6 +94,13 @@ impl<T> DerefMut for Document<T> {
 
 fn conversion_error(message: impl Into<String>) -> ConversionError {
     ConversionError::Serde(message.into())
+}
+
+pub(crate) fn serialize_document<T: Serialize>(value: T) -> Result<AttributeValue, ConversionError> {
+    let value = serde_json::to_value(value)
+        .map_err(|err| conversion_error(format!("document serialization failed: {err}")))?;
+
+    json_value_to_attribute_value(value)
 }
 
 #[cfg(feature = "aws-sdk")]
@@ -220,6 +245,14 @@ pub(crate) fn attribute_value_to_json_value(value: AttributeValue) -> Result<Val
     }
 }
 
+pub(crate) fn deserialize_document<T: DeserializeOwned>(
+    value: Option<AttributeValue>,
+) -> Result<T, ConversionError> {
+    let value = value.ok_or(ConversionError::ValueIsNone)?;
+    let value = attribute_value_to_json_value(value)?;
+    serde_json::from_value(value).map_err(|err| ConversionError::Serde(err.to_string()))
+}
+
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
 pub(crate) fn attribute_value_to_json_value(value: AttributeValue) -> Result<Value, ConversionError> {
     match value {
@@ -321,21 +354,14 @@ impl<T: FromAttribute> FromAttribute for BTreeMap<String, T> {
 
 impl<T: Serialize> IntoAttribute for Document<T> {
     fn into_attr(self) -> AttributeValue {
-        let value = serde_json::to_value(self.0)
-            .expect("Document serialization failed. Use serializable document values only.");
-
-        json_value_to_attribute_value(value)
-            .expect("Document serialization failed. Unsupported document value was detected.")
+        serialize_document(self.0)
+            .expect("Document serialization failed. Use serializable document values only.")
     }
 }
 
 impl<T: DeserializeOwned> FromAttribute for Document<T> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
-        let value = value.ok_or(ConversionError::ValueIsNone)?;
-        let value = attribute_value_to_json_value(value)?;
-        let value = serde_json::from_value(value).map_err(|err| ConversionError::Serde(err.to_string()))?;
-
-        Ok(Document(value))
+        deserialize_document(value).map(Document)
     }
 }
 
@@ -384,6 +410,16 @@ mod tests {
     }
 
     #[test]
+    fn empty_map_round_trip() {
+        let value = HashMap::<String, usize>::new();
+
+        let attr = value.clone().into_attr();
+        let decoded = HashMap::<String, usize>::from_attr(Some(attr)).unwrap();
+
+        assert_eq!(decoded, value);
+    }
+
+    #[test]
     fn document_round_trip() {
         let value = Document::new(UserDocument {
             tags: vec!["rust".to_owned(), "dynamo".to_owned()],
@@ -396,6 +432,23 @@ mod tests {
 
         let attr = value.clone().into_attr();
         let decoded = Document::<UserDocument>::from_attr(Some(attr)).unwrap();
+
+        assert_eq!(decoded, value);
+    }
+
+    #[test]
+    fn map_of_documents_round_trip() {
+        let mut value = HashMap::new();
+        value.insert(
+            "primary".to_owned(),
+            Document::new(NestedProfile {
+                nickname: "bokuweb".to_owned(),
+                score: 100,
+            }),
+        );
+
+        let attr = value.clone().into_attr();
+        let decoded = HashMap::<String, Document<NestedProfile>>::from_attr(Some(attr)).unwrap();
 
         assert_eq!(decoded, value);
     }

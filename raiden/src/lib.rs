@@ -101,6 +101,18 @@ pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
 }
 
+/// Marker trait for types that should be serialized as DynamoDB documents.
+///
+/// This trait is typically implemented via `#[derive(RaidenDocument)]`.
+/// Its default method uses `serde` to encode the value into DynamoDB's
+/// document model.
+pub trait IntoDocumentAttr: serde::Serialize + Sized {
+    /// Serializes `self` into a DynamoDB attribute value.
+    fn into_document_attr(self) -> Result<AttributeValue, ConversionError> {
+        crate::document::serialize_document(self)
+    }
+}
+
 #[derive(Debug)]
 pub enum ConversionError {
     ValueIsNone,
@@ -122,6 +134,18 @@ impl std::error::Error for ConversionError {}
 
 pub trait FromAttribute: Sized {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError>;
+}
+
+/// Marker trait for types that should be decoded from DynamoDB documents.
+///
+/// This trait is typically implemented via `#[derive(RaidenDocument)]`.
+/// Its default method uses `serde` to rebuild the Rust value from a DynamoDB
+/// document attribute.
+pub trait FromDocumentAttr: serde::de::DeserializeOwned + Sized {
+    /// Deserializes a DynamoDB attribute value into `Self`.
+    fn from_document_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
+        crate::document::deserialize_document(value)
+    }
 }
 
 impl<T: FromAttribute> ResolveAttribute for T {}

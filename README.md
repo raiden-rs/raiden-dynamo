@@ -184,6 +184,68 @@ async fn main() {
 }
 ```
 
+#### store maps and nested documents
+
+```rust
+use std::collections::{BTreeMap, HashMap};
+
+use raiden::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, RaidenDocument)]
+struct Profile {
+    display_name: String,
+    level: usize,
+}
+
+#[derive(Raiden)]
+#[raiden(table_name = "user")]
+struct User {
+    #[raiden(partition_key)]
+    id: String,
+    metadata: HashMap<String, usize>,
+    flags: BTreeMap<String, bool>,
+    profile: Profile,
+    profiles: HashMap<String, Profile>,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+
+    let mut metadata = HashMap::new();
+    metadata.insert("score".to_owned(), 42);
+
+    let mut flags = BTreeMap::new();
+    flags.insert("active".to_owned(), true);
+
+    let profile = Profile {
+        display_name: "bokuweb".to_owned(),
+        level: 3,
+    };
+
+    let mut profiles = HashMap::new();
+    profiles.insert("primary".to_owned(), profile.clone());
+
+    let input = User::put_item_builder()
+        .id("user#1".to_owned())
+        .metadata(metadata)
+        .flags(flags)
+        .profile(profile)
+        .profiles(profiles)
+        .build();
+
+    let _res = client.put(input).run().await;
+}
+```
+
+Notes:
+
+- map key is currently limited to `String`
+- use `#[derive(RaidenDocument)]` when you want to store a nested type directly as a field
+- `Document<T>` remains available as an explicit wrapper when you prefer opt-in at the field type level
+- empty maps are preserved as empty DynamoDB `M` values rather than being dropped
+
 #### batch_get_item
 
 ```rust
