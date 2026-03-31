@@ -40,6 +40,6 @@ fn create_client() -> TypedCompositeGsiSortKeyTestClient {
 fn main() {
     let client = create_client();
 
-    let cond = TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1");
+    let cond = TypedCompositeGsiProjectionItem::id().eq("id1");
     let _ = client.query().test_gsi().key_condition(cond);
 }

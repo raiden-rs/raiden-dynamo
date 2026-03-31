@@ -354,10 +354,10 @@ struct User {
 async fn main() {
     let client = /* generate client */;
 
-    let cond = UserIndexItem::user_index_key_condition()
+    let cond = UserIndexItem::org_id()
         .eq("org_1")
-        .and(UserIndexItem::user_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
-        .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("active"));
+        .and(UserIndexItem::created_at().eq("2026-03-28T00:00:00Z"))
+        .and(UserIndexItem::status().begins_with("active"));
 
     let _res = client
         .query()
@@ -404,7 +404,7 @@ struct PublicUserIndexItem {
 #[tokio::main]
 async fn main() {
     let client = /* generate client */;
-    let cond = PublicUserIndexItem::user_index_key_condition().eq("org_1");
+    let cond = PublicUserIndexItem::org_id().eq("org_1");
 
     let _res = PublicUserIndexItem::query(&client)
         .key_condition(cond)
@@ -442,10 +442,10 @@ struct User {
 async fn main() {
     let client = /* generate client */;
 
-    let cond = UserActivityIndexItem::activity_index_key_condition()
+    let cond = UserActivityIndexItem::org_id()
         .eq("org_1")
-        .and(UserActivityIndexItem::activity_index_sort_key_condition_1().eq("2026-03-28T00:00:00Z"))
-        .and(UserActivityIndexItem::activity_index_sort_key_condition_2().begins_with("active"));
+        .and(UserActivityIndexItem::created_at().eq("2026-03-28T00:00:00Z"))
+        .and(UserActivityIndexItem::status().begins_with("active"));
 
     let _res = UserActivityIndexItem::query(&client)
         .key_condition(cond)
@@ -457,7 +457,7 @@ async fn main() {
 The composite helper methods enforce DynamoDB's ordering rules:
 
 - start with the partition key
-- then chain sort key segment 1, sort key segment 2, and so on
+- then chain each sort key helper in declaration order
 - use range operators such as `gt`, `between`, and `begins_with` only on the last sort key segment
 
 Notes:
@@ -466,13 +466,13 @@ Notes:
 - `#[raiden(omit_gsi = "userIndex")]` also generates a default projection type such as `UserIndexItem`, so the common case does not require writing `#[derive(RaidenIndex)]` manually
 - `#[derive(RaidenIndex)]` remains available when you want to override the generated projection shape or name, or when you prefer to declare the projection item explicitly
 - `#[derive(RaidenIndex)]` also generates `YourIndexType::query(&client)` and `YourIndexType::scan(&client)` helpers for projection-first access
-- add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself
+- add `#[raiden(gsi(name = "...", partition_key = "...", sort_key = "..."))]` to the `RaidenIndex` type when you also want typed key condition helpers on the projection type itself; these helpers use the key field names such as `org_id()` and `created_at()`
 - typed GSI query/scan keeps the base struct projection by default; switch to an index projection explicitly with `project::<...>()`
 - `client.query().user_index().project::<UserIndexItem>()` and `UserIndexItem::query(&client)` are equivalent entrypoints; choose whichever style is clearer for your call site
 - `client.scan().user_index().project::<UserIndexItem>()` and `UserIndexItem::scan(&client)` are also equivalent entrypoints
 - `run_with::<...>()` remains available as a backward-compatible convenience wrapper
 - the legacy `.index("userIndex")` API is still available for backward compatibility, and existing typed GSI builders still default to the source-item projection unless you opt into a projection item
-- composite GSI conditions must be chained in order: partition key -> sort key 1 -> sort key 2 ...
+- composite GSI conditions must be chained in order: partition key -> first declared sort key -> second declared sort key ...
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
 - the old `.index("userIndex")` API is deprecated, but preserved for compatibility while migrating to typed GSI helpers
 

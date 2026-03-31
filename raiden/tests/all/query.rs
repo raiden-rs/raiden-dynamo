@@ -424,7 +424,7 @@ mod tests {
 
     #[test]
     fn test_gsi_projection_item_partition_key_condition_builds() {
-        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let cond = TypedGsiProjectionItem::ref_id().eq("id0");
         let (cond_str, attr_names, attr_values) = cond.build();
 
         assert!(cond_str.starts_with("#ref_id = :value"));
@@ -442,7 +442,7 @@ mod tests {
     #[tokio::test]
     async fn test_query_builder_accepts_projection_item_partition_key_condition() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let cond = TypedGsiProjectionItem::ref_id().eq("id0");
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 
@@ -488,13 +488,10 @@ mod tests {
 
     #[test]
     fn test_composite_gsi_projection_item_sort_key_conditions_build_in_order() {
-        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+        let cond = TypedCompositeGsiProjectionItem::ref_id()
             .eq("id0")
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(
-                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
-                    .begins_with("long"),
-            );
+            .and(TypedCompositeGsiProjectionItem::id().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::long_text().begins_with("long"));
         let (cond_str, attr_names, attr_values) = cond.build();
 
         assert!(cond_str.starts_with("#ref_id = :value"));
@@ -508,10 +505,10 @@ mod tests {
 
     #[test]
     fn test_auto_generated_gsi_projection_item_sort_key_conditions_build_in_order() {
-        let cond = UserIndexItem::user_index_key_condition()
+        let cond = UserIndexItem::ref_id()
             .eq("id0")
-            .and(UserIndexItem::user_index_sort_key_condition_1().eq("id1"))
-            .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("long"));
+            .and(UserIndexItem::id().eq("id1"))
+            .and(UserIndexItem::long_text().begins_with("long"));
         let (cond_str, attr_names, attr_values) = cond.build();
 
         assert!(cond_str.starts_with("#ref_id = :value"));
@@ -536,13 +533,10 @@ mod tests {
     #[tokio::test]
     async fn test_query_builder_accepts_composite_projection_item_gsi_sort_key_conditions() {
         let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
-        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+        let cond = TypedCompositeGsiProjectionItem::ref_id()
             .eq("id0")
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(
-                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
-                    .begins_with("long"),
-            );
+            .and(TypedCompositeGsiProjectionItem::id().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::long_text().begins_with("long"));
         let _builder = client.query().test_gsi().key_condition(cond);
     }
 
@@ -797,7 +791,7 @@ mod tests {
         }
 
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let cond = TypedGsiProjectionItem::ref_id().eq("id0");
         assert_future_type(
             TypedGsiProjectionItem::query(&client)
                 .key_condition(cond)
@@ -814,10 +808,10 @@ mod tests {
         }
 
         let client = crate::all::create_client_from_struct!(User);
-        let cond = UserIndexItem::user_index_key_condition()
+        let cond = UserIndexItem::ref_id()
             .eq("id0")
-            .and(UserIndexItem::user_index_sort_key_condition_1().eq("id1"))
-            .and(UserIndexItem::user_index_sort_key_condition_2().begins_with("long"));
+            .and(UserIndexItem::id().eq("id1"))
+            .and(UserIndexItem::long_text().begins_with("long"));
         assert_future_type(UserIndexItem::query(&client).key_condition(cond).run());
     }
 
@@ -825,7 +819,7 @@ mod tests {
     #[ignore = "requires a DynamoDB-compatible endpoint on localhost:8000"]
     async fn test_projection_item_query_decodes_projection_items() {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
-        let cond = TypedGsiProjectionItem::test_gsi_key_condition().eq("id0");
+        let cond = TypedGsiProjectionItem::ref_id().eq("id0");
         let res = TypedGsiProjectionItem::query(&client)
             .key_condition(cond)
             .run()
@@ -850,13 +844,10 @@ mod tests {
         }
 
         let client = crate::all::create_client_from_struct!(TypedCompositeGsiSortKeyTest);
-        let cond = TypedCompositeGsiProjectionItem::test_gsi_key_condition()
+        let cond = TypedCompositeGsiProjectionItem::ref_id()
             .eq("id0")
-            .and(TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_1().eq("id1"))
-            .and(
-                TypedCompositeGsiProjectionItem::test_gsi_sort_key_condition_2()
-                    .begins_with("long"),
-            );
+            .and(TypedCompositeGsiProjectionItem::id().eq("id1"))
+            .and(TypedCompositeGsiProjectionItem::long_text().begins_with("long"));
         assert_future_type(
             TypedCompositeGsiProjectionItem::query(&client)
                 .key_condition(cond)

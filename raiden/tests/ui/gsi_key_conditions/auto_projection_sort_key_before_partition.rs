@@ -26,6 +26,6 @@ fn create_client() -> UserClient {
 fn main() {
     let client = create_client();
 
-    let cond = UserIndexItem::user_index_sort_key_condition_1().eq("id1");
+    let cond = UserIndexItem::id().eq("id1");
     let _ = client.query().user_index().key_condition(cond);
 }
