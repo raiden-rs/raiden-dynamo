@@ -249,6 +249,13 @@ pub(crate) fn deserialize_document<T: DeserializeOwned>(
     serde_json::from_value(value).map_err(|err| ConversionError::Serde(err.to_string()))
 }
 
+#[doc(hidden)]
+pub fn deserialize_document_item<T: DeserializeOwned>(
+    item: crate::AttributeValues,
+) -> Result<T, ConversionError> {
+    deserialize_document(Some(attr_map(item)))
+}
+
 #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
 pub(crate) fn attribute_value_to_json_value(
     value: AttributeValue,
