@@ -761,11 +761,62 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
 pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
     let input = syn::parse_macro_input!(input as DeriveInput);
     let struct_name = input.ident;
+    let common_impls = quote! {
+        impl ::raiden::IntoDocumentAttr for #struct_name {}
+
+        impl ::raiden::FromDocumentAttr for #struct_name {}
+
+        impl ::raiden::IntoAttribute for #struct_name {
+            fn into_attr(self) -> ::raiden::AttributeValue {
+                <Self as ::raiden::IntoDocumentAttr>::into_document_attr(self)
+                    .expect(concat!(
+                        "RaidenDocument serialization failed for `",
+                        stringify!(#struct_name),
+                        "`."
+                    ))
+            }
+        }
+
+        impl ::raiden::FromAttribute for #struct_name {
+            fn from_attr(
+                value: Option<::raiden::AttributeValue>,
+            ) -> Result<Self, ::raiden::ConversionError> {
+                <Self as ::raiden::FromDocumentAttr>::from_document_attr(value)
+            }
+        }
+    };
+
     let fields = match input.data {
         Data::Struct(DataStruct {
             fields: Fields::Named(n),
             ..
         }) => n,
+        Data::Enum(_) => {
+            let expanded = quote! {
+                #common_impls
+
+                impl ::raiden::RaidenItem for #struct_name {
+                    fn attribute_names() -> Option<::raiden::AttributeNames> {
+                        None
+                    }
+
+                    fn projection_expression() -> Option<String> {
+                        None
+                    }
+
+                    fn from_item(
+                        item: ::raiden::AttributeValues,
+                    ) -> Result<Self, ::raiden::RaidenError> {
+                        ::raiden::deserialize_document_item(item)
+                            .map_err(|err| ::raiden::RaidenError::AttributeConvertError {
+                                attr_name: err.to_string(),
+                            })
+                    }
+                }
+            };
+
+            return proc_macro::TokenStream::from(expanded);
+        }
         _ => unimplemented!(),
     };
     let attr_enum_name = format_ident!("{}DocumentAttrNames", struct_name);
@@ -823,28 +874,7 @@ pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
             )*
         }
 
-        impl ::raiden::IntoDocumentAttr for #struct_name {}
-
-        impl ::raiden::FromDocumentAttr for #struct_name {}
-
-        impl ::raiden::IntoAttribute for #struct_name {
-            fn into_attr(self) -> ::raiden::AttributeValue {
-                <Self as ::raiden::IntoDocumentAttr>::into_document_attr(self)
-                    .expect(concat!(
-                        "RaidenDocument serialization failed for `",
-                        stringify!(#struct_name),
-                        "`."
-                    ))
-            }
-        }
-
-        impl ::raiden::FromAttribute for #struct_name {
-            fn from_attr(
-                value: Option<::raiden::AttributeValue>,
-            ) -> Result<Self, ::raiden::ConversionError> {
-                <Self as ::raiden::FromDocumentAttr>::from_document_attr(value)
-            }
-        }
+        #common_impls
     };
 
     proc_macro::TokenStream::from(expanded)

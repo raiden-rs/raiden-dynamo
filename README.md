@@ -243,8 +243,56 @@ Notes:
 
 - map key is currently limited to `String`
 - use `#[derive(RaidenDocument)]` when you want to store a nested type directly as a field
+- enums can also derive `RaidenDocument`; serde enum tagging such as `#[serde(tag = "type")]` is preserved when values are encoded into DynamoDB maps and decoded back
 - `Document<T>` remains available as an explicit wrapper when you prefer opt-in at the field type level
 - empty maps are preserved as empty DynamoDB `M` values rather than being dropped
+
+Tagged enums can be stored directly as nested document fields:
+
+```rust
+use std::collections::HashMap;
+
+use raiden::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, RaidenDocument)]
+#[serde(tag = "type")]
+enum Message {
+    Request {
+        id: String,
+        method: String,
+        params: HashMap<String, usize>,
+    },
+    Response {
+        id: String,
+        result: String,
+    },
+}
+
+#[derive(Raiden)]
+#[raiden(table_name = "event")]
+struct Event {
+    #[raiden(partition_key)]
+    id: String,
+    message: Message,
+}
+
+fn input() -> EventPutItemInput {
+    let mut params = HashMap::new();
+    params.insert("attempt".to_owned(), 1);
+
+    Event::put_item_builder()
+        .id("event#1".to_owned())
+        .message(Message::Request {
+            id: "msg#1".to_owned(),
+            method: "send".to_owned(),
+            params,
+        })
+        .build()
+}
+```
+
+When a tagged enum is used as the item type itself, the DynamoDB item map is decoded through serde as a whole document. This allows projection reads such as `query().project::<Message>()` when the item contains the tag and variant fields at the top level.
 
 #### query nested map and document values
 
