@@ -325,6 +325,65 @@ async fn main() {
 }
 ```
 
+#### batch_put
+
+```rust
+use raiden::*;
+
+#[derive(Raiden, Debug, PartialEq)]
+pub struct User {
+    #[raiden(partition_key)]
+    id: String,
+    #[raiden(sort_key)]
+    year: usize,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+    let items = vec![
+        User::put_item_builder()
+            .id("Alice".to_owned())
+            .year(1992)
+            .name("Alice".to_owned())
+            .build(),
+        User::put_item_builder()
+            .id("Bob".to_owned())
+            .year(1976)
+            .name("Bob".to_owned())
+            .build(),
+    ];
+
+    let res = client.batch_put(items).run().await;
+}
+```
+
+#### transact_get_items
+
+```rust
+use raiden::*;
+
+#[derive(Raiden, Debug, PartialEq)]
+pub struct User {
+    #[raiden(partition_key)]
+    id: String,
+    #[raiden(sort_key)]
+    year: usize,
+    name: String,
+}
+
+#[tokio::main]
+async fn main() {
+    let client = /* generate client */;
+    let keys: Vec<(&str, usize)> = vec![("Alice", 1992), ("Bob", 1976)];
+    let res = client.transact_get(keys).run().await;
+
+    // Responses preserve the request order.
+    // Missing items are returned as `None`.
+}
+```
+
 #### query with typed GSI
 
 ```rust
@@ -532,13 +591,13 @@ Then open `http://localhost:8001` in browser.
 ### Item
 
 - [x] BatchGetItem
-- [ ] BatchWriteItem
+- [x] BatchWriteItem
 - [x] DeleteItem
 - [x] GetItem
 - [x] PutItem
 - [x] Query
 - [x] Scan
-- [ ] TransactGetItems
+- [x] TransactGetItems
 - [x] TransactWriteItems
 - [x] UpdateItem
 

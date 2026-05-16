@@ -3,10 +3,11 @@ mod consumed_capacity;
 mod delete_request;
 mod item_collection_metrics;
 mod keys_and_attributes;
+mod put_request;
 
 pub use self::{
     attribute_value::*, consumed_capacity::*, delete_request::*, item_collection_metrics::*,
-    keys_and_attributes::*,
+    keys_and_attributes::*, put_request::*,
 };
 
 macro_rules! set_optional_value {

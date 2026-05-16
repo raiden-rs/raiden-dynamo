@@ -1,21 +1,25 @@
 mod batch_delete;
 mod batch_get;
+mod batch_put;
 mod delete;
 mod get;
 mod put;
 mod query;
 mod scan;
 mod shared;
+mod transact_get;
 mod transact_write;
 mod update;
 
 pub(crate) use batch_delete::*;
 pub(crate) use batch_get::*;
+pub(crate) use batch_put::*;
 pub(crate) use delete::*;
 pub(crate) use get::*;
 pub(crate) use put::*;
 pub(crate) use query::*;
 pub(crate) use scan::*;
 pub(crate) use shared::*;
+pub(crate) use transact_get::*;
 pub(crate) use transact_write::*;
 pub(crate) use update::*;

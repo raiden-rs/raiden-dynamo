@@ -1,6 +1,8 @@
 import { DynamoDBClient } from "./deps.ts";
 import { batchDeleteTest0 } from "./fixtures/batch_delete_test_0.ts";
 import { batchDeleteTest1 } from "./fixtures/batch_delete_test_1.ts";
+import { batchPutTest0 } from "./fixtures/batch_put_test_0.ts";
+import { batchPutTest1 } from "./fixtures/batch_put_test_1.ts";
 import { batchTest0 } from "./fixtures/batch_test_0.ts";
 import { batchTest1 } from "./fixtures/batch_test_1.ts";
 import { batchTest2 } from "./fixtures/batch_test_2.ts";
@@ -48,6 +50,8 @@ const client = new DynamoDBClient({
 const data = [
   batchDeleteTest0,
   batchDeleteTest1,
+  batchPutTest0,
+  batchPutTest1,
   batchTest0,
   batchTest1,
   batchTest2,
