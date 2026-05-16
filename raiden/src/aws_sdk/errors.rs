@@ -4,8 +4,8 @@ use crate::{
         operation::{
             batch_get_item::BatchGetItemError, batch_write_item::BatchWriteItemError,
             delete_item::DeleteItemError, get_item::GetItemError, put_item::PutItemError,
-            query::QueryError, scan::ScanError, transact_write_items::TransactWriteItemsError,
-            update_item::UpdateItemError,
+            query::QueryError, scan::ScanError, transact_get_items::TransactGetItemsError,
+            transact_write_items::TransactWriteItemsError, update_item::UpdateItemError,
         },
     },
     RaidenError, RaidenTransactionCancellationReasons,
@@ -289,6 +289,49 @@ impl From<SdkError<TransactWriteItemsError>> for RaidenError {
                 }
                 TransactWriteItemsError::TransactionInProgressException(err) => {
                     RaidenError::TransactionInProgress(err.to_string())
+                }
+                _ => into_raiden_error(error),
+            },
+            _ => into_raiden_error(error),
+        }
+    }
+}
+
+impl From<SdkError<TransactGetItemsError>> for RaidenError {
+    fn from(error: SdkError<TransactGetItemsError>) -> Self {
+        match &error {
+            SdkError::ServiceError(err) => match err.err() {
+                TransactGetItemsError::InternalServerError(err) => {
+                    RaidenError::InternalServerError(err.to_string())
+                }
+                TransactGetItemsError::InvalidEndpointException(err) => {
+                    RaidenError::InternalServerError(err.to_string())
+                }
+                TransactGetItemsError::ProvisionedThroughputExceededException(err) => {
+                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
+                }
+                TransactGetItemsError::RequestLimitExceeded(err) => {
+                    RaidenError::RequestLimitExceeded(err.to_string())
+                }
+                TransactGetItemsError::ResourceNotFoundException(err) => {
+                    RaidenError::ResourceNotFound(err.to_string())
+                }
+                TransactGetItemsError::ThrottlingException(err) => {
+                    RaidenError::RequestLimitExceeded(err.to_string())
+                }
+                TransactGetItemsError::TransactionCanceledException(err) => {
+                    let reasons = RaidenTransactionCancellationReasons::from_str(
+                        err.message
+                            .clone()
+                            .unwrap_or_else(|| "transaction canceled".to_owned())
+                            .as_str(),
+                    );
+                    let raw_reasons = err.cancellation_reasons.clone().unwrap_or_default();
+
+                    RaidenError::TransactionCanceled {
+                        reasons,
+                        raw_reasons,
+                    }
                 }
                 _ => into_raiden_error(error),
             },

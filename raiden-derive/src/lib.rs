@@ -574,6 +574,8 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
     let put_item = ops::expand_put_item(&struct_name, &fields, rename_all_type);
 
+    let batch_put = ops::expand_batch_put(&struct_name, &fields, rename_all_type);
+
     let update_item = ops::expand_update_item(
         &partition_key,
         &sort_key,
@@ -607,6 +609,14 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
         &attr_enum_name,
         rename_all_type,
         &table_name,
+    );
+
+    let transact_get = ops::expand_transact_get(
+        &partition_key,
+        &sort_key,
+        &struct_name,
+        &fields,
+        rename_all_type,
     );
 
     let client_constructor = client::expand_client_constructor(
@@ -662,11 +672,15 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
 
         #put_item
 
+        #batch_put
+
         #update_item
 
         #delete_item
 
         #batch_delete
+
+        #transact_get
 
         #transact_write
 

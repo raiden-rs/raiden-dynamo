@@ -207,3 +207,27 @@ impl From<RusotoError<TransactWriteItemsError>> for RaidenError {
         }
     }
 }
+
+impl From<RusotoError<TransactGetItemsError>> for RaidenError {
+    fn from(error: RusotoError<TransactGetItemsError>) -> Self {
+        match error {
+            RusotoError::Service(error) => match error {
+                TransactGetItemsError::InternalServerError(msg) => {
+                    RaidenError::InternalServerError(msg)
+                }
+                TransactGetItemsError::ProvisionedThroughputExceeded(msg) => {
+                    RaidenError::ProvisionedThroughputExceeded(msg)
+                }
+                TransactGetItemsError::RequestLimitExceeded(msg) => {
+                    RaidenError::RequestLimitExceeded(msg)
+                }
+                TransactGetItemsError::ResourceNotFound(msg) => RaidenError::ResourceNotFound(msg),
+                TransactGetItemsError::TransactionCanceled(msg) => {
+                    let reasons = RaidenTransactionCancellationReasons::from_str(&msg);
+                    RaidenError::TransactionCanceled { reasons }
+                }
+            },
+            _ => into_raiden_error(error),
+        }
+    }
+}
