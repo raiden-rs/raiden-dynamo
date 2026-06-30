@@ -122,6 +122,18 @@ pub enum ConversionError {
     Serde(String),
 }
 
+impl ConversionError {
+    /// Creates a conversion error with a descriptive message.
+    ///
+    /// This is a non-breaking helper for callers that need to preserve validation
+    /// or parsing details from custom `FromAttribute` implementations. The
+    /// message is stored in the existing `Serde` variant to avoid adding a new
+    /// public enum variant.
+    pub fn message(message: impl Into<String>) -> Self {
+        ConversionError::Serde(message.into())
+    }
+}
+
 impl std::fmt::Display for ConversionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -252,4 +264,17 @@ pub fn merge_map<T>(
     map2: std::collections::HashMap<String, T>,
 ) -> std::collections::HashMap<String, T> {
     map1.into_iter().chain(map2).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn conversion_error_message_preserves_context() {
+        let error = ConversionError::message("custom validation failed");
+
+        assert_eq!("custom validation failed", error.to_string());
+        assert!(matches!(error, ConversionError::Serde(_)));
+    }
 }
