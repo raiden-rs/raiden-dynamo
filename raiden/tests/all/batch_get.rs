@@ -56,6 +56,22 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_batch_get_item_empty_keys() {
+        let client = crate::all::create_client_from_struct!(BatchTest0);
+        let res: batch_get::BatchGetOutput<BatchTest0> =
+            client.batch_get(Vec::<String>::new()).run().await.unwrap();
+
+        assert_eq!(
+            res,
+            batch_get::BatchGetOutput {
+                items: vec![],
+                consumed_capacity: None,
+                unprocessed_keys: Some(crate::all::default_key_and_attributes()),
+            }
+        );
+    }
+
+    #[tokio::test]
     async fn test_batch_get_item_extended() {
         let client = crate::all::create_client_from_struct!(BatchTest0);
         let keys: Vec<String> = (0..101).map(|n| format!("id{n}")).collect();
@@ -144,6 +160,25 @@ mod tests {
             sort_by_id_1(res),
             batch_get::BatchGetOutput {
                 items: expected_items,
+                consumed_capacity: None,
+                unprocessed_keys: Some(crate::all::default_key_and_attributes()),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_batch_get_item_sort_key_empty_keys() {
+        let client = crate::all::create_client_from_struct!(BatchTest1);
+        let res: batch_get::BatchGetOutput<BatchTest1> = client
+            .batch_get(Vec::<(String, usize)>::new())
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            res,
+            batch_get::BatchGetOutput {
+                items: vec![],
                 consumed_capacity: None,
                 unprocessed_keys: Some(crate::all::default_key_and_attributes()),
             }
