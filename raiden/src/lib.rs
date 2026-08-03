@@ -103,6 +103,26 @@ pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
 }
 
+/// Returns whether a DynamoDB attribute represents `NULL`.
+///
+/// Derive macros call this helper from generated code so the null check is
+/// resolved inside the `raiden` crate. This avoids depending on feature flags
+/// in the downstream crate where the macro is expanded.
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+pub fn is_null_attribute_value(value: &AttributeValue) -> bool {
+    Some(true) == value.null
+}
+
+/// Returns whether a DynamoDB attribute represents `NULL`.
+///
+/// Derive macros call this helper from generated code so the null check is
+/// resolved inside the `raiden` crate. This avoids depending on feature flags
+/// in the downstream crate where the macro is expanded.
+#[cfg(feature = "aws-sdk")]
+pub fn is_null_attribute_value(value: &AttributeValue) -> bool {
+    value.is_null()
+}
+
 /// Marker trait for types that should be serialized as DynamoDB documents.
 ///
 /// This trait is typically implemented via `#[derive(RaidenDocument)]`.

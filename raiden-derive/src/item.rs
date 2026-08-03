@@ -57,12 +57,7 @@ fn expand_raiden_item_impl_from_fields(
                         Default::default()
                     } else {
                         let item = item.unwrap();
-                        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
-                        let is_null = Some(true) == item.null;
-                        #[cfg(feature = "aws-sdk")]
-                        let is_null = item.is_null();
-
-                        if is_null {
+                        if ::raiden::is_null_attribute_value(&item) {
                             Default::default()
                         } else {
                             let converted = ::raiden::FromAttribute::from_attr(Some(item));
