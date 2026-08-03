@@ -112,6 +112,16 @@ pub(crate) fn expand_batch_get(
     };
 
     let api_call_token = super::api_call_token!("batch_get_item");
+    let empty_keys_warning = if cfg!(feature = "tracing") {
+        quote! {
+            ::tracing::warn!(
+                %table_name,
+                "batch_get called with empty keys; returning an empty output"
+            );
+        }
+    } else {
+        quote! {}
+    };
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
             quote! { #builder_name::inner_run(table_name, client, input).await },
@@ -145,6 +155,15 @@ pub(crate) fn expand_batch_get(
                 let policy: ::raiden::RetryPolicy = policy.into();
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
+
+                if keys.is_empty() {
+                    #empty_keys_warning
+                    return Ok(::raiden::batch_get::BatchGetOutput {
+                        consumed_capacity: None,
+                        items,
+                        unprocessed_keys: Some(unprocessed_keys),
+                    });
+                }
 
                 // TODO: for now set 5, however we should make it more flexible.
                 let mut unprocessed_retry = 5;
