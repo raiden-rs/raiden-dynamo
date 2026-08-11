@@ -14,7 +14,7 @@ aws-config = { version = "^1", optional = true }
 aws-sdk-dynamodb = { version = "^1", optional = true }
 aws-smithy-runtime-api = { version = "^1", optional = true }
 base64 = "^0.22"
-md-5 = "^0.10"
+md-5 = "^0.11.0"
 paste = { version = "1.0.15", optional = true }
 raiden-derive = { version = "*", path = "../raiden-derive", default-features = false }
 rusoto_core = { package = "rusoto_core", version = "0.48", default-features = false, optional = true }
