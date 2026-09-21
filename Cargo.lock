@@ -1819,6 +1819,7 @@ dependencies = [
  "pretty_assertions",
  "raiden",
  "raiden-derive",
+ "rand",
  "rusoto_core",
  "rusoto_credential",
  "rusoto_dynamodb",
@@ -1833,6 +1834,7 @@ dependencies = [
  "tracing-subscriber",
  "trybuild",
  "uuid",
+ "wasm-timer",
 ]
 
 [[package]]

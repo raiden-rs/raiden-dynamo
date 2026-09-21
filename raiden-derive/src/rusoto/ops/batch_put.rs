@@ -99,47 +99,44 @@ pub(crate) fn expand_batch_put(
                 const RETRY: usize = 5;
                 const MAX_ITEMS_PER_REQUEST: usize = 25;
 
-                for _ in 0..RETRY {
-                    loop {
-                        let len = write_requests.len();
-                        if len == 0 {
-                            break;
-                        }
+                let mut exhausted = std::vec::Vec::new();
+                while !write_requests.is_empty() {
+                    let len = write_requests.len();
+                    let start = len.saturating_sub(MAX_ITEMS_PER_REQUEST);
+                    let req = write_requests.drain(start..).collect::<std::vec::Vec<_>>();
+                    let unprocessed = ::raiden::retry::retry_batch_write_unprocessed_items(
+                        req,
+                        RETRY,
+                        std::time::Duration::from_millis(50),
+                        |requests| {
+                            let table_name = table_name.clone();
+                            let client = client.clone();
+                            let policy = policy.clone();
+                            async move {
+                                let request_items = vec![(table_name.clone(), requests)]
+                                    .into_iter()
+                                    .collect::<std::collections::HashMap<_, _>>();
+                                let input = ::raiden::BatchWriteItemInput {
+                                    request_items,
+                                    ..std::default::Default::default()
+                                };
+                                let response_table_name = table_name.clone();
+                                let result = policy.retry_if(move || {
+                                    let (table_name, client, input) =
+                                        (table_name.clone(), client.clone(), input.clone());
+                                    async move { #call_inner_run }
+                                }, condition).await.map_err(std::boxed::Box::new)?;
 
-                        let start = len.saturating_sub(MAX_ITEMS_PER_REQUEST);
-                        let end = std::cmp::min(len, start + MAX_ITEMS_PER_REQUEST);
-                        let req = write_requests.drain(start..end).collect::<std::vec::Vec<_>>();
-                        let request_items = vec![(table_name.clone(), req)]
-                            .into_iter()
-                            .collect::<std::collections::HashMap<_, _>>();
-                        let result = {
-                            let t = table_name.clone();
-                            let c = client.clone();
-                            let i = ::raiden::BatchWriteItemInput {
-                                request_items,
-                                ..std::default::Default::default()
-                            };
-
-                            policy.retry_if(move || {
-                                let (table_name, client, input) = (t.clone(), c.clone(), i.clone());
-                                async move { #call_inner_run }
-                            }, condition).await?
-                        };
-
-                        let mut unprocessed_items = match result.unprocessed_items {
-                            None => continue,
-                            Some(unprocessed_items) if unprocessed_items.is_empty() => continue,
-                            Some(unprocessed_items) => unprocessed_items,
-                        };
-
-                        let unprocessed_requests = unprocessed_items
-                            .remove(&table_name)
-                            .expect("request_items hashmap must have a value for the table name");
-                        write_requests.extend(unprocessed_requests);
-                    }
+                                Ok::<_, std::boxed::Box<::raiden::RaidenError>>(result.unprocessed_items
+                                    .and_then(|mut items| items.remove(&response_table_name))
+                                    .unwrap_or_default())
+                            }
+                        },
+                    ).await.map_err(|err| *err)?;
+                    exhausted.extend(unprocessed);
                 }
 
-                let unprocessed_items = write_requests
+                let unprocessed_items = exhausted
                     .into_iter()
                     .filter_map(|write_request| write_request.put_request)
                     .collect::<std::vec::Vec<_>>();

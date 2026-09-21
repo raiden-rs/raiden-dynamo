@@ -99,12 +99,12 @@ pub(crate) fn expand_batch_delete(
     let api_call_token = super::api_call_token!("batch_write_item");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.table_name, &self.client, builder).await? },
+            quote! { #builder_name::inner_run(&table_name, &client, builder).await },
             quote! { table_name: &str, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, builder).await? },
+            quote! { #builder_name::inner_run(&client, builder).await },
             quote! {},
         )
     };
@@ -120,59 +120,38 @@ pub(crate) fn expand_batch_delete(
 
         impl<'a> #builder_name<'a> {
             pub async fn run(mut self) -> Result<::raiden::batch_delete::BatchDeleteOutput, ::raiden::RaidenError> {
-                // TODO: set the number of retry to 5 for now, which should be made more flexible
                 const RETRY: usize = 5;
                 const MAX_ITEMS_PER_REQUEST: usize = 25;
 
-                for _ in 0..RETRY {
-                    loop {
-                        let len = self.write_requests.len();
-
-                        // len == 0 means there are no items to be processed anymore
-                        if len == 0 {
-                            break;
-                        }
-
-                        let start = len.saturating_sub(MAX_ITEMS_PER_REQUEST);
-                        let end = std::cmp::min(len, start + MAX_ITEMS_PER_REQUEST);
-                        // take requests up to 25 from the request buffer
-                        let req = self.write_requests.drain(start..end).collect::<std::vec::Vec<_>>();
-                        let request_items = vec![(self.table_name.clone(), req)]
-                            .into_iter()
-                            .collect::<std::collections::HashMap<_, _>>();
-                        let builder = ::raiden::aws_sdk::operation::batch_write_item::BatchWriteItemInput::builder()
-                            .set_request_items(Some(request_items));
-
-                        let result = #call_inner_run;
-
-                        let mut unprocessed_items = match result.unprocessed_items {
-                            None => {
-                                // move on to the next iteration to check if there are unprocessed
-                                // requests
-                                continue;
+                let mut exhausted = std::vec::Vec::new();
+                while !self.write_requests.is_empty() {
+                    let len = self.write_requests.len();
+                    let start = len.saturating_sub(MAX_ITEMS_PER_REQUEST);
+                    let req = self.write_requests.drain(start..).collect::<std::vec::Vec<_>>();
+                    let unprocessed = ::raiden::retry::retry_batch_write_unprocessed_items(
+                        req,
+                        RETRY,
+                        std::time::Duration::from_millis(50),
+                        |requests| {
+                            let table_name = self.table_name.clone();
+                            let client = self.client.clone();
+                            async move {
+                                let request_items = vec![(table_name.clone(), requests)]
+                                    .into_iter()
+                                    .collect::<std::collections::HashMap<_, _>>();
+                                let builder = ::raiden::aws_sdk::operation::batch_write_item::BatchWriteItemInput::builder()
+                                    .set_request_items(Some(request_items));
+                                let result = #call_inner_run.map_err(std::boxed::Box::new)?;
+                                Ok::<_, std::boxed::Box<::raiden::RaidenError>>(result.unprocessed_items
+                                    .and_then(|mut items| items.remove(&table_name))
+                                    .unwrap_or_default())
                             }
-                            Some(unprocessed_items) => {
-                                if unprocessed_items.is_empty() {
-                                    // move on to the next iteration to check if there are unprocessed
-                                    // requests
-                                    continue;
-                                }
-
-                                unprocessed_items
-                            },
-                        };
-
-                        let unprocessed_requests = unprocessed_items
-                            .remove(&self.table_name)
-                            .expect("request_items hashmap must have a value for the table name");
-                        // push unprocessed requests back to the request buffer
-                        self.write_requests.extend(unprocessed_requests);
-                    }
+                        },
+                    ).await.map_err(|err| *err)?;
+                    exhausted.extend(unprocessed);
                 }
 
-                // when retry is done the specified times, treat it as success even if there are
-                // still unprocessed items
-                let unprocessed_items = self.write_requests
+                let unprocessed_items = exhausted
                     .into_iter()
                     .filter_map(|write_request| write_request.delete_request)
                     .collect::<std::vec::Vec<_>>();
