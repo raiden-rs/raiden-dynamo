@@ -103,6 +103,31 @@ pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
 }
 
+/// Converts a numeric Rust value into a DynamoDB number attribute.
+///
+/// This narrower trait is used by expression functions such as `size`, whose
+/// result can only be compared with a number. It is implemented for all
+/// primitive integer and floating-point types supported by [`IntoAttribute`].
+/// Downstream numeric newtypes can implement it as well.
+///
+/// ```compile_fail
+/// use raiden::*;
+///
+/// #[derive(Raiden)]
+/// #[raiden(table_name = "example")]
+/// struct Example {
+///     #[raiden(partition_key)]
+///     id: String,
+///     values: Vec<String>,
+/// }
+///
+/// // DynamoDB's size function must be compared with a number.
+/// let _ = Example::condition().size(Example::values()).ge("two");
+/// ```
+pub trait IntoNumberAttribute: Sized {
+    fn into_number_attr(self) -> AttributeValue;
+}
+
 /// Returns whether a DynamoDB attribute represents `NULL`.
 ///
 /// Derive macros call this helper from generated code so the null check is
@@ -202,6 +227,20 @@ default_attr_for_num!(i8);
 
 default_attr_for_num!(f32);
 default_attr_for_num!(f64);
+
+macro_rules! default_number_attr {
+    ($($ty:ty),+ $(,)?) => {
+        $(
+            impl IntoNumberAttribute for $ty {
+                fn into_number_attr(self) -> AttributeValue {
+                    self.into_attr()
+                }
+            }
+        )+
+    };
+}
+
+default_number_attr!(usize, u64, u32, u16, u8, isize, i64, i32, i16, i8, f32, f64,);
 
 impl IntoStringSetItem for String {
     fn into_ss_item(self) -> String {
