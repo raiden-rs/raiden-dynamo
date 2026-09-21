@@ -10,10 +10,36 @@ pub enum ConditionFunctionExpression {
     AttributeType(AttrName, super::AttributeType),
     BeginsWith(AttrName, String),
     Contains(AttrName, String),
+    ContainsValue(AttrName, super::Placeholder, Box<super::AttributeValue>),
     Size(AttrName),
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ConditionComparisonOperator {
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+}
+
+impl std::fmt::Display for ConditionComparisonOperator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let operator = match self {
+            Self::Eq => "=",
+            Self::Ne => "<>",
+            Self::Lt => "<",
+            Self::Le => "<=",
+            Self::Gt => ">",
+            Self::Ge => ">=",
+        };
+        write!(f, "{operator}")
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
+#[allow(clippy::large_enum_variant)]
 pub enum ConditionComparisonExpression {
     Eq(
         AttrOrPlaceholder,
@@ -21,6 +47,64 @@ pub enum ConditionComparisonExpression {
         AttrOrPlaceholder,
         Option<super::AttributeValue>,
     ),
+    Size(
+        AttrName,
+        ConditionComparisonOperator,
+        super::Placeholder,
+        super::AttributeValue,
+    ),
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ConditionSize<T: Clone> {
+    pub not: bool,
+    pub attr: AttrName,
+    pub _token: std::marker::PhantomData<fn() -> T>,
+}
+
+impl<T: Clone> ConditionSize<T> {
+    fn compare(
+        self,
+        operator: ConditionComparisonOperator,
+        value: impl super::IntoNumberAttribute,
+    ) -> ConditionFilledOrWaitOperator<T> {
+        let placeholder = format!(":value{}", super::generate_value_id());
+        let cond = Cond::Cmp(ConditionComparisonExpression::Size(
+            self.attr,
+            operator,
+            placeholder,
+            value.into_number_attr(),
+        ));
+        ConditionFilledOrWaitOperator {
+            not: self.not,
+            cond,
+            _token: self._token,
+        }
+    }
+
+    pub fn eq(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Eq, value)
+    }
+
+    pub fn ne(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Ne, value)
+    }
+
+    pub fn lt(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Lt, value)
+    }
+
+    pub fn le(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Le, value)
+    }
+
+    pub fn gt(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Gt, value)
+    }
+
+    pub fn ge(self, value: impl super::IntoNumberAttribute) -> ConditionFilledOrWaitOperator<T> {
+        self.compare(ConditionComparisonOperator::Ge, value)
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -125,6 +209,9 @@ impl std::fmt::Display for ConditionFunctionExpression {
                 hasher.update(s.as_bytes());
                 write!(f, "contains({path}, :contains_{:x})", hasher.finalize())
             }
+            Self::ContainsValue(path, placeholder, _) => {
+                write!(f, "contains({path}, {placeholder})")
+            }
             Self::Size(_path) => {
                 unimplemented!("Size condition expression is not implemented yet.")
             }
@@ -136,6 +223,7 @@ impl super::ToAttrNames for ConditionFunctionExpression {
     fn to_attr_names(&self) -> super::AttributeNames {
         match self {
             Self::Contains(path, _)
+            | Self::ContainsValue(path, _, _)
             | Self::BeginsWith(path, _)
             | Self::AttributeType(path, _)
             | Self::AttributeExists(path)
@@ -184,6 +272,9 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                     },
                 );
             }
+            Self::ContainsValue(_path, placeholder, value) => {
+                m.insert(placeholder, *value);
+            }
             _ => {}
         }
 
@@ -208,6 +299,9 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
                     super::AttributeValue::S(s),
                 );
             }
+            Self::ContainsValue(_path, placeholder, value) => {
+                m.insert(placeholder, *value);
+            }
             _ => {}
         }
         m
@@ -218,6 +312,9 @@ impl std::fmt::Display for ConditionComparisonExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Eq(left, _, right, _) => write!(f, "{left} = {right}"),
+            Self::Size(path, operator, placeholder, _) => {
+                write!(f, "size({path}) {operator} {placeholder}")
+            }
         }
     }
 }
@@ -233,6 +330,9 @@ impl super::ToAttrNames for ConditionComparisonExpression {
                 if let AttrOrPlaceholder::Attr(r) = right {
                     m = super::merge_map(m, r.attribute_names());
                 }
+            }
+            Self::Size(path, _, _, _) => {
+                m = super::merge_map(m, path.attribute_names());
             }
         }
         m
@@ -251,6 +351,9 @@ impl super::IntoAttrValues for ConditionComparisonExpression {
                 if let Some(right_value) = right_value {
                     m.insert(right.to_string(), right_value);
                 }
+            }
+            Self::Size(_, _, placeholder, value) => {
+                m.insert(placeholder, value);
             }
         }
         m

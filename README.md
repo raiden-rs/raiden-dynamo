@@ -313,6 +313,7 @@ struct Profile {
 struct User {
     #[raiden(partition_key)]
     id: String,
+    admin_ids: Vec<String>,
     metadata: HashMap<String, usize>,
     profile: Profile,
 }
@@ -338,6 +339,13 @@ async fn main() {
         .attr_exists(User::metadata().key("score"))
         .and(User::condition().attr(User::profile().field(Profile::level())).eq_value(3));
 
+    // Condition expressions also support typed function operands and logical
+    // composition. Values and names are bound through collision-free placeholders.
+    let preserve_last_admin = User::condition()
+        .not()
+        .contains(User::admin_ids(), "member#1")
+        .or(User::condition().size(User::admin_ids()).ge(2_usize));
+
     // `condition` can be passed to `put`, `update`, `delete`,
     // transaction writes, and other conditional operations.
 }
@@ -348,6 +356,8 @@ Notes:
 - use `.key("...")` for dynamic map keys such as `metadata.score`
 - use `.field(...)` with `#[derive(RaidenDocument)]` accessors for nested document fields such as `profile.level`
 - document paths are supported in `filter_expression` and `condition`
+- condition expressions support `contains`, numeric `size` comparisons (`eq`, `ne`, `lt`, `le`, `gt`, and `ge`), and `not` / `and` / `or` composition
+- `size` comparisons only accept values implementing `IntoNumberAttribute`; raw condition strings are not needed
 - `key_condition` still follows DynamoDB key rules, so nested map/document values are not valid partition or sort keys unless you project them to top-level attributes or an index
 - `.index(usize)` is also available when you need to address list elements in a document path
 - path segments are emitted through expression attribute names, so reserved words remain escaped correctly

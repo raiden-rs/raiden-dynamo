@@ -73,11 +73,20 @@ pub fn expand_condition_builder(
                 }
             }
 
-            pub fn contains(self, field: impl ::raiden::IntoAttrPath, s: impl Into<String>) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
-                let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::Contains(field.into_attr_path(), s.into()));
+            pub fn contains(self, field: impl ::raiden::IntoAttrPath, value: impl ::raiden::IntoAttribute) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                let placeholder = format!(":value{}", ::raiden::generate_value_id());
+                let cond = ::raiden::condition::Cond::Func(::raiden::condition::ConditionFunctionExpression::ContainsValue(field.into_attr_path(), placeholder, Box::new(value.into_attr())));
                 ::raiden::ConditionFilledOrWaitOperator {
                     not: self.not,
                     cond,
+                    _token: std::marker::PhantomData,
+                }
+            }
+
+            pub fn size(self, field: impl ::raiden::IntoAttrPath) -> ::raiden::ConditionSize<#condition_token_name> {
+                ::raiden::ConditionSize {
+                    not: self.not,
+                    attr: field.into_attr_path(),
                     _token: std::marker::PhantomData,
                 }
             }

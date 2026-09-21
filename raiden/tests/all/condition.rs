@@ -18,6 +18,15 @@ mod tests {
         name: String,
     }
 
+    #[allow(dead_code)]
+    #[derive(Raiden)]
+    #[raiden(table_name = "organization")]
+    pub struct Organization {
+        #[raiden(partition_key)]
+        id: String,
+        admin_ids: Vec<String>,
+    }
+
     #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize, RaidenDocument)]
     pub struct Profile {
         level: usize,
@@ -233,6 +242,100 @@ mod tests {
         assert_eq!(condition_expression, ":value0 = #name".to_owned());
         assert_eq!(attribute_names, expected_names);
         assert_eq!(attribute_values, expected_values);
+    }
+
+    #[test]
+    fn test_contains_size_and_logical_condition() {
+        reset_value_id();
+        let preserve_last_admin = Organization::condition()
+            .not()
+            .contains(Organization::admin_ids(), "member#1")
+            .or(Organization::condition()
+                .size(Organization::admin_ids())
+                .ge(2_usize));
+        let cond = Organization::condition()
+            .attr_exists(Organization::id())
+            .and(preserve_last_admin);
+
+        let (condition_expression, attribute_names, attribute_values) = cond.build();
+
+        assert_eq!(
+            condition_expression,
+            "attribute_exists(#id) AND (NOT (contains(#admin_ids, :value0)) OR (size(#admin_ids) >= :value1))"
+        );
+        assert_eq!(
+            attribute_names,
+            std::collections::HashMap::from([
+                ("#id".to_owned(), "id".to_owned()),
+                ("#admin_ids".to_owned(), "admin_ids".to_owned()),
+            ])
+        );
+        assert_eq!(
+            attribute_values,
+            std::collections::HashMap::from([
+                (":value0".to_owned(), "member#1".into_attr()),
+                (":value1".to_owned(), 2_usize.into_attr()),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_size_numeric_comparison_operators() {
+        let cases = [
+            ("=", 0_usize),
+            ("<>", 1),
+            ("<", 2),
+            ("<=", 3),
+            (">", 4),
+            (">=", 5),
+        ];
+
+        reset_value_id();
+        let conditions = [
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .eq(2_usize)
+                .build(),
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .ne(2_usize)
+                .build(),
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .lt(2_usize)
+                .build(),
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .le(2_usize)
+                .build(),
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .gt(2_usize)
+                .build(),
+            Organization::condition()
+                .size(Organization::admin_ids())
+                .ge(2_usize)
+                .build(),
+        ];
+
+        for ((operator, id), (expression, names, values)) in cases.into_iter().zip(conditions) {
+            let placeholder = format!(":value{id}");
+            assert_eq!(
+                expression,
+                format!("size(#admin_ids) {operator} {placeholder}")
+            );
+            assert_eq!(
+                names,
+                std::collections::HashMap::from([(
+                    "#admin_ids".to_owned(),
+                    "admin_ids".to_owned()
+                )])
+            );
+            assert_eq!(
+                values,
+                std::collections::HashMap::from([(placeholder, 2_usize.into_attr())])
+            );
+        }
     }
 
     #[test]
