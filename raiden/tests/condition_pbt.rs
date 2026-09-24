@@ -63,7 +63,8 @@ proptest! {
             .chain(candidates)
             .chain([excluded]);
         for (placeholder, value) in placeholders.into_iter().zip(expected) {
-            prop_assert_eq!(bindings.get(placeholder), Some(&value.into_attr()));
+            let expected_value = value.into_attr();
+            prop_assert_eq!(bindings.get(placeholder), Some(&expected_value));
         }
     }
 
