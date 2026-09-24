@@ -245,6 +245,117 @@ mod tests {
     }
 
     #[test]
+    fn test_attribute_comparison_operators() {
+        let conditions = [
+            User::condition()
+                .attr(User::name())
+                .ne_value("boku")
+                .build(),
+            User::condition()
+                .attr(User::name())
+                .lt_value("boku")
+                .build(),
+            User::condition()
+                .attr(User::name())
+                .le_value("boku")
+                .build(),
+            User::condition()
+                .attr(User::name())
+                .gt_value("boku")
+                .build(),
+            User::condition()
+                .attr(User::name())
+                .ge_value("boku")
+                .build(),
+        ];
+        for (operator, (expression, names, values)) in
+            ["<>", "<", "<=", ">", ">="].into_iter().zip(conditions)
+        {
+            let placeholder = expression
+                .strip_prefix(&format!("#name {operator} "))
+                .expect("comparison expression has the expected operator");
+            assert!(placeholder.starts_with(":value"));
+            assert_eq!(names, HashMap::from([("#name".into(), "name".into())]));
+            assert_eq!(
+                values,
+                HashMap::from([(placeholder.to_owned(), "boku".into_attr())])
+            );
+        }
+
+        let (expression, names, values) = User::condition()
+            .value("boku")
+            .ge_attr(User::name())
+            .build();
+        let placeholder = expression
+            .strip_suffix(" >= #name")
+            .expect("comparison expression has the expected operator");
+        assert!(placeholder.starts_with(":value"));
+        assert_eq!(names, HashMap::from([("#name".into(), "name".into())]));
+        assert_eq!(
+            values,
+            HashMap::from([(placeholder.to_owned(), "boku".into_attr())])
+        );
+    }
+
+    #[test]
+    fn test_between_and_in_values() {
+        let condition = User::condition()
+            .between(User::name(), "alpha", "omega")
+            .and(User::condition().in_values(User::name(), ["alpha", "beta"]));
+        let (expression, names, values) = condition.build();
+        let placeholders: Vec<_> = expression
+            .split(|ch: char| !(ch.is_ascii_alphanumeric() || ch == ':'))
+            .filter(|part| part.starts_with(":value"))
+            .collect();
+        assert_eq!(placeholders.len(), 4);
+        assert_eq!(
+            expression,
+            format!(
+                "#name BETWEEN {} AND {} AND (#name IN ({}, {}))",
+                placeholders[0], placeholders[1], placeholders[2], placeholders[3]
+            )
+        );
+        assert_eq!(names, HashMap::from([("#name".into(), "name".into())]));
+        assert_eq!(
+            values,
+            HashMap::from([
+                (placeholders[0].into(), "alpha".into_attr()),
+                (placeholders[1].into(), "omega".into_attr()),
+                (placeholders[2].into(), "alpha".into_attr()),
+                (placeholders[3].into(), "beta".into_attr()),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_not_entire_condition_group() {
+        let condition = User::condition()
+            .attr_exists(User::name())
+            .or(User::condition().attr_exists(User::id()))
+            .not()
+            .and(User::condition().attr_not_exists(User::name()));
+        let (expression, names, values) = condition.build();
+        assert_eq!(expression, "(NOT (attribute_exists(#name) OR (attribute_exists(#id)))) AND (attribute_not_exists(#name))");
+        assert_eq!(
+            names,
+            HashMap::from([("#name".into(), "name".into()), ("#id".into(), "id".into()),])
+        );
+        assert!(values.is_empty());
+    }
+
+    #[test]
+    #[should_panic(expected = "IN requires between 1 and 100 values")]
+    fn test_in_values_rejects_empty_list() {
+        User::condition().in_values(User::name(), Vec::<String>::new());
+    }
+
+    #[test]
+    #[should_panic(expected = "IN requires between 1 and 100 values")]
+    fn test_in_values_rejects_more_than_100_values() {
+        User::condition().in_values(User::name(), vec!["a"; 101]);
+    }
+
+    #[test]
     fn test_contains_size_and_logical_condition() {
         reset_value_id();
         let preserve_last_admin = Organization::condition()
@@ -353,6 +464,35 @@ mod tests {
             "attribute_exists(#metadata.#score)".to_owned()
         );
         assert_eq!(attribute_names, expected_names);
+    }
+
+    #[test]
+    fn test_distinct_map_keys_keep_distinct_attribute_placeholders() {
+        let cond = UserWithMapCondition::condition()
+            .attr_exists(UserWithMapCondition::metadata().key("a-b"))
+            .and(
+                UserWithMapCondition::condition()
+                    .attr_exists(UserWithMapCondition::metadata().key("c.d"))
+                    .and(
+                        UserWithMapCondition::condition()
+                            .attr_exists(UserWithMapCondition::metadata().key("path_612d62")),
+                    ),
+            );
+        let (expression, names, _) = cond.build();
+
+        assert_eq!(
+            expression,
+            "attribute_exists(#metadata.#path_612d62) AND (attribute_exists(#metadata.#path_632e64) AND (attribute_exists(#metadata.#path__612d62)))"
+        );
+        assert_eq!(
+            names,
+            HashMap::from([
+                ("#metadata".to_owned(), "metadata".to_owned()),
+                ("#path_612d62".to_owned(), "a-b".to_owned()),
+                ("#path_632e64".to_owned(), "c.d".to_owned()),
+                ("#path__612d62".to_owned(), "path_612d62".to_owned()),
+            ])
+        );
     }
 
     #[test]

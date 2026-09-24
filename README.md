@@ -346,6 +346,11 @@ async fn main() {
         .contains(User::admin_ids(), "member#1")
         .or(User::condition().size(User::admin_ids()).ge(2_usize));
 
+    let not_in_range = User::condition()
+        .between(User::metadata().key("score"), 10, 20)
+        .or(User::condition().in_values(User::metadata().key("score"), [30, 40]))
+        .not(); // NOT (the entire BETWEEN ... OR ... group)
+
     // `condition` can be passed to `put`, `update`, `delete`,
     // transaction writes, and other conditional operations.
 }
@@ -356,7 +361,8 @@ Notes:
 - use `.key("...")` for dynamic map keys such as `metadata.score`
 - use `.field(...)` with `#[derive(RaidenDocument)]` accessors for nested document fields such as `profile.level`
 - document paths are supported in `filter_expression` and `condition`
-- condition expressions support `contains`, numeric `size` comparisons (`eq`, `ne`, `lt`, `le`, `gt`, and `ge`), and `not` / `and` / `or` composition
+- condition expressions support `contains`, attribute comparisons (`eq_attr` / `eq_value`, `ne_attr` / `ne_value`, `lt_attr` / `lt_value`, `le_attr` / `le_value`, `gt_attr` / `gt_value`, `ge_attr` / `ge_value`), `between`, `in_values` (1–100 values), numeric `size` comparisons (`eq`, `ne`, `lt`, `le`, `gt`, and `ge`), and `not` / `and` / `or` composition
+- call `.not()` on a completed condition to negate the whole group
 - `size` comparisons only accept values implementing `IntoNumberAttribute`; raw condition strings are not needed
 - `key_condition` still follows DynamoDB key rules, so nested map/document values are not valid partition or sort keys unless you project them to top-level attributes or an index
 - `.index(usize)` is also available when you need to address list elements in a document path
