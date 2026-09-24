@@ -22,7 +22,14 @@ pub(crate) fn expand_put_item(
         .map(|f| {
             let ident = &f.ident.clone().unwrap();
             let ty = &f.ty;
+            let builder_attr = if crate::finder::is_option(ty) {
+                let with_option = format_ident!("{}_with_option", ident);
+                quote! { #[builder(setters(option_fn = #with_option))] }
+            } else {
+                quote! {}
+            };
             quote! {
+                #builder_attr
                 pub #ident: #ty,
             }
         });
@@ -86,16 +93,6 @@ pub(crate) fn expand_put_item(
         }
     };
 
-    // Create default type variables for PutItemBuilder, i.e. XXXPutItemBuilder<(), (), ()>
-    let required_field_idents: Vec<Ident> = fields
-        .named
-        .iter()
-        .filter(|f| !crate::finder::include_unary_attr(&f.attrs, "uuid"))
-        .filter(|f| !crate::finder::is_option(&f.ty))
-        .map(|f| f.ident.clone().unwrap())
-        .collect();
-    let default_types = expand_default_type_variables(&required_field_idents);
-
     let api_call_token = super::api_call_token!("put_item");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
@@ -118,12 +115,13 @@ pub(crate) fn expand_put_item(
 
     quote! {
         #[derive(Debug, Clone, PartialEq, ::raiden::Builder)]
+        #[builder(crate = ::raiden::bon)]
         pub struct #item_input_name {
             #(#input_fields)*
         }
 
         impl #struct_name {
-            pub fn put_item_builder() -> #item_input_builder_name<#(#default_types)*> {
+            pub fn put_item_builder() -> #item_input_builder_name {
                 #item_input_name::builder()
             }
         }
@@ -219,11 +217,4 @@ pub(crate) fn expand_put_item(
             }
         }
     }
-}
-
-#[allow(clippy::ptr_arg)]
-fn expand_default_type_variables(idents: &Vec<Ident>) -> impl Iterator<Item = TokenStream> {
-    idents.clone().into_iter().map(|_ident| {
-        quote! { (), }
-    })
 }
