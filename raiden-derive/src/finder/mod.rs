@@ -87,6 +87,14 @@ pub(crate) fn find_rename_all(attrs: &[syn::Attribute]) -> Option<String> {
 }
 
 pub(crate) fn find_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    find_index_names(attrs, "gsi")
+}
+
+pub(crate) fn find_lsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    find_index_names(attrs, "lsi")
+}
+
+fn find_index_names(attrs: &[syn::Attribute], kind: &str) -> Vec<String> {
     let mut names = vec![];
 
     for attr in attrs {
@@ -94,12 +102,12 @@ pub(crate) fn find_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
             continue;
         }
 
-        if let Some(lit) = find_eq_string_from(attr, "gsi") {
+        if let Some(lit) = find_eq_string_from(attr, kind) {
             names.push(lit);
         }
     }
 
-    for gsi in find_gsi_definitions(attrs) {
+    for gsi in find_index_definitions(attrs, kind) {
         if !names.iter().any(|name| name == &gsi.name) {
             names.push(gsi.name);
         }
@@ -109,6 +117,14 @@ pub(crate) fn find_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
 }
 
 pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinition> {
+    find_index_definitions(attrs, "gsi")
+}
+
+pub(crate) fn find_lsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinition> {
+    find_index_definitions(attrs, "lsi")
+}
+
+fn find_index_definitions(attrs: &[syn::Attribute], kind: &str) -> Vec<GsiDefinition> {
     let mut defs = vec![];
 
     for attr in attrs {
@@ -130,7 +146,7 @@ pub(crate) fn find_gsi_definitions(attrs: &[syn::Attribute]) -> Vec<GsiDefinitio
                 continue;
             };
 
-            if gsi_list.path.segments[0].ident != "gsi" {
+            if gsi_list.path.segments[0].ident != kind {
                 continue;
             }
 
@@ -225,6 +241,10 @@ pub(crate) fn find_string_values(attrs: &[syn::Attribute], name: &str) -> Vec<St
 
 pub(crate) fn find_omit_gsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
     find_string_values(attrs, "omit_gsi")
+}
+
+pub(crate) fn find_omit_lsi_names(attrs: &[syn::Attribute]) -> Vec<String> {
+    find_string_values(attrs, "omit_lsi")
 }
 
 pub(crate) fn include_unary_attr(attrs: &[syn::Attribute], name: &str) -> bool {
