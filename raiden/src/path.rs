@@ -63,13 +63,13 @@ impl AttrPath {
     pub(crate) fn expression(&self) -> String {
         let mut expression = String::new();
 
-        for (index, segment) in self.segments.iter().enumerate() {
+        for segment in &self.segments {
             match segment {
                 AttrPathSegment::Name(name) => {
                     if !expression.is_empty() {
                         expression.push('.');
                     }
-                    expression.push_str(&placeholder_for(name, index));
+                    expression.push_str(&placeholder_for(name));
                 }
                 AttrPathSegment::Index(index) => {
                     expression.push('[');
@@ -85,9 +85,9 @@ impl AttrPath {
     pub(crate) fn attribute_names(&self) -> AttributeNames {
         let mut attribute_names = AttributeNames::new();
 
-        for (index, segment) in self.segments.iter().enumerate() {
+        for segment in &self.segments {
             if let AttrPathSegment::Name(name) = segment {
-                attribute_names.insert(placeholder_for(name, index), name.clone());
+                attribute_names.insert(placeholder_for(name), name.clone());
             }
         }
 
@@ -101,11 +101,21 @@ impl std::fmt::Display for AttrPath {
     }
 }
 
-fn placeholder_for(name: &str, index: usize) -> String {
+fn placeholder_for(name: &str) -> String {
     if name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        format!("#{name}")
+        if let Some(suffix) = name.strip_prefix("path_") {
+            format!("#path__{suffix}")
+        } else {
+            format!("#{name}")
+        }
     } else {
-        format!("#path{index}")
+        use std::fmt::Write;
+
+        let mut placeholder = String::from("#path_");
+        for byte in name.as_bytes() {
+            write!(&mut placeholder, "{byte:02x}").expect("writing to a String cannot fail");
+        }
+        placeholder
     }
 }
 

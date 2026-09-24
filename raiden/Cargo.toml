@@ -37,6 +37,7 @@ aws-credential-types = { version = "^1" }
 aws-smithy-runtime = { version = "^1" }
 hyper-rustls = { version = "=0.25.0", features = ["http2"] }
 pretty_assertions = "1.4.0"
+proptest = "1.7.0"
 raiden = { path = "./", features = ["tracing"], default-features = false }
 time = "0.3.36"
 tokio = { version = "^1", features = ["rt-multi-thread", "macros"] }

@@ -11,7 +11,6 @@ pub enum ConditionFunctionExpression {
     BeginsWith(AttrName, String),
     Contains(AttrName, String),
     ContainsValue(AttrName, super::Placeholder, Box<super::AttributeValue>),
-    Size(AttrName),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,6 +46,21 @@ pub enum ConditionComparisonExpression {
         AttrOrPlaceholder,
         Option<super::AttributeValue>,
     ),
+    Compare(
+        AttrOrPlaceholder,
+        Option<super::AttributeValue>,
+        ConditionComparisonOperator,
+        AttrOrPlaceholder,
+        Option<super::AttributeValue>,
+    ),
+    Between(
+        AttrName,
+        super::Placeholder,
+        super::AttributeValue,
+        super::Placeholder,
+        super::AttributeValue,
+    ),
+    In(AttrName, Vec<(super::Placeholder, super::AttributeValue)>),
     Size(
         AttrName,
         ConditionComparisonOperator,
@@ -212,9 +226,6 @@ impl std::fmt::Display for ConditionFunctionExpression {
             Self::ContainsValue(path, placeholder, _) => {
                 write!(f, "contains({path}, {placeholder})")
             }
-            Self::Size(_path) => {
-                unimplemented!("Size condition expression is not implemented yet.")
-            }
         }
     }
 }
@@ -228,7 +239,6 @@ impl super::ToAttrNames for ConditionFunctionExpression {
             | Self::AttributeType(path, _)
             | Self::AttributeExists(path)
             | Self::AttributeNotExists(path) => path.attribute_names(),
-            _ => super::AttributeNames::new(),
         }
     }
 }
@@ -312,6 +322,20 @@ impl std::fmt::Display for ConditionComparisonExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Eq(left, _, right, _) => write!(f, "{left} = {right}"),
+            Self::Compare(left, _, operator, right, _) => write!(f, "{left} {operator} {right}"),
+            Self::Between(path, lower, _, upper, _) => {
+                write!(f, "{path} BETWEEN {lower} AND {upper}")
+            }
+            Self::In(path, values) => {
+                write!(f, "{path} IN (")?;
+                for (index, (placeholder, _)) in values.iter().enumerate() {
+                    if index > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{placeholder}")?;
+                }
+                write!(f, ")")
+            }
             Self::Size(path, operator, placeholder, _) => {
                 write!(f, "size({path}) {operator} {placeholder}")
             }
@@ -323,7 +347,7 @@ impl super::ToAttrNames for ConditionComparisonExpression {
     fn to_attr_names(&self) -> super::AttributeNames {
         let mut m: super::AttributeNames = std::collections::HashMap::new();
         match self {
-            Self::Eq(left, _, right, _) => {
+            Self::Eq(left, _, right, _) | Self::Compare(left, _, _, right, _) => {
                 if let AttrOrPlaceholder::Attr(l) = left {
                     m = super::merge_map(m, l.attribute_names());
                 }
@@ -332,6 +356,9 @@ impl super::ToAttrNames for ConditionComparisonExpression {
                 }
             }
             Self::Size(path, _, _, _) => {
+                m = super::merge_map(m, path.attribute_names());
+            }
+            Self::Between(path, _, _, _, _) | Self::In(path, _) => {
                 m = super::merge_map(m, path.attribute_names());
             }
         }
@@ -344,7 +371,8 @@ impl super::IntoAttrValues for ConditionComparisonExpression {
         let mut m: super::AttributeValues = std::collections::HashMap::new();
 
         match self {
-            Self::Eq(left, left_value, right, right_value) => {
+            Self::Eq(left, left_value, right, right_value)
+            | Self::Compare(left, left_value, _, right, right_value) => {
                 if let Some(left_value) = left_value {
                     m.insert(left.to_string(), left_value);
                 }
@@ -354,6 +382,13 @@ impl super::IntoAttrValues for ConditionComparisonExpression {
             }
             Self::Size(_, _, placeholder, value) => {
                 m.insert(placeholder, value);
+            }
+            Self::Between(_, lower, lower_value, upper, upper_value) => {
+                m.insert(lower, lower_value);
+                m.insert(upper, upper_value);
+            }
+            Self::In(_, values) => {
+                m.extend(values);
             }
         }
         m
@@ -425,7 +460,26 @@ impl super::IntoAttrValues for Cond {
     }
 }
 
-pub trait ConditionBuilder<T> {
+pub struct ConditionGroup<T> {
+    expression: ConditionString,
+    names: super::AttributeNames,
+    values: super::AttributeValues,
+    _token: std::marker::PhantomData<fn() -> T>,
+}
+
+impl<T> ConditionBuilder<T> for ConditionGroup<T> {
+    fn build(
+        self,
+    ) -> (
+        ConditionString,
+        super::AttributeNames,
+        super::AttributeValues,
+    ) {
+        (self.expression, self.names, self.values)
+    }
+}
+
+pub trait ConditionBuilder<T>: Sized {
     fn build(
         self,
     ) -> (
@@ -433,4 +487,39 @@ pub trait ConditionBuilder<T> {
         super::AttributeNames,
         super::AttributeValues,
     );
+
+    /// Negates this entire condition, including any AND or OR operands.
+    fn not(self) -> ConditionGroup<T> {
+        let (expression, names, values) = self.build();
+        ConditionGroup {
+            expression: format!("NOT ({expression})"),
+            names,
+            values,
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    /// Combines complete conditions and groups both operands explicitly.
+    fn and(self, right: impl ConditionBuilder<T>) -> ConditionGroup<T> {
+        let (left, left_names, left_values) = self.build();
+        let (right, right_names, right_values) = right.build();
+        ConditionGroup {
+            expression: format!("({left}) AND ({right})"),
+            names: super::merge_map(left_names, right_names),
+            values: super::merge_map(left_values, right_values),
+            _token: std::marker::PhantomData,
+        }
+    }
+
+    /// Combines complete conditions and groups both operands explicitly.
+    fn or(self, right: impl ConditionBuilder<T>) -> ConditionGroup<T> {
+        let (left, left_names, left_values) = self.build();
+        let (right, right_names, right_values) = right.build();
+        ConditionGroup {
+            expression: format!("({left}) OR ({right})"),
+            names: super::merge_map(left_names, right_names),
+            values: super::merge_map(left_values, right_values),
+            _token: std::marker::PhantomData,
+        }
+    }
 }

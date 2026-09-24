@@ -15,6 +15,37 @@ pub fn expand_condition_builder(
     } else {
         unreachable!();
     };
+    let comparison_methods = [
+        ("ne", "Ne"),
+        ("lt", "Lt"),
+        ("le", "Le"),
+        ("gt", "Gt"),
+        ("ge", "Ge"),
+    ]
+    .into_iter()
+    .map(|(method, operator)| {
+        let attr_method = format_ident!("{method}_attr");
+        let value_method = format_ident!("{method}_value");
+        let operator = format_ident!("{operator}");
+        quote! {
+            pub fn #attr_method(self, attr: impl ::raiden::IntoAttrPath) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                self.compare(
+                    ::raiden::ConditionComparisonOperator::#operator,
+                    ::raiden::AttrOrPlaceholder::Attr(attr.into_attr_path()),
+                    None,
+                )
+            }
+
+            pub fn #value_method(self, value: impl ::raiden::IntoAttribute) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                let placeholder = ::raiden::AttrOrPlaceholder::Placeholder(format!("value{}", ::raiden::generate_value_id()));
+                self.compare(
+                    ::raiden::ConditionComparisonOperator::#operator,
+                    placeholder,
+                    Some(value.into_attr()),
+                )
+            }
+        }
+    });
 
     quote! {
 
@@ -91,6 +122,34 @@ pub fn expand_condition_builder(
                 }
             }
 
+            pub fn between(self, field: impl ::raiden::IntoAttrPath, lower: impl ::raiden::IntoAttribute, upper: impl ::raiden::IntoAttribute) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                let lower_placeholder = format!(":value{}", ::raiden::generate_value_id());
+                let upper_placeholder = format!(":value{}", ::raiden::generate_value_id());
+                let cond = ::raiden::condition::Cond::Cmp(::raiden::ConditionComparisonExpression::Between(
+                    field.into_attr_path(), lower_placeholder, lower.into_attr(), upper_placeholder, upper.into_attr(),
+                ));
+                ::raiden::ConditionFilledOrWaitOperator {
+                    not: self.not,
+                    cond,
+                    _token: std::marker::PhantomData,
+                }
+            }
+
+            /// DynamoDB accepts between one and 100 values in an IN condition.
+            /// Panics when the iterator produces no values or more than 100 values.
+            pub fn in_values<V: ::raiden::IntoAttribute>(self, field: impl ::raiden::IntoAttrPath, values: impl IntoIterator<Item = V>) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                let values: Vec<_> = values.into_iter().take(101).map(|value| {
+                    (format!(":value{}", ::raiden::generate_value_id()), value.into_attr())
+                }).collect();
+                assert!((1..=100).contains(&values.len()), "IN requires between 1 and 100 values");
+                let cond = ::raiden::condition::Cond::Cmp(::raiden::ConditionComparisonExpression::In(field.into_attr_path(), values));
+                ::raiden::ConditionFilledOrWaitOperator {
+                    not: self.not,
+                    cond,
+                    _token: std::marker::PhantomData,
+                }
+            }
+
             pub fn attr(self, field: impl ::raiden::IntoAttrPath) -> #wait_attr_op_name {
                 #wait_attr_op_name {
                     not: self.not,
@@ -116,6 +175,19 @@ pub fn expand_condition_builder(
         }
 
         impl #wait_attr_op_name {
+            fn compare(self, operator: ::raiden::ConditionComparisonOperator, right: ::raiden::AttrOrPlaceholder, right_value: Option<#attribute_value_path>) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name> {
+                let cond = ::raiden::condition::Cond::Cmp(::raiden::ConditionComparisonExpression::Compare(
+                    self.attr_or_placeholder, self.attr_value, operator, right, right_value,
+                ));
+                ::raiden::ConditionFilledOrWaitOperator {
+                    not: self.not,
+                    cond,
+                    _token: std::marker::PhantomData,
+                }
+            }
+
+            #(#comparison_methods)*
+
             pub fn eq_attr(self, attr: impl ::raiden::IntoAttrPath) -> ::raiden::ConditionFilledOrWaitOperator<#condition_token_name>  {
                 let attr = ::raiden::AttrOrPlaceholder::Attr(attr.into_attr_path());
                 let cond = ::raiden::condition::Cond::Cmp(::raiden::condition::ConditionComparisonExpression::Eq(self.attr_or_placeholder, self.attr_value, attr, None));
