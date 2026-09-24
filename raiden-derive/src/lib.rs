@@ -260,7 +260,7 @@ fn expand_projection_item_support(
             impl #struct_name {
                 /// Starts a typed query for this projection type.
                 ///
-                /// The returned builder is already bound to the associated GSI
+                /// The returned builder is already bound to the associated index
                 /// and decodes results into this projection type.
                 ///
                 /// This is equivalent to starting from the source builder and
@@ -292,7 +292,7 @@ fn expand_projection_item_support(
 
                 /// Starts a typed scan for this projection type.
                 ///
-                /// The returned builder is already bound to the associated GSI
+                /// The returned builder is already bound to the associated index
                 /// and decodes results into this projection type.
                 ///
                 /// This is equivalent to starting from the source builder and
@@ -322,7 +322,7 @@ fn expand_projection_item_support(
             impl #struct_name {
                 /// Starts a typed query for this projection type.
                 ///
-                /// The returned builder is already bound to the associated GSI
+                /// The returned builder is already bound to the associated index
                 /// and decodes results into this projection type.
                 ///
                 /// This is equivalent to starting from the source builder and
@@ -355,7 +355,7 @@ fn expand_projection_item_support(
 
                 /// Starts a typed scan for this projection type.
                 ///
-                /// The returned builder is already bound to the associated GSI
+                /// The returned builder is already bound to the associated index
                 /// and decodes results into this projection type.
                 ///
                 /// This is equivalent to starting from the source builder and
@@ -416,6 +416,7 @@ fn expand_auto_gsi_projection_items(
             .filter(|field| {
                 !crate::finder::find_omit_gsi_names(&field.attrs)
                     .iter()
+                    .chain(crate::finder::find_omit_lsi_names(&field.attrs).iter())
                     .any(|name| name == gsi_name)
             })
             .cloned()
@@ -454,11 +455,11 @@ fn expand_auto_gsi_projection_items(
         );
 
         Some(quote! {
-            /// An automatically generated GSI projection item.
+            /// An automatically generated secondary-index projection item.
             ///
-            /// This type is emitted when the source model uses `omit_gsi` for
+            /// This type is emitted when the source model uses `omit_gsi` or `omit_lsi` for
             /// the associated index, and it contains every source field that is
-            /// not omitted for that GSI.
+            /// not omitted for that index.
             ///
             /// Use this type with either `source.query().index_name().project::<Type>()`
             /// or `Type::query(&source_client)` depending on which style reads
@@ -514,8 +515,10 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     } else {
         rename::RenameAllType::None
     };
-    let gsi_names = finder::find_gsi_names(&attrs);
-    let gsi_definitions = finder::find_gsi_definitions(&attrs);
+    let mut gsi_names = finder::find_gsi_names(&attrs);
+    let mut gsi_definitions = finder::find_gsi_definitions(&attrs);
+    let lsi_names = finder::find_lsi_names(&attrs);
+    let mut lsi_definitions = finder::find_lsi_definitions(&attrs);
 
     let fields = match input.data {
         Data::Struct(DataStruct {
@@ -526,6 +529,60 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     };
 
     finder::validate_omit_gsi_fields(&fields, &gsi_names);
+
+    for field in fields.named.iter() {
+        for name in finder::find_omit_lsi_names(&field.attrs) {
+            if !lsi_names.contains(&name) {
+                panic!("unknown lsi `{name}` specified in omit_lsi");
+            }
+        }
+    }
+
+    let partition_field =
+        finder::find_partition_key_field(&fields).expect("Raiden requires a partition key");
+    let partition_name = partition_field.ident.unwrap().to_string();
+    let table_sort_name = finder::find_sort_key_field(&fields)
+        .and_then(|field| field.ident.map(|ident| ident.to_string()));
+    for lsi in &mut lsi_definitions {
+        if lsi.sort_keys.len() != 1 {
+            panic!("lsi `{}` requires exactly one sort_key", lsi.name);
+        }
+        if lsi
+            .partition_key
+            .as_ref()
+            .is_some_and(|name| name != &partition_name)
+        {
+            panic!(
+                "lsi `{}` must use the table partition key `{partition_name}`",
+                lsi.name
+            );
+        }
+        let table_sort = table_sort_name
+            .as_ref()
+            .unwrap_or_else(|| panic!("lsi `{}` requires a table sort key", lsi.name));
+        if lsi.sort_keys[0] == *table_sort || lsi.sort_keys[0] == partition_name {
+            panic!("lsi `{}` requires a different non-key sort_key", lsi.name);
+        }
+        lsi.partition_key = Some(partition_name.clone());
+        if !fields.named.iter().any(|field| {
+            field
+                .ident
+                .as_ref()
+                .is_some_and(|id| id == &lsi.sort_keys[0])
+        }) {
+            panic!(
+                "unknown sort key `{}` for lsi `{}`",
+                lsi.sort_keys[0], lsi.name
+            );
+        }
+    }
+    for name in &lsi_names {
+        if gsi_names.contains(name) {
+            panic!("index `{name}` is declared as both gsi and lsi");
+        }
+    }
+    gsi_names.extend(lsi_names);
+    gsi_definitions.extend(lsi_definitions);
 
     let partition_key = key::fetch_partition_key(&fields, rename_all_type);
     let sort_key = key::fetch_sort_key(&fields, rename_all_type);
@@ -713,15 +770,24 @@ pub fn derive_raiden_index(input: TokenStream) -> TokenStream {
             finder::find_eq_string_from(attr, "source")
         })
         .unwrap_or_else(|| panic!("RaidenIndex requires #[raiden(source = \"...\")]"));
-    let gsi_names = finder::find_gsi_names(&attrs);
-    if gsi_names.is_empty() {
-        panic!("RaidenIndex requires #[raiden(gsi = \"...\")]");
+    let mut gsi_names = finder::find_gsi_names(&attrs);
+    let lsi_names = finder::find_lsi_names(&attrs);
+    if gsi_names.is_empty() && lsi_names.is_empty() {
+        panic!("RaidenIndex requires #[raiden(gsi = \"...\")] or #[raiden(lsi = \"...\")]");
     }
+    gsi_names.extend(lsi_names);
     if gsi_names.len() > 1 {
-        panic!("RaidenIndex currently supports exactly one gsi");
+        panic!("RaidenIndex supports exactly one index");
     }
     let gsi_name = gsi_names[0].clone();
-    let gsi_definitions = finder::find_gsi_definitions(&attrs);
+    let mut gsi_definitions = finder::find_gsi_definitions(&attrs);
+    let lsi_definitions = finder::find_lsi_definitions(&attrs);
+    for lsi in &lsi_definitions {
+        if lsi.sort_keys.len() != 1 {
+            panic!("lsi `{}` requires exactly one sort_key", lsi.name);
+        }
+    }
+    gsi_definitions.extend(lsi_definitions);
 
     let rename_all = finder::find_rename_all(&attrs);
     let rename_all_type = if let Some(rename_all) = rename_all {

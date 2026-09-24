@@ -593,6 +593,60 @@ Notes:
 - range conditions such as `gt`, `between`, and `begins_with` are only allowed on the last sort key
 - the old `.index("userIndex")` API is deprecated, but preserved for compatibility while migrating to typed GSI helpers
 
+#### Query and scan with a typed LSI
+
+Declare an LSI with the table's alternate sort-key field. The table must have
+its own sort key, and the LSI shares the table partition key automatically:
+
+```rust
+use raiden::*;
+
+#[derive(Raiden)]
+#[raiden(table_name = "events")]
+#[raiden(lsi(name = "createdIndex", sort_key = "created_at"))]
+struct Event {
+    #[raiden(partition_key)]
+    account_id: String,
+    #[raiden(sort_key)]
+    event_id: String,
+    created_at: String,
+    #[raiden(omit_lsi = "createdIndex")]
+    private_note: String,
+}
+
+// `EventCreatedIndexItem` is generated from fields not marked `omit_lsi`.
+let condition = Event::created_index_key_condition()
+    .eq("account-1")
+    .and(Event::created_index_sort_key_condition().begins_with("2026-"));
+let result = client.query()
+    .created_index()
+    .project::<EventCreatedIndexItem>()
+    .consistent()
+    .key_condition(condition)
+    .run()
+    .await?;
+
+let scan = client.scan()
+    .created_index()
+    .project::<EventCreatedIndexItem>()
+    .consistent()
+    .run()
+    .await?;
+```
+
+`#[derive(RaidenIndex)]` also accepts `#[raiden(source = "Event", lsi = "createdIndex")]`
+for a custom projection item. Add
+`#[raiden(lsi(name = "createdIndex", partition_key = "account_id", sort_key = "created_at"))]`
+on that projection type to generate its own typed key-condition methods. The
+`partition_key` on a custom projection identifies the source table's key; on
+the source `Raiden` type it is inferred and validated.
+
+LSI queries and scans support `.consistent()`. Reading attributes that are not
+projected into the LSI makes DynamoDB fetch them from the base table, increasing
+read cost and latency. A GSI supports eventual consistency only. The library's
+existing `.consistent()` method does not prevent selecting a GSI, so avoid that
+combination.
+
 ## Support `tokio-rs/tracing`
 
 `raiden` supports making span for Tracing ( span name is `dynamodb::action` with table name and api name in field ).  

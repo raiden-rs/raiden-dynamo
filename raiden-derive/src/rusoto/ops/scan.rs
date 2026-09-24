@@ -98,7 +98,7 @@ pub(crate) fn expand_scan(
             where
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
-                self.input.index_name = Some(I::GSI_NAME.to_owned());
+                self.input.index_name = Some(I::INDEX_NAME.to_owned());
                 self.input.expression_attribute_names = I::attribute_names();
                 self.input.projection_expression = I::projection_expression();
                 #projected_builder_name {

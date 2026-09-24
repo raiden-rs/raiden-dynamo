@@ -412,6 +412,105 @@ mod tests {
         omitted: String,
     }
 
+    #[allow(dead_code)]
+    #[derive(Raiden)]
+    #[raiden(table_name = "UserWithLocalIndex")]
+    #[raiden(lsi(name = "createdIndex", sort_key = "created_at"))]
+    pub struct UserWithLocalIndex {
+        #[raiden(partition_key)]
+        org_id: String,
+        #[raiden(sort_key)]
+        user_id: String,
+        created_at: String,
+        #[raiden(omit_lsi = "createdIndex")]
+        private_note: String,
+    }
+
+    #[allow(dead_code)]
+    #[derive(RaidenIndex)]
+    #[raiden(source = "UserWithLocalIndex")]
+    #[raiden(lsi(
+        name = "createdIndex",
+        partition_key = "org_id",
+        sort_key = "created_at"
+    ))]
+    pub struct LocalIndexProjection {
+        org_id: String,
+        created_at: String,
+    }
+
+    #[tokio::test]
+    async fn test_lsi_key_condition_and_projection() {
+        let cond = UserWithLocalIndex::created_index_key_condition()
+            .eq("org1")
+            .and(UserWithLocalIndex::created_index_sort_key_condition().begins_with("2026"));
+        let (expression, names, values) = cond.build();
+        assert!(expression.contains("#org_id = :value"));
+        assert!(expression.contains("begins_with(#created_at, :value"));
+        assert_eq!(names.get("#org_id"), Some(&"org_id".to_string()));
+        assert_eq!(names.get("#created_at"), Some(&"created_at".to_string()));
+        assert_eq!(values.len(), 2);
+
+        let cond = UserWithLocalIndex::created_index_key_condition()
+            .eq("org1")
+            .and(UserWithLocalIndex::created_index_sort_key_condition().begins_with("2026"));
+        let client = crate::all::create_client_from_struct!(UserWithLocalIndex);
+        let builder = client
+            .query()
+            .created_index()
+            .project::<UserWithLocalIndexCreatedIndexItem>()
+            .consistent()
+            .key_condition(cond);
+        let scan = client
+            .scan()
+            .created_index()
+            .project::<UserWithLocalIndexCreatedIndexItem>()
+            .consistent();
+        let _manual = LocalIndexProjection::query(&client)
+            .consistent()
+            .key_condition(LocalIndexProjection::created_index_key_condition().eq("org1"));
+
+        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        {
+            assert_eq!(
+                builder.inner.input.index_name.as_deref(),
+                Some("createdIndex")
+            );
+            assert_eq!(builder.inner.input.consistent_read, Some(true));
+            let projection = builder
+                .inner
+                .input
+                .projection_expression
+                .as_deref()
+                .unwrap();
+            assert!(projection.contains("#created_at"));
+            assert!(!projection.contains("#private_note"));
+            assert_eq!(scan.inner.input.index_name.as_deref(), Some("createdIndex"));
+            assert_eq!(scan.inner.input.consistent_read, Some(true));
+        }
+        #[cfg(feature = "aws-sdk")]
+        {
+            assert_eq!(
+                builder.inner.builder.get_index_name().as_deref(),
+                Some("createdIndex")
+            );
+            assert_eq!(*builder.inner.builder.get_consistent_read(), Some(true));
+            let projection = builder
+                .inner
+                .builder
+                .get_projection_expression()
+                .as_deref()
+                .unwrap();
+            assert!(projection.contains("#created_at"));
+            assert!(!projection.contains("#private_note"));
+            assert_eq!(
+                scan.inner.builder.get_index_name().as_deref(),
+                Some("createdIndex")
+            );
+            assert_eq!(*scan.inner.builder.get_consistent_read(), Some(true));
+        }
+    }
+
     #[test]
     fn test_gsi_partition_key_condition_builds() {
         let cond = TypedGsiPartitionKeyTest::test_gsi_key_condition().eq("id0");

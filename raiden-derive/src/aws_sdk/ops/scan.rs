@@ -99,7 +99,7 @@ pub(crate) fn expand_scan(
                 I: ::raiden::RaidenIndexItem<#struct_name>,
             {
                 self.builder = self.builder
-                    .index_name(I::GSI_NAME)
+                    .index_name(I::INDEX_NAME)
                     .set_projection_expression(I::projection_expression())
                     .set_expression_attribute_names(I::attribute_names());
                 #projected_builder_name {
