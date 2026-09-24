@@ -53,7 +53,8 @@ pub use raiden_derive::*;
 pub use types::*;
 pub use value_id::*;
 
-pub use safe_builder::Builder;
+pub use bon;
+pub use bon::Builder;
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
