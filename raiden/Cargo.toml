@@ -16,7 +16,7 @@ aws-smithy-runtime-api = { version = "^1", optional = true }
 base64 = "^0.22"
 md-5 = "^0.10"
 paste = { version = "1.0.15", optional = true }
-rand = "0.7"
+rand = "0.8"
 raiden-derive = { version = "*", path = "../raiden-derive", default-features = false }
 rusoto_core = { package = "rusoto_core", version = "0.48", default-features = false, optional = true }
 rusoto_credential = { version = "0.48", optional = true }
