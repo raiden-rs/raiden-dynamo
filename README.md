@@ -294,6 +294,14 @@ fn input() -> EventPutItemInput {
 
 When a tagged enum is used as the item type itself, the DynamoDB item map is decoded through serde as a whole document. This allows projection reads such as `query().project::<Message>()` when the item contains the tag and variant fields at the top level.
 
+When decoding an item fails, `RaidenError::AttributeConvertError` includes the attribute name and the original `ConversionError` in its `source` field. This also preserves custom messages returned by `FromAttribute` implementations:
+
+```rust
+if let Err(RaidenError::AttributeConvertError { attr_name, source }) = result {
+    eprintln!("could not decode {attr_name}: {source}");
+}
+```
+
 #### query nested map and document values
 
 ```rust

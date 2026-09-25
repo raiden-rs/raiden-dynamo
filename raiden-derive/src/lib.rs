@@ -889,7 +889,8 @@ pub fn derive_raiden_document(input: TokenStream) -> TokenStream {
                     ) -> Result<Self, ::raiden::RaidenError> {
                         ::raiden::deserialize_document_item(item)
                             .map_err(|err| ::raiden::RaidenError::AttributeConvertError {
-                                attr_name: err.to_string(),
+                                attr_name: stringify!(#struct_name).to_string(),
+                                source: err,
                             })
                     }
                 }

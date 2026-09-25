@@ -4,8 +4,12 @@ pub use transaction::*;
 
 #[derive(thiserror::Error, Debug)]
 pub enum RaidenError {
-    #[error("attribute {attr_name:?} convert error")]
-    AttributeConvertError { attr_name: String },
+    #[error("attribute {attr_name:?} convert error: {source}")]
+    AttributeConvertError {
+        attr_name: String,
+        #[source]
+        source: crate::ConversionError,
+    },
     #[error("`{0}`")]
     ConditionalCheckFailed(String),
     #[error("`{0}`")]
