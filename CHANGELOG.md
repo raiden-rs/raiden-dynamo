@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Keep expression attribute names distinct when a condition combines different map keys with special characters.
+- Preserve the underlying `ConversionError` as the source of `RaidenError::AttributeConvertError` on read failures. Pattern matches on this variant now need to account for its `source` field.
 
 ## @0.0.63 (12. April, 2022)
 

@@ -28,11 +28,12 @@ pub(crate) fn expand_attr_to_item(
                     if item.is_none() {
                         None
                     } else {
-                        let converted = ::raiden::FromAttribute::from_attr(item);
-                        if converted.is_err() {
-                            return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
-                        }
-                        converted.unwrap()
+                        ::raiden::FromAttribute::from_attr(item).map_err(|source| {
+                            ::raiden::RaidenError::AttributeConvertError {
+                                attr_name: #attr_key.to_string(),
+                                source,
+                            }
+                        })?
                     }
                 },
             }
@@ -48,12 +49,12 @@ pub(crate) fn expand_attr_to_item(
                         if item.is_null() {
                             Default::default()
                         } else {
-                            let converted = ::raiden::FromAttribute::from_attr(Some(item));
-                            if converted.is_err() {
-                            // TODO: improve error handling.
-                                return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
-                            }
-                            converted.unwrap()
+                            ::raiden::FromAttribute::from_attr(Some(item)).map_err(|source| {
+                                ::raiden::RaidenError::AttributeConvertError {
+                                    attr_name: #attr_key.to_string(),
+                                    source,
+                                }
+                            })?
                         }
                     }
                 },
@@ -62,12 +63,12 @@ pub(crate) fn expand_attr_to_item(
             quote! {
                 #ident: {
                     #item
-                    let converted = ::raiden::FromAttribute::from_attr(item);
-                    if converted.is_err() {
-                        // TODO: improve error handling.
-                        return Err(::raiden::RaidenError::AttributeConvertError{ attr_name: #attr_key.to_string() });
-                    }
-                    converted.unwrap()
+                    ::raiden::FromAttribute::from_attr(item).map_err(|source| {
+                        ::raiden::RaidenError::AttributeConvertError {
+                            attr_name: #attr_key.to_string(),
+                            source,
+                        }
+                    })?
                 },
             }
         }

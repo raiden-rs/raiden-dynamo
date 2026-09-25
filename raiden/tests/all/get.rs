@@ -94,8 +94,9 @@ mod tests {
 
         assert!(res.is_err());
 
-        if let RaidenError::AttributeConvertError { attr_name } = res.unwrap_err() {
+        if let RaidenError::AttributeConvertError { attr_name, source } = res.unwrap_err() {
             assert_eq!("unstored", attr_name);
+            assert!(matches!(source, ConversionError::ValueIsNone));
         } else {
             panic!("err should be RaidenError::AttributeConvertError");
         }
