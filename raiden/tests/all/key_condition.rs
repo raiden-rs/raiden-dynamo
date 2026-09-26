@@ -19,6 +19,45 @@ mod tests {
         rename: usize,
     }
 
+    #[allow(dead_code)]
+    #[derive(Raiden, Debug, Clone)]
+    #[raiden(table_name = "table_key_user")]
+    pub struct TableKeyUser {
+        #[raiden(partition_key)]
+        #[raiden(rename = "accountId")]
+        account_id: String,
+        #[raiden(sort_key)]
+        #[raiden(rename = "createdAt")]
+        created_at: String,
+        name: String,
+    }
+
+    #[test]
+    fn typed_partition_key_without_sort_key() {
+        reset_value_id();
+        let (expression, names, values) = User::partition_key_condition().eq("id1").build();
+        assert_eq!(expression, "#id = :value0");
+        assert_eq!(names.get("#id"), Some(&"id".to_owned()));
+        assert_eq!(values.get(":value0"), Some(&"id1".into_attr()));
+    }
+
+    #[test]
+    fn typed_partition_and_sort_keys_use_renamed_attributes() {
+        reset_value_id();
+        let condition = TableKeyUser::partition_key_condition()
+            .eq("account1")
+            .and(TableKeyUser::sort_key_condition().begins_with("2026-"));
+        let (expression, names, values) = condition.build();
+        assert_eq!(
+            expression,
+            "#accountId = :value0 AND (begins_with(#createdAt, :value1))"
+        );
+        assert_eq!(names.get("#accountId"), Some(&"accountId".to_owned()));
+        assert_eq!(names.get("#createdAt"), Some(&"createdAt".to_owned()));
+        assert_eq!(values.get(":value0"), Some(&"account1".into_attr()));
+        assert_eq!(values.get(":value1"), Some(&"2026-".into_attr()));
+    }
+
     #[test]
     fn test_eq_key_condition() {
         reset_value_id();

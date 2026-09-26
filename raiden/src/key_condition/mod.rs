@@ -64,6 +64,16 @@ pub struct KeyConditionFilled<T, U> {
 }
 
 impl<T, U> KeyConditionFilledOrWaitOperator<T, U> {
+    pub fn build(
+        self,
+    ) -> (
+        KeyConditionString,
+        super::AttributeNames,
+        super::AttributeValues,
+    ) {
+        <Self as KeyConditionBuilder<T, U>>::build(self)
+    }
+
     pub fn and<V>(self, cond: impl KeyConditionBuilder<U, V>) -> KeyConditionFilled<T, V> {
         let (condition_string, attr_names, attr_values) = cond.build();
         KeyConditionFilled {
@@ -81,6 +91,16 @@ impl<T, U> KeyConditionFilledOrWaitOperator<T, U> {
 }
 
 impl<T, U> KeyConditionFilled<T, U> {
+    pub fn build(
+        self,
+    ) -> (
+        KeyConditionString,
+        super::AttributeNames,
+        super::AttributeValues,
+    ) {
+        <Self as KeyConditionBuilder<T, U>>::build(self)
+    }
+
     pub fn and<V>(mut self, cond: impl KeyConditionBuilder<U, V>) -> KeyConditionFilled<T, V> {
         let (condition_string, attr_names, attr_values) = cond.build();
         self.operators.push(KeyConditionOperator::And(
