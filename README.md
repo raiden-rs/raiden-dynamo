@@ -51,6 +51,10 @@ async fn main() {
 
 #### With rusoto_dynamodb ( `rusoto` or `rusoto_rustls` or `rustls` is enabled)
 
+`rusoto_rustls` and `rustls` are legacy feature names. They now use Rusoto's
+native TLS backend, like `rusoto`. Rusoto 0.48's rustls backend depends on an
+unpatched version of `ring`; use `aws-sdk` if a rustls backend is required.
+
 ```rust
 use raiden::*;
 
@@ -104,6 +108,9 @@ NOTE: Default retry strategy differs between `aws-sdk` and `rusoto` ( or `rusoto
 
 - `aws-sdk` ... Not retry in raiden by default. Because you can configure retry strategy using `aws_config`. Or you can configure your own strategy like next example.
 - `rusoto` or `rusoto_rustls` ... Enabled retrying in raiden by default. See detail [here](https://github.com/mythrnr/raiden-dynamo/blob/master/raiden/src/retry/mod.rs).
+
+The `again` based error retry policies use fixed or exponential delays without
+jitter. Batch write retries still apply jitter to unprocessed items.
 
 ```rust
 use raiden::*;

@@ -36,15 +36,11 @@ async fn example() {
 
 #[cfg(feature = "aws-sdk")]
 async fn example() {
-    let https_connector = hyper_rustls::HttpsConnectorBuilder::new()
-        .with_native_roots()
-        .expect("should be success")
-        .https_or_http()
-        .enable_http1()
-        .enable_http2()
-        .build();
-    let http_client = aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder::new()
-        .build(https_connector);
+    let http_client = aws_smithy_http_client::Builder::new()
+        .tls_provider(aws_smithy_http_client::tls::Provider::Rustls(
+            aws_smithy_http_client::tls::rustls_provider::CryptoMode::AwsLc,
+        ))
+        .build_https();
     let sdk_config = ::raiden::aws_sdk::aws_config::defaults(
         ::raiden::aws_sdk::config::BehaviorVersion::latest(),
     )
