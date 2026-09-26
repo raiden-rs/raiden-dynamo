@@ -330,7 +330,7 @@ struct User {
 async fn main() {
     let client = /* generate client */;
 
-    let key = User::key_condition(User::id()).eq("user#1");
+    let key = User::partition_key_condition().eq("user#1");
 
     let filter = User::filter_expression(User::metadata().key("score"))
         .ge(40)
@@ -367,6 +367,8 @@ async fn main() {
 Notes:
 
 - use `.key("...")` for dynamic map keys such as `metadata.score`
+- use `partition_key_condition().eq(...)` for a table query; when the model has a sort key, chain `.and(Model::sort_key_condition().begins_with(...))` (or another supported sort-key comparison)
+- the existing `key_condition(Model::attribute())` remains available for compatibility, but it does not verify that the attribute is a table key
 - use `.field(...)` with `#[derive(RaidenDocument)]` accessors for nested document fields such as `profile.level`
 - document paths are supported in `filter_expression` and `condition`
 - condition expressions support `contains`, attribute comparisons (`eq_attr` / `eq_value`, `ne_attr` / `ne_value`, `lt_attr` / `lt_value`, `le_attr` / `le_value`, `gt_attr` / `gt_value`, `ge_attr` / `ge_value`), `between`, `in_values` (1–100 values), numeric `size` comparisons (`eq`, `ne`, `lt`, `le`, `gt`, and `ge`), and `not` / `and` / `or` composition

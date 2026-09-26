@@ -1,0 +1,15 @@
+error[E0599]: no function or associated item named `sort_key_condition` found for struct `User` in the current scope
+  --> tests/ui/table_key_conditions/sort_key_without_sort_field.rs:10:19
+   |
+4  | struct User {
+   | ----------- function or associated item `sort_key_condition` not found for this struct
+...
+10 |     let _ = User::sort_key_condition().eq("2026");
+   |                   ^^^^^^^^^^^^^^^^^^ function or associated item not found in `User`
+   |
+help: there is an associated function `key_condition` with a similar name
+  --> tests/ui/table_key_conditions/sort_key_without_sort_field.rs:3:10
+   |
+3  | #[derive(Raiden)]
+   |          ^^^^^^
+   = note: this error originates in the derive macro `Raiden` (in Nightly builds, run with -Z macro-backtrace for more info)

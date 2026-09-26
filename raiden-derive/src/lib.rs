@@ -652,8 +652,12 @@ pub fn derive_raiden(input: TokenStream) -> TokenStream {
     let condition_builder =
         condition::expand_condition_builder(&attr_enum_name, &struct_name, &fields);
 
-    let key_condition_builder =
-        key_condition::expand_key_condition_builder(&attr_enum_name, &struct_name);
+    let key_condition_builder = key_condition::expand_key_condition_builder(
+        &attr_enum_name,
+        &struct_name,
+        &partition_key,
+        &sort_key,
+    );
 
     let filter_expression_builder =
         filter_expression::expand_filter_expression_builder(&attr_enum_name, &struct_name);

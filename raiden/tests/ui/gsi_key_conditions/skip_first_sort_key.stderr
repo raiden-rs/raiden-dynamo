@@ -6,9 +6,10 @@ error[E0277]: the trait bound `KeyConditionFilledOrWaitOperator<TypedCompositeGs
    |          |
    |          required by a bound introduced by this call
    |
-   = help: the trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken>`
-           but trait `KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken>` is implemented for it
-   = help: for that trait implementation, expected `TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken`, found `TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken`
+   = help: the trait `raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiTerminalKeyConditionToken>`
+   = help: the following other types implement trait `raiden::KeyConditionBuilder<T, U>`:
+             `KeyConditionFilledOrWaitOperator<T, U>` implements `raiden::KeyConditionBuilder<T, U>`
+             `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTablePartitionKeyConditionToken, U>` implements `raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestKeyConditionToken, U>`
 note: required by a bound in `KeyConditionFilledOrWaitOperator::<T, U>::and`
   --> src/key_condition/mod.rs
    |
