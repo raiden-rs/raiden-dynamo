@@ -7,19 +7,12 @@ error[E0277]: the trait bound `KeyConditionFilledOrWaitOperator<TypedCompositeGs
    |                                       required by a bound introduced by this call
    |
    = help: the trait `raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestTestGsiPartitionKeyConditionToken, _>` is not implemented for `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTestGsiSort1KeyConditionToken, TypedCompositeGsiSortKeyTestTestGsiSort2KeyConditionToken>`
-help: the following other types implement trait `raiden::KeyConditionBuilder<T, U>`
-  --> tests/ui/gsi_key_conditions/index_sort_key_before_partition.rs:3:10
-   |
- 3 | #[derive(Raiden)]
-   |          ^^^^^^ `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTablePartitionKeyConditionToken, U>` implements `raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestKeyConditionToken, U>`
-   |
-  ::: src/key_condition/mod.rs
-   |
-   | impl<T, U> KeyConditionBuilder<T, U> for KeyConditionFilledOrWaitOperator<T, U> {
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `KeyConditionFilledOrWaitOperator<T, U>` implements `raiden::KeyConditionBuilder<T, U>`
+   = help: the following other types implement trait `raiden::KeyConditionBuilder<T, U>`:
+             `KeyConditionFilledOrWaitOperator<T, U>` implements `raiden::KeyConditionBuilder<T, U>`
+             `KeyConditionFilledOrWaitOperator<TypedCompositeGsiSortKeyTestTablePartitionKeyConditionToken, U>` implements `raiden::KeyConditionBuilder<TypedCompositeGsiSortKeyTestKeyConditionToken, U>`
 note: required by a bound in `TypedCompositeGsiSortKeyTestQueryBuilder::<'a, T>::key_condition`
   --> tests/ui/gsi_key_conditions/index_sort_key_before_partition.rs:3:10
    |
- 3 | #[derive(Raiden)]
+3  | #[derive(Raiden)]
    |          ^^^^^^ required by this bound in `TypedCompositeGsiSortKeyTestQueryBuilder::<'a, T>::key_condition`
    = note: this error originates in the derive macro `Raiden` (in Nightly builds, run with -Z macro-backtrace for more info)

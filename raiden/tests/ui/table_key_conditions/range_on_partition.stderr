@@ -1,7 +1,7 @@
 error[E0599]: the method `begins_with` exists for struct `KeyCondition<UserTablePartitionKeyConditionToken, UserTableSortKeyConditionToken>`, but its trait bounds were not satisfied
   --> tests/ui/table_key_conditions/range_on_partition.rs:12:45
    |
- 3 | #[derive(Raiden)]
+3  | #[derive(Raiden)]
    |          ------ doesn't satisfy `_: SupportsRangeCondition`
 ...
 12 |     let _ = User::partition_key_condition().begins_with("id");
