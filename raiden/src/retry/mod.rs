@@ -58,15 +58,11 @@ impl Into<RetryPolicy> for Policy {
     fn into(self) -> RetryPolicy {
         match self {
             Policy::None => RetryPolicy::default().with_max_retries(0),
-            Policy::Limit(times) => RetryPolicy::default()
-                .with_max_retries(times)
-                .with_jitter(true),
-            Policy::Pause(times, duration) => RetryPolicy::fixed(duration)
-                .with_max_retries(times)
-                .with_jitter(true),
-            Policy::Exponential(times, duration) => RetryPolicy::exponential(duration)
-                .with_max_retries(times)
-                .with_jitter(true),
+            Policy::Limit(times) => RetryPolicy::default().with_max_retries(times),
+            Policy::Pause(times, duration) => RetryPolicy::fixed(duration).with_max_retries(times),
+            Policy::Exponential(times, duration) => {
+                RetryPolicy::exponential(duration).with_max_retries(times)
+            }
         }
     }
 }

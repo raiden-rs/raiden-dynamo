@@ -9,9 +9,9 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-again = "0.1"
+again = { version = "0.1", default-features = false }
 aws-config = { version = "^1", optional = true }
-aws-sdk-dynamodb = { version = "^1", optional = true }
+aws-sdk-dynamodb = { version = "^1", default-features = false, features = ["default-https-client", "rt-tokio"], optional = true }
 aws-smithy-runtime-api = { version = "^1", optional = true }
 base64 = "^0.22"
 md-5 = "^0.10"
@@ -34,8 +34,7 @@ wasm-timer = "0.2"
 
 [dev-dependencies]
 aws-credential-types = { version = "^1" }
-aws-smithy-runtime = { version = "^1" }
-hyper-rustls = { version = "=0.25.0", features = ["http2"] }
+aws-smithy-http-client = { version = "=1.1.5", features = ["rustls-aws-lc"] }
 pretty_assertions = "1.4.0"
 proptest = "1.7.0"
 raiden = { path = "./", features = ["tracing"], default-features = false }
@@ -59,10 +58,11 @@ rusoto = [
     "rusoto_dynamodb/default",
     "raiden-derive/rusoto",
 ]
+# Keep the legacy feature names buildable without Rusoto's unpatched rustls stack.
 rusoto_rustls = [
-    "rusoto_core/rustls",
+    "rusoto_core/default",
     "rusoto_credential",
-    "rusoto_dynamodb/rustls",
+    "rusoto_dynamodb/default",
     "raiden-derive/rusoto",
 ]
 rustls = ["rusoto_rustls"]
@@ -72,4 +72,4 @@ tracing = ["dep:tracing", "raiden-derive/tracing"]
 ignored = ["rust-crypto"]
 
 [package.metadata.cargo-udeps.ignore]
-development = ["aws-credential-types", "aws-smithy-runtime", "hyper-rustls"]
+development = ["aws-credential-types", "aws-smithy-http-client"]
