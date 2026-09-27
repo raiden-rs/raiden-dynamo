@@ -406,6 +406,9 @@ async fn main() {
 }
 ```
 
+`batch_get` splits the keys into requests of at most 100 keys and retries `UnprocessedKeys`.
+Duplicate keys are removed before sending, so each existing item is returned once. The order of the returned items is not specified.
+
 #### batch_put
 
 ```rust
