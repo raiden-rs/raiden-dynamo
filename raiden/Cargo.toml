@@ -24,6 +24,7 @@ rusoto_dynamodb = { package = "rusoto_dynamodb", version = "0.48", default-featu
     "serialize_structs",
 ], optional = true }
 bon = "3.10.1"
+safe-builder = { tag = "0.0.6", git = "https://github.com/raiden-rs/safe-builder.git" }
 serde = { version = "^1", features = ["derive"] }
 serde_derive = "^1"
 serde_json = "^1"
@@ -52,17 +53,21 @@ aws-sdk = [
     "dep:paste",
     "raiden-derive/aws-sdk",
 ]
+# Rusoto with native-tls (OpenSSL on Linux). Same TLS backend as 0.0.94 and earlier.
 rusoto = [
-    "rusoto_core/default",
+    "rusoto_core/native-tls",
     "rusoto_credential",
-    "rusoto_dynamodb/default",
+    "rusoto_dynamodb/native-tls",
     "raiden-derive/rusoto",
 ]
-# Keep the legacy feature names buildable without Rusoto's unpatched rustls stack.
+# Explicit name for the native-tls Rusoto backend.
+rusoto_native_tls = ["rusoto"]
+# Rusoto with rustls. Rusoto 0.48 pins rustls 0.20 / ring 0.16, which have
+# open advisories; use `aws-sdk` if you need a patched rustls stack.
 rusoto_rustls = [
-    "rusoto_core/default",
+    "rusoto_core/rustls",
     "rusoto_credential",
-    "rusoto_dynamodb/default",
+    "rusoto_dynamodb/rustls",
     "raiden-derive/rusoto",
 ]
 rustls = ["rusoto_rustls"]

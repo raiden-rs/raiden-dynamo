@@ -1,0 +1,20 @@
+# A downstream crate that selects Rusoto's rustls backend the way
+# jlsi/lawgue-backend-rs does: rusoto_* with `rustls`, and raiden with
+# `default-features = false, features = ["rustls", "tracing"]`.
+#
+# `cargo check --manifest-path raiden/tests/downstream-rustls/Cargo.toml`
+# must compile rusoto_core without enabling native-tls.
+[package]
+name = "raiden-downstream-rustls"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+raiden = { path = "../..", default-features = false, features = ["rustls", "tracing"] }
+rusoto_core = { version = "0.48", default-features = false, features = ["rustls"] }
+rusoto_credential = "0.48"
+rusoto_dynamodb = { version = "0.48", default-features = false, features = ["rustls"] }
+tracing = "0.1"

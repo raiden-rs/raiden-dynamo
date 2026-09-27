@@ -47,5 +47,19 @@ jobs:
         with:
           path: target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - name: Check feature combinations
+        run: |
+          cargo check -p raiden --all-targets --no-default-features --features rusoto
+          cargo check -p raiden --all-targets --no-default-features --features rusoto_native_tls
+          cargo check -p raiden --all-targets --no-default-features --features rustls
+          cargo check -p raiden --all-targets --no-default-features --features aws-sdk
+      - name: Check a downstream crate that selects Rusoto rustls
+        run: |
+          cargo check --locked --manifest-path raiden/tests/downstream-rustls/Cargo.toml
+          cargo tree --locked --manifest-path raiden/tests/downstream-rustls/Cargo.toml -e normal --prefix none > downstream-rustls-deps.txt
+          if grep -E '^(native-tls|hyper-tls|openssl-sys) ' downstream-rustls-deps.txt; then
+            echo "native-tls must not be enabled when raiden's rustls feature is selected"
+            exit 1
+          fi
       - name: test
         run: make test
