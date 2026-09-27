@@ -49,11 +49,25 @@ async fn main() {
 }
 ```
 
-#### With rusoto_dynamodb ( `rusoto` or `rusoto_rustls` or `rustls` is enabled)
+#### With rusoto_dynamodb ( `rusoto`, `rusoto_native_tls`, `rusoto_rustls` or `rustls` is enabled)
 
-`rusoto_rustls` and `rustls` are legacy feature names. They now use Rusoto's
-native TLS backend, like `rusoto`. Rusoto 0.48's rustls backend depends on an
-unpatched version of `ring`; use `aws-sdk` if a rustls backend is required.
+The Rusoto backend comes in two TLS flavors. Enable exactly one of them.
+
+| feature | TLS backend | notes |
+| --- | --- | --- |
+| `rusoto` (default), `rusoto_native_tls` | `native-tls` (OpenSSL on Linux) | `rusoto_native_tls` is an explicit alias of `rusoto`. |
+| `rusoto_rustls`, `rustls` | `rustls` | Disable default features, e.g. `default-features = false, features = ["rustls"]`. |
+
+When you choose `rustls`, enable the `rustls` feature (and disable default
+features) on every `rusoto_*` crate you depend on as well. Mixing `native-tls`
+and `rustls` in one build makes `rusoto_core` fail to compile (E0252 on `tls`).
+
+NOTE: Rusoto 0.48's rustls backend depends on rustls 0.20 and ring 0.16, which
+have open security advisories that cannot be fixed within Rusoto. They only
+affect builds that select `rusoto_rustls` / `rustls`. Use `aws-sdk` if you need
+a maintained rustls stack. (0.0.96 and 0.0.97 routed `rustls` to native-tls to
+silence these advisories; 0.0.98 restores rustls because that broke musl
+builds and crates that enable rustls on their own `rusoto_*` dependencies.)
 
 ```rust
 use raiden::*;
@@ -190,6 +204,43 @@ async fn main() {
     let _res = client.put(&input).run().await;
 }
 ```
+
+`put_item_builder()` is generated with `raiden::Builder` (safe-builder). Setters
+for required fields can be called in any order, and `build()` is available once
+all of them are set. Setters for `Option` fields (`nickname(T)` and
+`nickname_with_option(Option<T>)`) keep the builder type, so they can be called
+conditionally. `Default<Struct>PutItemInputBuilder` names the type returned by
+`put_item_builder()`.
+
+```rust
+fn start() -> DefaultUserPutItemInputBuilder {
+    User::put_item_builder()
+}
+
+let mut builder = start().id("foo".to_owned()).name("bokuweb".to_owned());
+if let Some(nickname) = nickname {
+    builder = builder.nickname(nickname);
+}
+let input = builder.build();
+```
+
+#### Migrating from 0.0.95 - 0.0.97
+
+0.0.95 to 0.0.97 generated put item builders with [bon](https://bon-rs.com) and
+re-exported bon's derive as `raiden::Builder`. 0.0.98 goes back to the
+safe-builder API of 0.0.94 and earlier, so code written for 0.0.94 compiles
+unchanged. Code written for 0.0.95 - 0.0.97 may need these changes:
+
+- `#[derive(raiden::Builder)]` meant bon's derive. Use `raiden::BonBuilder` with
+  `#[builder(crate = ::raiden::bon)]`, or depend on `bon` directly.
+  `raiden::Builder` is safe-builder's derive again and ignores bon attributes.
+- bon specific methods on generated put builders (for example `maybe_nickname`)
+  are gone. Use `nickname_with_option(opt)`.
+- Types written as `UserPutItemInputBuilder<S>` with a bon state parameter
+  become `DefaultUserPutItemInputBuilder` for the initial builder.
+- If you enabled `rustls` / `rusoto_rustls` while it was routed to
+  native-tls and want to keep native-tls, switch to `rusoto` or
+  `rusoto_native_tls`.
 
 #### store maps and nested documents
 

@@ -1,5 +1,7 @@
 #[cfg(all(feature = "rusoto", feature = "rusoto_rustls"))]
-compile_error!("feature \"rusoto\" and \"rusoto_rustls\" cannot be enabled at the same time.");
+compile_error!(
+    "feature \"rusoto\" (native-tls, also enabled by \"rusoto_native_tls\") and \"rusoto_rustls\" (\"rustls\") cannot be enabled at the same time. Disable default features when you select \"rustls\"."
+);
 
 #[cfg(any(
     all(feature = "aws-sdk", feature = "rusoto"),
@@ -53,8 +55,13 @@ pub use raiden_derive::*;
 pub use types::*;
 pub use value_id::*;
 
+// `Builder` is the safe-builder derive used by generated `put_item_builder()`s
+// and re-exported for downstream crates, as in 0.0.94 and earlier.
+pub use safe_builder::Builder;
+// bon was re-exported as `Builder` in 0.0.95 to 0.0.97. Keep it reachable
+// under a distinct name for code written against those releases.
 pub use bon;
-pub use bon::Builder;
+pub use bon::Builder as BonBuilder;
 
 #[derive(Debug, Clone, PartialEq)]
 #[allow(clippy::upper_case_acronyms)]
