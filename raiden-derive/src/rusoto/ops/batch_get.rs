@@ -35,6 +35,26 @@ pub(crate) fn expand_batch_get(
         }
     });
 
+    // BatchGetItem rejects duplicate keys within a request, and a key repeated
+    // across the 100-key chunks would return the same item twice.
+    let dedupe_keys = if cfg!(feature = "tracing") {
+        quote! {
+            let requested_keys = key_attrs.len();
+            let key_attrs = ::raiden::batch_get::dedupe_keys(key_attrs);
+            if key_attrs.len() < requested_keys {
+                ::tracing::debug!(
+                    table_name = %self.table_name(),
+                    removed = requested_keys - key_attrs.len(),
+                    "batch_get removed duplicate keys"
+                );
+            }
+        }
+    } else {
+        quote! {
+            let key_attrs = ::raiden::batch_get::dedupe_keys(key_attrs);
+        }
+    };
+
     let builder_init = quote! {
         let names = {
             let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
@@ -67,6 +87,8 @@ pub(crate) fn expand_batch_get(
                         key_attrs.push(key.into().into_attr());
                     }
 
+                    #dedupe_keys
+
                     #builder_init
                 }
             }
@@ -84,6 +106,8 @@ pub(crate) fn expand_batch_get(
                     for (pk, sk) in keys.into_iter() {
                         key_attrs.push((pk.into().into_attr(), sk.into().into_attr()));
                     }
+
+                    #dedupe_keys
 
                     #builder_init
                 }

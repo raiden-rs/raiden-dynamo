@@ -35,6 +35,26 @@ pub(crate) fn expand_batch_get(
         }
     });
 
+    // BatchGetItem rejects duplicate keys within a request, and a key repeated
+    // across the 100-key chunks would return the same item twice.
+    let dedupe_keys = if cfg!(feature = "tracing") {
+        quote! {
+            let requested_keys = key_attrs.len();
+            let key_attrs = ::raiden::batch_get::dedupe_keys(key_attrs);
+            if key_attrs.len() < requested_keys {
+                ::tracing::debug!(
+                    table_name = %self.table_name(),
+                    removed = requested_keys - key_attrs.len(),
+                    "batch_get removed duplicate keys"
+                );
+            }
+        }
+    } else {
+        quote! {
+            let key_attrs = ::raiden::batch_get::dedupe_keys(key_attrs);
+        }
+    };
+
     let builder_init = quote! {
         let names = {
             let mut names: ::raiden::AttributeNames = std::collections::HashMap::new();
@@ -60,7 +80,9 @@ pub(crate) fn expand_batch_get(
 
             impl #trait_name for #client_name {
                 fn batch_get(&self, keys: std::vec::Vec<impl Into<#partition_key_type>>) -> #builder_name {
-                    let key_attrs = keys.into_iter().map(|v| v.into().into_attr()).collect();
+                    let key_attrs: std::vec::Vec<_> = keys.into_iter().map(|v| v.into().into_attr()).collect();
+
+                    #dedupe_keys
 
                     #builder_init
                 }
@@ -75,7 +97,9 @@ pub(crate) fn expand_batch_get(
 
             impl #trait_name for #client_name {
                 fn batch_get(&self, keys: std::vec::Vec<(impl Into<#partition_key_type>, impl Into<#sort_key_type>)>) -> #builder_name {
-                    let key_attrs = keys.into_iter().map(|(pk, sk)| (pk.into().into_attr(), sk.into().into_attr())).collect();
+                    let key_attrs: std::vec::Vec<_> = keys.into_iter().map(|(pk, sk)| (pk.into().into_attr(), sk.into().into_attr())).collect();
+
+                    #dedupe_keys
 
                     #builder_init
                 }

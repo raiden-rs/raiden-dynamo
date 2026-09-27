@@ -16,6 +16,100 @@ pub struct BatchGetOutput<T> {
     pub unprocessed_keys: Option<KeysAndAttributes>,
 }
 
+/// A hashable form of a DynamoDB key attribute. Key attributes can only be
+/// strings, numbers or binaries.
+#[doc(hidden)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum KeyRepr {
+    S(String),
+    N(String),
+    B(Vec<u8>),
+}
+
+/// Keys accepted by the generated `batch_get`: a partition key, or a pair of
+/// partition key and sort key.
+#[doc(hidden)]
+pub trait BatchGetKey {
+    type Repr: Eq + std::hash::Hash;
+
+    /// Returns `None` when the key contains a value that cannot be a DynamoDB
+    /// key attribute. Such keys are never removed as duplicates.
+    fn key_repr(&self) -> Option<Self::Repr>;
+}
+
+#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+impl BatchGetKey for crate::AttributeValue {
+    type Repr = KeyRepr;
+
+    fn key_repr(&self) -> Option<KeyRepr> {
+        let crate::AttributeValue {
+            b,
+            bool,
+            bs,
+            l,
+            m,
+            n,
+            ns,
+            null,
+            s,
+            ss,
+        } = self;
+        if bool.is_some()
+            || bs.is_some()
+            || l.is_some()
+            || m.is_some()
+            || ns.is_some()
+            || null.is_some()
+            || ss.is_some()
+        {
+            return None;
+        }
+        match (s, n, b) {
+            (Some(s), None, None) => Some(KeyRepr::S(s.clone())),
+            (None, Some(n), None) => Some(KeyRepr::N(n.clone())),
+            (None, None, Some(b)) => Some(KeyRepr::B(b.to_vec())),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(feature = "aws-sdk")]
+impl BatchGetKey for crate::AttributeValue {
+    type Repr = KeyRepr;
+
+    fn key_repr(&self) -> Option<KeyRepr> {
+        match self {
+            Self::S(s) => Some(KeyRepr::S(s.clone())),
+            Self::N(n) => Some(KeyRepr::N(n.clone())),
+            Self::B(b) => Some(KeyRepr::B(b.as_ref().to_vec())),
+            _ => None,
+        }
+    }
+}
+
+impl<P: BatchGetKey, S: BatchGetKey> BatchGetKey for (P, S) {
+    type Repr = (P::Repr, S::Repr);
+
+    fn key_repr(&self) -> Option<Self::Repr> {
+        Some((self.0.key_repr()?, self.1.key_repr()?))
+    }
+}
+
+/// Removes repeated keys, keeping the first occurrence of each key in order.
+///
+/// BatchGetItem rejects a request that contains the same key twice, and the
+/// same key split into different requests would return the item twice.
+#[doc(hidden)]
+pub fn dedupe_keys<K: BatchGetKey>(keys: Vec<K>) -> Vec<K> {
+    let mut seen = std::collections::HashSet::with_capacity(keys.len());
+    keys.into_iter()
+        .filter(|key| match key.key_repr() {
+            Some(repr) => seen.insert(repr),
+            None => true,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::dedupe_keys;
