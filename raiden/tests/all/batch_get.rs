@@ -94,6 +94,68 @@ mod tests {
         );
     }
 
+    #[tokio::test]
+    async fn test_batch_get_item_duplicate_keys_in_one_request() {
+        let client = crate::all::create_client_from_struct!(BatchTest0);
+        let res: batch_get::BatchGetOutput<BatchTest0> = client
+            .batch_get(vec!["id0", "id1", "id0"])
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            sort_by_id_0(res),
+            batch_get::BatchGetOutput {
+                items: vec![
+                    BatchTest0 {
+                        id: "id0".to_owned(),
+                        name: "bob".to_owned(),
+                    },
+                    BatchTest0 {
+                        id: "id1".to_owned(),
+                        name: "bob".to_owned(),
+                    },
+                ],
+                consumed_capacity: None,
+                unprocessed_keys: Some(crate::all::default_key_and_attributes()),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_batch_get_item_duplicate_keys_across_requests() {
+        let client = crate::all::create_client_from_struct!(BatchTest0);
+        // 150 keys: id0..=id100 exist, the rest are missing. The key at index 120
+        // repeats the first key, so it would land in the second 100-key request.
+        let mut keys: Vec<String> = (0..150)
+            .map(|n| {
+                if n <= 100 {
+                    format!("id{n}")
+                } else {
+                    format!("id{}", n + 1000)
+                }
+            })
+            .collect();
+        keys[120] = keys[0].clone();
+        let expected_items = (0..=100)
+            .map(|n| BatchTest0 {
+                id: format!("id{n}"),
+                name: "bob".to_owned(),
+            })
+            .collect();
+        let res: batch_get::BatchGetOutput<BatchTest0> =
+            client.batch_get(keys).run().await.unwrap();
+
+        assert_eq!(
+            sort_by_id_0(res),
+            batch_get::BatchGetOutput {
+                items: expected_items,
+                consumed_capacity: None,
+                unprocessed_keys: Some(crate::all::default_key_and_attributes()),
+            }
+        );
+    }
+
     // NOTE: Same behavior with original SDK, but we're planning to improve this.
     // ref. https://github.com/raiden-rs/raiden/issues/44
     #[tokio::test]
@@ -160,6 +222,44 @@ mod tests {
             sort_by_id_1(res),
             batch_get::BatchGetOutput {
                 items: expected_items,
+                consumed_capacity: None,
+                unprocessed_keys: Some(crate::all::default_key_and_attributes()),
+            }
+        );
+    }
+
+    #[tokio::test]
+    async fn test_batch_get_item_sort_key_duplicate_keys() {
+        let client = crate::all::create_client_from_struct!(BatchTest1);
+        let res: batch_get::BatchGetOutput<BatchTest1> = client
+            .batch_get(vec![
+                ("id0", 2000_usize),
+                ("id1", 2001_usize),
+                ("id0", 2000_usize),
+                // Same partition key with a different sort key is a different item key.
+                ("id0", 2001_usize),
+            ])
+            .run()
+            .await
+            .unwrap();
+
+        assert_eq!(
+            sort_by_id_1(res),
+            batch_get::BatchGetOutput {
+                items: vec![
+                    BatchTest1 {
+                        id: "id0".to_owned(),
+                        name: "bob".to_owned(),
+                        year: 2000,
+                        num: 0,
+                    },
+                    BatchTest1 {
+                        id: "id1".to_owned(),
+                        name: "bob".to_owned(),
+                        year: 2001,
+                        num: 1,
+                    },
+                ],
                 consumed_capacity: None,
                 unprocessed_keys: Some(crate::all::default_key_and_attributes()),
             }
