@@ -1,8 +1,10 @@
 export AWS_ACCESS_KEY_ID := dummy
 export AWS_SECRET_ACCESS_KEY := dummy
 
-# CI overrides this with `CARGO=mbx` to use the mr boxington build cache.
-CARGO ?= cargo
+# CI overrides this with `CARGO_CMD=mbx` to use the mr boxington build cache.
+# Not named `CARGO`: make exports command-line variables to recipes, and mbx
+# reads `$CARGO` to locate the real cargo, so `CARGO=mbx` makes mbx recurse.
+CARGO_CMD ?= cargo
 
 .PHONY: dynamo
 dynamo:
@@ -14,9 +16,9 @@ dynamo:
 .PHONY: test
 test:
 	make dynamo
-	$(CARGO) test --no-default-features --features aws-sdk -- --test-threads=1
+	$(CARGO_CMD) test --no-default-features --features aws-sdk -- --test-threads=1
 	make dynamo
-	$(CARGO) test --no-default-features --features rusoto -- --test-threads=1
+	$(CARGO_CMD) test --no-default-features --features rusoto -- --test-threads=1
 
 .PHONY: lint
 lint:
