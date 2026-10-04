@@ -1,6 +1,9 @@
 export AWS_ACCESS_KEY_ID := dummy
 export AWS_SECRET_ACCESS_KEY := dummy
 
+# CI overrides this with `CARGO=mbx` to use the mr boxington build cache.
+CARGO ?= cargo
+
 .PHONY: dynamo
 dynamo:
 	docker compose down --volumes
@@ -11,9 +14,9 @@ dynamo:
 .PHONY: test
 test:
 	make dynamo
-	cargo test --no-default-features --features aws-sdk -- --test-threads=1
+	$(CARGO) test --no-default-features --features aws-sdk -- --test-threads=1
 	make dynamo
-	cargo test --no-default-features --features rusoto -- --test-threads=1
+	$(CARGO) test --no-default-features --features rusoto -- --test-threads=1
 
 .PHONY: lint
 lint:
