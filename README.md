@@ -460,6 +460,9 @@ async fn main() {
 `batch_get` splits the keys into requests of at most 100 keys and retries `UnprocessedKeys`.
 Duplicate keys are removed before sending, so each existing item is returned once. The order of the returned items is not specified.
 
+Use `client.batch_get(keys).consistent().run().await` for strongly consistent reads.
+The default is eventually consistent reads. The setting applies to all batches and retries.
+
 #### batch_put
 
 ```rust
