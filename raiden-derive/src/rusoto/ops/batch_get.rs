@@ -67,6 +67,7 @@ pub(crate) fn expand_batch_get(
             client: &self.client,
             table_name: self.table_name(),
             keys: key_attrs,
+            consistent_read: None,
             attribute_names: Some(names),
             projection_expression,
             policy: self.retry_condition.strategy.policy(),
@@ -165,6 +166,7 @@ pub(crate) fn expand_batch_get(
             pub client: &'a ::raiden::DynamoDbClient,
             pub table_name: String,
             pub keys: #builder_keys_type,
+            pub consistent_read: Option<bool>,
             pub attribute_names: Option<::raiden::AttributeNames>,
             pub projection_expression: Option<String>,
             pub policy: ::raiden::Policy,
@@ -174,8 +176,15 @@ pub(crate) fn expand_batch_get(
         impl<'a> #builder_name<'a> {
 
             #![allow(clippy::field_reassign_with_default)]
+
+            /// Use strongly consistent reads for every batch, including retries.
+            pub fn consistent(mut self) -> Self {
+                self.consistent_read = Some(true);
+                self
+            }
+
             pub async fn run(self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
-                let Self { client, table_name, mut keys, attribute_names, projection_expression, policy, condition } = self;
+                let Self { client, table_name, mut keys, consistent_read, attribute_names, projection_expression, policy, condition } = self;
                 let policy: ::raiden::RetryPolicy = policy.into();
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::KeysAndAttributes::default();
@@ -195,6 +204,7 @@ pub(crate) fn expand_batch_get(
                     let mut input = ::raiden::BatchGetItemInput::default();
                     let mut item = ::raiden::KeysAndAttributes::default();
                     item.keys = Default::default();
+                    item.consistent_read = consistent_read;
                     item.expression_attribute_names = attribute_names.clone();
                     item.projection_expression = projection_expression.clone();
 

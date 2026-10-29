@@ -67,6 +67,7 @@ pub(crate) fn expand_batch_get(
             client: &self.client,
             table_name: self.table_name(),
             keys: key_attrs,
+            consistent_read: None,
             attribute_names: Some(names),
             projection_expression
         }
@@ -161,6 +162,7 @@ pub(crate) fn expand_batch_get(
             pub client: &'a ::raiden::Client,
             pub table_name: String,
             pub keys: #builder_keys_type,
+            pub consistent_read: Option<bool>,
             pub attribute_names: Option<::raiden::AttributeNames>,
             pub projection_expression: Option<String>
         }
@@ -168,6 +170,13 @@ pub(crate) fn expand_batch_get(
         impl<'a> #builder_name<'a> {
 
             #![allow(clippy::field_reassign_with_default)]
+
+            /// Use strongly consistent reads for every batch, including retries.
+            pub fn consistent(mut self) -> Self {
+                self.consistent_read = Some(true);
+                self
+            }
+
             pub async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
                 use ::std::iter::FromIterator;
 
@@ -191,6 +200,7 @@ pub(crate) fn expand_batch_get(
                 loop {
                     let unprocessed_key_len = unprocessed_keys.keys().len();
                     let mut item_builder = ::raiden::aws_sdk::types::KeysAndAttributes::builder()
+                        .set_consistent_read(self.consistent_read)
                         .set_expression_attribute_names(self.attribute_names.clone())
                         .set_projection_expression(self.projection_expression.clone())
                         .set_keys(Some(unprocessed_keys.keys));
