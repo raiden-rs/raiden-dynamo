@@ -126,6 +126,16 @@ macro_rules! default_attr_for_num {
 pub(crate) use default_attr_for_num;
 
 impl<T: IntoAttribute> IntoAttribute for Option<T> {
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        match self {
+            Some(value) => value.into_attr_option(),
+            None => Some(AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            }),
+        }
+    }
+
     fn into_attr(self) -> AttributeValue {
         if let Some(value) = self {
             value.into_attr()

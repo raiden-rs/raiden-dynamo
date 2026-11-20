@@ -92,6 +92,30 @@ async fn main() {
 }
 ```
 
+#### Empty values and custom attribute omission
+
+Both backends preserve explicit DynamoDB values returned by custom
+`IntoAttribute` implementations. An empty list (`L: []`, including
+`Document<Vec<T>>`) is stored, and an empty map is stored. Explicit empty
+`SS`, `NS`, and `BS` values are sent to DynamoDB and rejected as invalid.
+Built-in empty `HashSet` and `BTreeSet` fields are still omitted (or removed
+by a SET update); an empty `Vec` still writes `NULL`.
+
+For a custom type that deliberately omits a field, override
+`IntoAttribute::into_attr_option` to return `None`. This also applies when
+wrapped in `Some(...)`. Wrappers that delegate conversion to a built-in set
+should also delegate `into_attr_option` to retain empty-set omission.
+`Option::None` itself continues to write `NULL`.
+The override is used by Put, BatchPut, transactional Put, and update
+expressions; nested document values and condition values use `into_attr`.
+
+When migrating custom Rusoto converters that return
+`AttributeValue::default()`, use this explicit omission method on the SDK
+backend. The previous SDK workaround of returning `L: []` now stores an
+empty list. This change does not recover attributes already omitted from
+stored items: keep `#[raiden(use_default)]` where reading older missing
+attributes requires a default.
+
 #### Set prefix/suffix to the table name
 
 ```rust

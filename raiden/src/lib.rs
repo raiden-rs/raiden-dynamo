@@ -109,6 +109,23 @@ pub trait ToAttrMaps: Sized {
 
 pub trait IntoAttribute: Sized {
     fn into_attr(self) -> AttributeValue;
+
+    /// Converts a field or update value, returning `None` to omit the attribute
+    /// (or remove it in a SET update).
+    ///
+    /// Empty built-in sets are omitted. Explicit DynamoDB values, including
+    /// empty lists and sets returned by custom converters, are sent unchanged.
+    /// Custom converters can override this method to deliberately omit a field;
+    /// an empty list is a stored value, not an omission marker. Wrappers around
+    /// built-in sets should delegate this method as well as `into_attr`.
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        let value = self.into_attr();
+        if is_attr_value_empty(&value) {
+            None
+        } else {
+            Some(value)
+        }
+    }
 }
 
 /// Converts a numeric Rust value into a DynamoDB number attribute.

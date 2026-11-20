@@ -1,3 +1,4 @@
+mod attribute_compat;
 mod batch_delete;
 mod batch_get;
 mod batch_put;

@@ -6,7 +6,7 @@ pub struct Add<T: super::IntoAttrName> {
 
 pub struct AddExpressionFilled<T: super::IntoAttrName> {
     target: T,
-    value: (super::Placeholder, super::AttributeValue),
+    value: (super::Placeholder, Option<super::AttributeValue>),
 }
 
 impl<T: super::IntoAttrName> Add<T> {
@@ -16,7 +16,7 @@ impl<T: super::IntoAttrName> Add<T> {
 
     pub fn value(self, value: impl super::IntoAttribute) -> AddExpressionFilled<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
-        let value = (placeholder, value.into_attr());
+        let value = (placeholder, value.into_attr_option());
         let Add { target } = self;
         AddExpressionFilled::<T> { target, value }
     }
@@ -30,6 +30,9 @@ impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<
         let mut names: super::AttributeNames = std::collections::HashMap::new();
         let mut values: super::AttributeValues = std::collections::HashMap::new();
         let (placeholder, value) = self.value;
+        let Some(value) = value else {
+            return (String::new(), names, values);
+        };
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58

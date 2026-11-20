@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Match Rusoto's write behavior on the AWS SDK backend: preserve explicit empty lists (including `Document<Vec<T>>`) and pass custom empty sets to DynamoDB for validation instead of silently omitting them. Built-in empty sets still omit/remove attributes. Add `IntoAttribute::into_attr_option` for deliberate custom omission, including through `Option`, across puts, batches, transactions, and updates.
+
 - Route the `rustls` and `rusoto_rustls` features to Rusoto's rustls backend again (`rusoto_core/rustls`, `rusoto_dynamodb/rustls`). 0.0.96 and 0.0.97 routed them to native-tls, so a crate that also enabled `rustls` on its own `rusoto_*` dependencies got both TLS backends and `rusoto_core` failed to compile (E0252 / E0599), and musl builds pulled in a non-vendored `openssl-sys`. As a consequence, the Dependabot alerts for rustls 0.20 / ring 0.16 that 0.0.96 silenced apply again to builds that select `rustls` / `rusoto_rustls`; they cannot be fixed within Rusoto 0.48. Builds with `rusoto` (the default, native-tls) or `aws-sdk` are unaffected. Use `aws-sdk` for a maintained rustls stack.
 - Remove duplicate keys in `batch_get` before sending BatchGetItem requests. A duplicate within one 100-key request no longer fails with `ValidationException`, and a duplicate split across requests no longer returns the same item twice.
 - Keep expression attribute names distinct when a condition combines different map keys with special characters.

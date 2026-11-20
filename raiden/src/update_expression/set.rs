@@ -39,6 +39,7 @@ impl std::fmt::Display for SetOperation {
 #[allow(clippy::large_enum_variant)]
 enum SetValue<T: super::IntoAttrName> {
     Attr(T),
+    Omitted,
     Value(super::Placeholder, super::AttributeValue),
     // ListAppend(T, List)
 }
@@ -66,7 +67,10 @@ impl<T: super::IntoAttrName> Set<T> {
 
     pub fn value(self, value: impl super::IntoAttribute) -> SetExpressionFilledWithoutOperation<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
-        let value = SetValue::<T>::Value(placeholder, value.into_attr());
+        let value = match value.into_attr_option() {
+            Some(value) => SetValue::<T>::Value(placeholder, value),
+            None => SetValue::<T>::Omitted,
+        };
         let Set { target, index, .. } = self;
         SetExpressionFilledWithoutOperation::<T> {
             target,
@@ -123,6 +127,7 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
         names.insert(attr_name.clone(), attr);
         let mut values: super::AttributeValues = std::collections::HashMap::new();
         match self.value {
+            SetValue::Omitted => SetOrRemove::Remove(attr_name, names),
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
                 let set_attr_name = format!("#{set_attr}");
@@ -135,12 +140,6 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilledW
                 SetOrRemove::Set(expression, names, values)
             }
             SetValue::Value(placeholder, value) => {
-                // See. https://github.com/raiden-rs/raiden/issues/57
-                //      https://github.com/raiden-rs/raiden/issues/58
-                if crate::is_attr_value_empty(&value) {
-                    // Use remove instead of set
-                    return SetOrRemove::Remove(attr_name, names);
-                }
                 let expression = if self.if_not_exists {
                     format!("{attr_name} = if_not_exists({attr_name}, {placeholder})")
                 } else {
@@ -179,6 +178,7 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<
         };
 
         match self.value {
+            SetValue::Omitted => SetOrRemove::Remove(attr_name, names),
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
                 let set_attr_name = format!("#{set_attr}");
