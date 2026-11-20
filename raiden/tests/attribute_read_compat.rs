@@ -158,3 +158,53 @@ fn legacy_sdk_metadata_is_still_readable() {
         "unprocessed_items": [{"Item": {"id": {"S": "a"}}}]})
     );
 }
+
+#[derive(Raiden, Debug, Clone)]
+pub struct DefaultReadCompat {
+    #[raiden(partition_key)]
+    pub id: String,
+    #[raiden(use_default)]
+    pub value: String,
+}
+
+#[test]
+fn derived_use_default_only_defaults_missing_or_true_null() {
+    let base = || {
+        let mut item = AttributeValues::new();
+        item.insert("id".into(), "id".to_owned().into_attr());
+        item
+    };
+    assert_eq!(DefaultReadCompat::from_item(base()).unwrap().value, "");
+    for (attribute, expected) in [
+        (null(true), Some("")),
+        (null(false), None),
+        ("present".to_owned().into_attr(), Some("present")),
+    ] {
+        let mut item = base();
+        item.insert("value".into(), attribute);
+        let result = DefaultReadCompat::from_item(item);
+        match expected {
+            Some(value) => assert_eq!(result.unwrap().value, value),
+            None => assert!(result.is_err()),
+        }
+    }
+}
+
+#[test]
+fn document_rejects_false_null_at_every_depth() {
+    for attribute in [
+        json!({"NULL": false}),
+        json!({"L": [{"NULL": false}]}),
+        json!({"M": {"nested": {"L": [{"NULL": false}]}}}),
+    ] {
+        let output: raiden::ops::batch_put::BatchPutOutput = serde_json::from_value(json!({
+            "consumed_capacity": null, "unprocessed_items": [{"Item": {"raw": attribute}}]
+        }))
+        .unwrap();
+        assert!(Document::<serde_json::Value>::from_attr(Some(
+            output.unprocessed_items[0].item["raw"].clone()
+        ))
+        .is_err());
+    }
+    assert!(Document::<serde_json::Value>::from_attr(Some(null(true))).is_ok());
+}

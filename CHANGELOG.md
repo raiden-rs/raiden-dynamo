@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Align AWS SDK NULL flag reads and BatchPutOutput JSON round-trips with Rusoto, including nested lists, sets, and optional capacity metadata. Document the tested scope and remaining backend differences.
+- Compare seeded random attribute corpora across backends in CI; fix additional Document and generated use_default NULL:false decoding differences found during the audit.
 - Match Rusoto nested output JSON field names and omit unset metadata. This changes previous SDK output keys; decoding retains legacy SDK snake_case aliases.
 - Match Rusoto's write behavior on the AWS SDK backend: preserve explicit empty lists (including `Document<Vec<T>>`) and pass custom empty sets to DynamoDB for validation instead of silently omitting them. Built-in empty sets still omit/remove attributes. Add `IntoAttribute::into_attr_option` for deliberate custom omission, including through `Option`, across puts, batches, transactions, and updates.
 

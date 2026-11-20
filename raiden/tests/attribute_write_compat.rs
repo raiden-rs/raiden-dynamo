@@ -56,6 +56,11 @@ fn input(raw: AttributeValue) -> AttributeWriteCompatPutItemInput {
 
 // One response per request, with bounded waits so a missing request cannot hang CI.
 fn mock_response() -> (String, std::thread::JoinHandle<Value>) {
+    mock_response_with(json!({}))
+}
+
+fn mock_response_with(response: Value) -> (String, std::thread::JoinHandle<Value>) {
+    let response = response.to_string();
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
     let endpoint = format!("http://{}", listener.local_addr().unwrap());
@@ -90,7 +95,7 @@ fn mock_response() -> (String, std::thread::JoinHandle<Value>) {
         let mut body = vec![0; length.unwrap()];
         reader.read_exact(&mut body).unwrap();
         let request = serde_json::from_slice(&body).unwrap();
-        write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/x-amz-json-1.0\r\nContent-Length: 2\r\nConnection: close\r\n\r\n{{}}" ).unwrap();
+        write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/x-amz-json-1.0\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}", response.len(), response ).unwrap();
         request
     });
     (endpoint, server)
@@ -557,4 +562,74 @@ fn nested_builtin_empty_sets_retain_the_documented_backend_difference() {
     assert_eq!(value, attr!(L, l, vec![attr!(Ss, ss, vec![])]));
     #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
     assert_eq!(value, attr!(L, l, vec![AttributeValue::default()]));
+}
+
+#[derive(Raiden, Debug, Clone)]
+pub struct DefaultResponseCompat {
+    #[raiden(partition_key)]
+    pub id: String,
+    #[raiden(use_default)]
+    pub value: String,
+}
+
+#[tokio::test]
+async fn use_default_read_responses_require_true_null() {
+    for value in [
+        None,
+        Some(json!({"NULL": true})),
+        Some(json!({"NULL": false})),
+        Some(json!({"S": "present"})),
+    ] {
+        let mut item = json!({"id": {"S": "id"}});
+        if let Some(value) = &value {
+            item["value"] = value.clone();
+        }
+        let expected = match &value {
+            Some(v) if v == &json!({"NULL": false}) => None,
+            Some(v) if v == &json!({"S": "present"}) => Some("present"),
+            _ => Some(""),
+        };
+        for operation in 0..4 {
+            let response = match operation {
+                0 => json!({"Item": item}),
+                1 => json!({"Responses": {"DefaultResponseCompat": [item]}}),
+                2 => json!({"Responses": [{"Item": item}]}),
+                _ => json!({"Attributes": item}),
+            };
+            let (endpoint, server) = mock_response_with(response);
+            let client = client!(DefaultResponseCompat, endpoint);
+            let result = match operation {
+                0 => client.get("id").run().await.map(|v| v.item.value),
+                1 => client
+                    .batch_get(vec!["id"])
+                    .run()
+                    .await
+                    .map(|v| v.items[0].value.clone()),
+                2 => client
+                    .transact_get(vec!["id"])
+                    .run()
+                    .await
+                    .map(|v| v.items[0].as_ref().unwrap().value.clone()),
+                _ => client
+                    .update("id")
+                    .set(
+                        DefaultResponseCompat::update_expression()
+                            .set(DefaultResponseCompat::value())
+                            .value("changed".to_owned()),
+                    )
+                    .return_all_new()
+                    .run()
+                    .await
+                    .map(|v| v.item.unwrap().value),
+            };
+            server.join().unwrap();
+            match expected {
+                Some(value) => assert_eq!(result.unwrap(), value, "operation {operation}"),
+                None => assert!(
+                    result.is_err(),
+                    "NULL:false accepted by operation {operation}"
+                ),
+            }
+        }
+    }
 }

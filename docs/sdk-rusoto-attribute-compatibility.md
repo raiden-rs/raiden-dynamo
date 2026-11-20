@@ -12,7 +12,7 @@ placeholder IDs. DynamoDB Local verifies persistence and validation separately.
 | --- | --- | --- | --- |
 | Explicit empty list, including `Document<Vec<T>>` | Store `L: []` | Omit on Put; REMOVE on SET | Store `L: []` on both |
 | Custom explicit empty SS/NS/BS | Send the value; DynamoDB rejects it | Silently omit/remove it | Send it and receive validation errors on both |
-| Explicit `NULL: false` read as String, Cow, Option, Vec, or a built-in set | Reject the type | Treat it as NULL / an empty value | Reject it on both; only `NULL: true` is NULL |
+| Explicit `NULL: false` read as String, Cow, Option, Vec, a built-in set, or Document (including nested values) | Reject the type | Treat it as NULL / an empty value | Reject it on both; only `NULL: true` is NULL |
 | BatchPutOutput JSON containing L/SS/NS/BS | Correct DynamoDB JSON | Extra array nesting; typed objects inside sets | Same JSON shape and successful round-trip on both |
 | BatchPutOutput JSON containing boolean NULL flags | Decode either flag | Reject both flags (decoder expected JSON null) | Preserve either flag on both |
 | Nested output metadata (PutRequest, DeleteRequest, KeysAndAttributes, Capacity/ConsumedCapacity, ItemCollectionMetrics) | PascalCase fields; omit unset fields | snake_case fields; emit null for unset fields | Match Rusoto field names and omission; accept old SDK input aliases |
@@ -33,6 +33,11 @@ The shared `nested_output_metadata_matches_rusoto_json` test covers BatchGet
 unprocessed keys and projection settings, BatchDelete unprocessed keys, and
 Update item collection metrics (populated and absent optional metadata).
 `legacy_sdk_metadata_is_still_readable` separately checks old SDK metadata input.
+
+The generated `use_default` response path also used a different NULL check.
+Get, BatchGet, TransactGet and Update now default only for missing values or
+NULL:true; NULL:false errors. A shared HTTP response test covers all four paths
+with missing, true, false and populated values (16 cases).
 
 ## Confirmed unchanged behavior
 
@@ -111,6 +116,50 @@ difference; canonical fixtures now run unchanged on both backends.
    writes, throttling, IAM and real AWS service failures have not been proven
    equivalent. Error classification is checked for the listed Local validation
    failures; exact SDK/service error messages are not promised to match.
+
+## Seeded differential exploration
+
+`scripts/check-attribute-backends.py` generates the same corpus once, then builds
+and runs the Rust probe separately with Rusoto and AWS SDK. It compares parsed
+output JSON, read success/error/panic, successful read values, and their optional
+write conversion serialized back to typed DynamoDB JSON. It checks 19 Rust
+conversions per input, including all supported scalar integer widths, f32/f64,
+String/Option/Vec, ordered string/integer sets, and Document JSON.
+
+The generator explores all 10 AttributeValue tags, empty/nonempty sets and
+containers, recursion up to four levels, Unicode/control characters, arbitrary
+binary bytes, numeric boundaries/fractions/invalid strings, both NULL/BOOL flags,
+and absent/null/populated canonical capacity metadata. Invalid service values
+are intentional; this is an SDK/converter comparison, not service acceptance.
+
+The first 10,000-input run (seed 20261120) found **557 differing inputs** in
+Document NULL:false decoding, including nested forms. The smallest observed
+counterexample was `{"NULL":false}`. Fixing this uncovered path removed those
+differences; dedicated root/list/map regression cases preserve the fix.
+This is seeded random exploration, not coverage-guided fuzzing, and the script
+reports the smallest observed examples rather than claiming automatic shrinking.
+
+**Common existing failure:** integer scalar conversions use `parse().unwrap()`
+on both backends. Fractions, out-of-range numbers and malformed numeric strings
+can panic on both. The probe records panic separately from ordinary conversion
+errors; matching panics do not demonstrate correct handling. This PR preserves
+that existing behavior instead of changing Rusoto's numeric conversion contract.
+
+Use `--include-malformed` to separately explore missing/multiple/unknown type
+tags, wrong payload types, invalid base64 and legacy NULL:null. Known raw JSON
+acceptance differences described above can make that exploratory run fail;
+they are not silently allowlisted. Every corpus, both observation files and
+`differences.json` are retained in the reported artifact directory.
+
+```sh
+python3 scripts/check-attribute-backends.py --seed 20261120 --cases 10000
+# Exploratory run, may report known malformed-input differences:
+python3 scripts/check-attribute-backends.py --cases 2000 --include-malformed
+```
+
+CI runs the 10,000-input single-tag corpus. Successful exploration of that corpus
+must not be generalized to malformed inputs, every Rust type/expression, request
+transport behavior, arbitrary nesting, or AWS operational behavior.
 
 ## Reproduce
 

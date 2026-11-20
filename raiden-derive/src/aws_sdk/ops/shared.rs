@@ -46,7 +46,7 @@ pub(crate) fn expand_attr_to_item(
                     } else {
                         let item = item.unwrap();
                         // If null is true, use default value.
-                        if item.is_null() {
+                        if ::raiden::is_null_attribute_value(&item) {
                             Default::default()
                         } else {
                             ::raiden::FromAttribute::from_attr(Some(item)).map_err(|source| {
