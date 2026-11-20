@@ -12,7 +12,7 @@ pub use self::{
 
 macro_rules! set_optional_value {
     ($builder: expr, $object: expr, $key: ident, bool) => {
-        if let Some(v) = $object.get(stringify!($key)) {
+        if let Some(v) = $object.get(stringify!($key)).filter(|v| !v.is_null()) {
             let v = crate::aws_sdk::serialize::parse_value!(v, bool).map_err(
                 |err: serde_json::Error| {
                     serde::de::Error::custom(format!("{}: {err}", stringify!($key)))
@@ -23,7 +23,7 @@ macro_rules! set_optional_value {
         }
     };
     ($builder: expr, $object: expr, $key: ident, String) => {
-        if let Some(v) = $object.get(stringify!($key)) {
+        if let Some(v) = $object.get(stringify!($key)).filter(|v| !v.is_null()) {
             let v = crate::aws_sdk::serialize::parse_value!(v, String).map_err(
                 |err: serde_json::Error| {
                     serde::de::Error::custom(format!("{}: {err}", stringify!($key)))
@@ -34,7 +34,7 @@ macro_rules! set_optional_value {
         }
     };
     ($builder: expr, $object: expr, $key: ident, f64) => {
-        if let Some(v) = $object.get(stringify!($key)) {
+        if let Some(v) = $object.get(stringify!($key)).filter(|v| !v.is_null()) {
             let v = crate::aws_sdk::serialize::parse_value!(v, f64).map_err(
                 |err: serde_json::Error| {
                     serde::de::Error::custom(format!("{}: {err}", stringify!($key)))
@@ -45,7 +45,7 @@ macro_rules! set_optional_value {
         }
     };
     ($builder: expr, $object: expr, $key: ident, object, $closure: expr) => {
-        if let Some(v) = $object.get(stringify!($key)) {
+        if let Some(v) = $object.get(stringify!($key)).filter(|v| !v.is_null()) {
             let v = crate::aws_sdk::serialize::parse_value!(v, object, $closure).map_err(
                 |err: serde_json::Error| {
                     serde::de::Error::custom(format!("{}: {err}", stringify!($key)))
@@ -58,7 +58,7 @@ macro_rules! set_optional_value {
         }
     };
     ($builder: expr, $object: expr, $key: ident, array, $closure: expr) => {
-        if let Some(v) = $object.get(stringify!($key)) {
+        if let Some(v) = $object.get(stringify!($key)).filter(|v| !v.is_null()) {
             let v = crate::aws_sdk::serialize::parse_value!(v, array, $closure).map_err(
                 |err: serde_json::Error| {
                     serde::de::Error::custom(format!("{}: {err}", stringify!($key)))

@@ -170,7 +170,7 @@ pub fn is_null_attribute_value(value: &AttributeValue) -> bool {
 /// in the downstream crate where the macro is expanded.
 #[cfg(feature = "aws-sdk")]
 pub fn is_null_attribute_value(value: &AttributeValue) -> bool {
-    value.is_null()
+    matches!(value, AttributeValue::Null(true))
 }
 
 /// Marker trait for types that should be serialized as DynamoDB documents.

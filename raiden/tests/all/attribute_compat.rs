@@ -237,3 +237,39 @@ async fn custom_empty_sets_are_rejected_instead_of_silently_omitted() {
         assert!(matches!(error, RaidenError::Validation(_)), "{error:?}");
     }
 }
+
+#[tokio::test]
+async fn omitted_arithmetic_value_is_rejected_and_does_not_delete_existing_data() {
+    let client = crate::all::create_client_from_struct!(Settings);
+    let id = "omitted-arithmetic-compat";
+    client
+        .put(settings(id, vec!["keep".into()]))
+        .run()
+        .await
+        .unwrap();
+    let error = client
+        .update(id)
+        .set(
+            Settings::update_expression()
+                .set(Settings::our_names())
+                .value(std::collections::HashSet::<String>::new())
+                .add_value(1),
+        )
+        .run()
+        .await
+        .unwrap_err();
+    assert!(matches!(error, RaidenError::Validation(_)), "{error:?}");
+    assert_eq!(
+        client
+            .get(id)
+            .consistent()
+            .run()
+            .await
+            .unwrap()
+            .item
+            .our_names
+            .0,
+        vec!["keep".to_owned()]
+    );
+    client.delete(id).run().await.unwrap();
+}

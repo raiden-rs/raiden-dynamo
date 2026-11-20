@@ -169,6 +169,18 @@ macro_rules! attr {
 fn cases() -> Vec<(AttributeValue, Value)> {
     vec![
         (attr!(L, l, vec![]), json!({"L": []})),
+        (attr!(B, b, vec![0_u8, 255].into()), json!({"B": "AP8="})),
+        (
+            attr!(Bs, bs, vec![vec![0_u8, 255].into()]),
+            json!({"BS": ["AP8="]}),
+        ),
+        (attr!(Bool, bool, true), json!({"BOOL": true})),
+        ("text".to_owned().into_attr(), json!({"S": "text"})),
+        (
+            std::collections::HashMap::from([("empty".to_owned(), Vec::<String>::new())])
+                .into_attr(),
+            json!({"M": {"empty": {"NULL": true}}}),
+        ),
         (attr!(Ss, ss, vec![]), json!({"SS": []})),
         (attr!(Ns, ns, vec![]), json!({"NS": []})),
         (attr!(Bs, bs, vec![]), json!({"BS": []})),
@@ -472,4 +484,77 @@ fn nonempty_builtin_sets_are_preserved() {
         )*};
     }
     numeric_sets!(i8, i16, i32, i64, isize, u8, u16, u32, u64, usize);
+}
+
+#[test]
+fn condition_filter_and_if_not_exists_preserve_explicit_values() {
+    use raiden::condition::ConditionBuilder;
+    use raiden::filter_expression::FilterExpressionBuilder;
+    use raiden::update_expression::{SetOrRemove, UpdateSetExpressionBuilder};
+    for (value, _) in cases() {
+        let (_, _, values) = AttributeWriteCompat::condition()
+            .attr(AttributeWriteCompat::raw())
+            .eq_value(Raw(value.clone()))
+            .build();
+        assert_eq!(
+            values.into_values().collect::<Vec<_>>(),
+            vec![value.clone()]
+        );
+        let (_, _, values) = AttributeWriteCompat::filter_expression(AttributeWriteCompat::raw())
+            .eq(Raw(value.clone()))
+            .build();
+        assert_eq!(
+            values.into_values().collect::<Vec<_>>(),
+            vec![value.clone()]
+        );
+        match AttributeWriteCompat::update_expression()
+            .set(AttributeWriteCompat::raw())
+            .value(Raw(value.clone()))
+            .if_not_exists()
+            .build()
+        {
+            SetOrRemove::Set(expression, _, values) => {
+                assert!(expression.contains("if_not_exists("));
+                assert_eq!(values.into_values().collect::<Vec<_>>(), vec![value]);
+            }
+            SetOrRemove::Remove(..) => panic!("explicit value was removed"),
+        }
+    }
+}
+
+#[test]
+fn omitted_arithmetic_operand_must_never_remove_the_attribute() {
+    use raiden::update_expression::{SetOrRemove, UpdateSetExpressionBuilder};
+    let expressions = [
+        AttributeWriteCompat::update_expression()
+            .set(AttributeWriteCompat::raw())
+            .value(HashSet::<String>::new())
+            .add_value(1)
+            .build(),
+        AttributeWriteCompat::update_expression()
+            .set(AttributeWriteCompat::raw())
+            .value(DeliberatelyOmitted)
+            .add_value(1)
+            .build(),
+    ];
+    for expression in expressions {
+        match expression {
+            SetOrRemove::Set(expression, _, values) => {
+                assert!(expression.contains(" + "));
+                assert_eq!(values.len(), 2);
+                assert!(values.values().any(is_null_attribute_value));
+            }
+            SetOrRemove::Remove(..) => panic!("invalid arithmetic must not delete an attribute"),
+        }
+    }
+}
+
+#[test]
+fn nested_builtin_empty_sets_retain_the_documented_backend_difference() {
+    // into_attr_option controls fields/update values, not nested elements.
+    let value = vec![HashSet::<String>::new()].into_attr();
+    #[cfg(feature = "aws-sdk")]
+    assert_eq!(value, attr!(L, l, vec![attr!(Ss, ss, vec![])]));
+    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    assert_eq!(value, attr!(L, l, vec![AttributeValue::default()]));
 }

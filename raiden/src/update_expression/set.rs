@@ -178,7 +178,16 @@ impl<T: super::IntoAttrName> UpdateSetExpressionBuilder for SetExpressionFilled<
         };
 
         match self.value {
-            SetValue::Omitted => SetOrRemove::Remove(attr_name, names),
+            SetValue::Omitted => {
+                // Omission means REMOVE only for assignment. Arithmetic with an
+                // omitted operand must remain invalid, never delete the target.
+                // NULL keeps the request well-formed but fails DynamoDB's numeric
+                // operand validation for both backends.
+                let placeholder = format!(":value{}", super::generate_value_id());
+                values.insert(placeholder.clone(), None::<u8>.into_attr());
+                let expression = format!("{attr_name} = {placeholder} {op_expression}");
+                SetOrRemove::Set(expression, names, values)
+            }
             SetValue::Attr(a) => {
                 let set_attr = a.into_attr_name();
                 let set_attr_name = format!("#{set_attr}");

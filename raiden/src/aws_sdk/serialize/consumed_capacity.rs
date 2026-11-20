@@ -44,7 +44,7 @@ pub fn value_to_consumed_capacity(value: Value) -> Result<ConsumedCapacity, Erro
     set_optional_value!(builder, m, read_capacity_units, f64);
     set_optional_value!(builder, m, write_capacity_units, f64);
 
-    if let Some(v) = m.get("table") {
+    if let Some(v) = m.get("table").filter(|v| !v.is_null()) {
         builder = builder.table(value_to_capacity(v.clone())?);
     }
 

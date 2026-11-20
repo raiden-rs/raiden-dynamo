@@ -10,24 +10,20 @@ pub fn attribute_value_to_value(value: &AttributeValue) -> Value {
     match value {
         AttributeValue::B(v) => json!({ "B": STANDARD.encode(v) }),
         AttributeValue::Bool(v) => json!({ "BOOL": v }),
-        AttributeValue::Bs(vs) => json!({ "BS": [
-            vs.iter().map(|v| json!({ "B": STANDARD.encode(v) })).collect::<Vec<_>>(),
-        ]}),
-        AttributeValue::L(vs) => json!({ "L": [
-            vs.iter().map(attribute_value_to_value).collect::<Vec<_>>(),
-        ]}),
+        AttributeValue::Bs(vs) => {
+            json!({ "BS": vs.iter().map(|v| STANDARD.encode(v)).collect::<Vec<_>>() })
+        }
+        AttributeValue::L(vs) => {
+            json!({ "L": vs.iter().map(attribute_value_to_value).collect::<Vec<_>>() })
+        }
         AttributeValue::M(vs) => json!({ "M": vs.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
         }).collect::<std::collections::HashMap<String, Value>>() }),
         AttributeValue::N(v) => json!({ "N": v }),
-        AttributeValue::Ns(vs) => json!({ "NS": [
-            vs.iter().map(|v| json!({ "N": v })).collect::<Vec<_>>(),
-        ]}),
+        AttributeValue::Ns(vs) => json!({ "NS": vs }),
         AttributeValue::Null(v) => json!({ "NULL": v }),
         AttributeValue::S(v) => json!({ "S": v }),
-        AttributeValue::Ss(vs) => json!({ "SS": [
-            vs.iter().map(|v| json!({ "S": v })).collect::<Vec<_>>(),
-        ]}),
+        AttributeValue::Ss(vs) => json!({ "SS": vs }),
         _ => {
             panic!("Unknown data type. Consider upgrading your SDK to the latest version.")
         }
@@ -122,6 +118,7 @@ pub fn value_to_attribute_value(value: Value) -> Result<AttributeValue, Error> {
 
             AttributeValue::Ns(values)
         }
+        ("NULL", Value::Bool(v)) => AttributeValue::Null(v),
         ("NULL", Value::Null) => AttributeValue::Null(true),
         ("S", Value::String(s)) => AttributeValue::S(s),
         ("SS", Value::Array(vs)) => {

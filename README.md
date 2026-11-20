@@ -116,6 +116,9 @@ empty list. This change does not recover attributes already omitted from
 stored items: keep `#[raiden(use_default)]` where reading older missing
 attributes requires a default.
 
+See the [attribute compatibility audit](docs/sdk-rusoto-attribute-compatibility.md)
+for the tested matrix, remaining backend differences, and migration requirements.
+
 #### Set prefix/suffix to the table name
 
 ```rust

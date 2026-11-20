@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Align AWS SDK NULL flag reads and BatchPutOutput JSON round-trips with Rusoto, including nested lists, sets, and optional capacity metadata. Document the tested scope and remaining backend differences.
 - Match Rusoto's write behavior on the AWS SDK backend: preserve explicit empty lists (including `Document<Vec<T>>`) and pass custom empty sets to DynamoDB for validation instead of silently omitting them. Built-in empty sets still omit/remove attributes. Add `IntoAttribute::into_attr_option` for deliberate custom omission, including through `Option`, across puts, batches, transactions, and updates.
 
 - Route the `rustls` and `rusoto_rustls` features to Rusoto's rustls backend again (`rusoto_core/rustls`, `rusoto_dynamodb/rustls`). 0.0.96 and 0.0.97 routed them to native-tls, so a crate that also enabled `rustls` on its own `rusoto_*` dependencies got both TLS backends and `rusoto_core` failed to compile (E0252 / E0599), and musl builds pulled in a non-vendored `openssl-sys`. As a consequence, the Dependabot alerts for rustls 0.20 / ring 0.16 that 0.0.96 silenced apply again to builds that select `rustls` / `rusoto_rustls`; they cannot be fixed within Rusoto 0.48. Builds with `rusoto` (the default, native-tls) or `aws-sdk` are unaffected. Use `aws-sdk` for a maintained rustls stack.

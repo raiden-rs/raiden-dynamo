@@ -28,7 +28,7 @@ impl IntoAttribute for String {
 impl FromAttribute for String {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
-            Some(v) if v.is_null() => Ok("".to_owned()),
+            Some(AttributeValue::Null(true)) => Ok("".to_owned()),
             Some(AttributeValue::S(s)) => Ok(s),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -63,7 +63,7 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
-            Some(v) if v.is_null() => Ok(std::borrow::Cow::Owned("".to_owned())),
+            Some(AttributeValue::Null(true)) => Ok(std::borrow::Cow::Owned("".to_owned())),
             Some(AttributeValue::S(s)) => Ok(std::borrow::Cow::Owned(s)),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -113,7 +113,7 @@ impl<T: FromAttribute> FromAttribute for Option<T> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
             None => Ok(None),
-            Some(v) if v.is_null() => Ok(None),
+            Some(AttributeValue::Null(true)) => Ok(None),
             _ => Ok(Some(FromAttribute::from_attr(value)?)),
         }
     }
@@ -153,7 +153,7 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
                 v.into_iter().map(|item| A::from_attr(Some(item))).collect()
             }
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(vec![]),
+            Some(AttributeValue::Null(true)) => Ok(vec![]),
             None => Ok(vec![]),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -194,7 +194,7 @@ macro_rules! default_number_hash_set_convertor {
                         results.drain(..).collect()
                     }
                     // See. https://github.com/raiden-rs/raiden/issues/57
-                    Some(v) if v.is_null() => Ok(std::collections::HashSet::new()),
+                    Some(AttributeValue::Null(true)) => Ok(std::collections::HashSet::new()),
                     None => Ok(std::collections::HashSet::new()),
                     _ => Err(ConversionError::ValueIsNone),
                 }
@@ -239,7 +239,7 @@ macro_rules! default_number_btree_set_convertor {
                         results.drain(..).collect()
                     }
                     // See. https://github.com/raiden-rs/raiden/issues/57
-                    Some(v) if v.is_null() => Ok(std::collections::BTreeSet::new()),
+                    Some(AttributeValue::Null(true)) => Ok(std::collections::BTreeSet::new()),
                     None => Ok(std::collections::BTreeSet::new()),
                     _ => Err(ConversionError::ValueIsNone),
                 }
@@ -275,7 +275,7 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute for Ha
         match value {
             Some(AttributeValue::Ss(mut ss)) => ss.drain(..).map(A::from_ss_item).collect(),
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(HashSet::new()),
+            Some(AttributeValue::Null(true)) => Ok(HashSet::new()),
             None => Ok(HashSet::new()),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -307,7 +307,7 @@ impl<A: std::cmp::Ord + FromStringSetItem> FromAttribute for BTreeSet<A> {
         match value {
             Some(AttributeValue::Ss(mut ss)) => ss.drain(..).map(A::from_ss_item).collect(),
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(BTreeSet::new()),
+            Some(AttributeValue::Null(true)) => Ok(BTreeSet::new()),
             None => Ok(BTreeSet::new()),
             _ => Err(ConversionError::ValueIsNone),
         }
