@@ -54,7 +54,7 @@ fn batch_put_output_preserves_all_attribute_json_variants() {
         "empty_strings": {"SS": []}, "empty_numbers": {"NS": []},
         "empty_binaries": {"BS": []}
     });
-    let fixture = json!({"consumed_capacity": null, "unprocessed_items": [{"item": attributes}]});
+    let fixture = json!({"consumed_capacity": null, "unprocessed_items": [{"Item": attributes}]});
     let output: raiden::ops::batch_put::BatchPutOutput =
         serde_json::from_value(fixture.clone()).unwrap();
     assert_eq!(serde_json::to_value(&output).unwrap(), fixture);
@@ -67,7 +67,7 @@ fn batch_put_output_preserves_all_attribute_json_variants() {
 fn batch_put_output_preserves_both_null_flags() {
     for flag in [true, false] {
         let fixture = json!({"consumed_capacity": null,
-            "unprocessed_items": [{"item": {"null": {"NULL": flag}}}]});
+            "unprocessed_items": [{"Item": {"null": {"NULL": flag}}}]});
         let output: raiden::ops::batch_put::BatchPutOutput =
             serde_json::from_value(fixture.clone()).unwrap();
         assert_eq!(serde_json::to_value(output).unwrap(), fixture);
@@ -77,22 +77,30 @@ fn batch_put_output_preserves_both_null_flags() {
 #[test]
 fn batch_put_capacity_metadata_round_trips_with_optional_null_fields() {
     let fixture = json!({"consumed_capacity": [{
-        "table_name": "items", "capacity_units": 1.0,
-        "read_capacity_units": null, "write_capacity_units": null,
-        "table": {"capacity_units": 1.0, "read_capacity_units": null, "write_capacity_units": null},
-        "local_secondary_indexes": null, "global_secondary_indexes": null
+        "TableName": "items", "CapacityUnits": 1.0,
+        "ReadCapacityUnits": null, "WriteCapacityUnits": null,
+        "Table": {"CapacityUnits": 1.0, "ReadCapacityUnits": null, "WriteCapacityUnits": null},
+        "LocalSecondaryIndexes": null, "GlobalSecondaryIndexes": null
     }], "unprocessed_items": []});
     let output: raiden::ops::batch_put::BatchPutOutput =
         serde_json::from_value(fixture.clone()).unwrap();
-    assert_eq!(serde_json::to_value(output).unwrap(), fixture);
+    assert_eq!(
+        serde_json::to_value(output).unwrap(),
+        json!({
+        "consumed_capacity": [{"TableName": "items", "CapacityUnits": 1.0,
+            "Table": {"CapacityUnits": 1.0}}], "unprocessed_items": []})
+    );
     let fixture = json!({"consumed_capacity": [{
-        "table_name": null, "capacity_units": null,
-        "read_capacity_units": null, "write_capacity_units": null,
-        "table": null, "local_secondary_indexes": null, "global_secondary_indexes": null
+        "TableName": null, "CapacityUnits": null,
+        "ReadCapacityUnits": null, "WriteCapacityUnits": null,
+        "Table": null, "LocalSecondaryIndexes": null, "GlobalSecondaryIndexes": null
     }], "unprocessed_items": []});
     let output: raiden::ops::batch_put::BatchPutOutput =
         serde_json::from_value(fixture.clone()).unwrap();
-    assert_eq!(serde_json::to_value(output).unwrap(), fixture);
+    assert_eq!(
+        serde_json::to_value(output).unwrap(),
+        json!({"consumed_capacity": [{}], "unprocessed_items": []})
+    );
 }
 
 #[test]
@@ -105,4 +113,48 @@ fn existing_empty_scalar_and_option_conversions_are_unchanged() {
     assert!(is_null_attribute_value(&Vec::<String>::new().into_attr()));
     assert!(is_null_attribute_value(&None::<String>.into_attr()));
     assert_eq!(Option::<String>::from_attr(Some(null(true))).unwrap(), None);
+}
+
+#[test]
+fn nested_output_metadata_matches_rusoto_json() {
+    let keys = json!({"consumed_capacity": null, "items": [], "unprocessed_keys": {
+        "Keys": [{"id": {"S": "a"}}, {"id": {"N": "1"}}, {"id": {"B": "AP8="}}],
+        "AttributesToGet": ["id"], "ConsistentRead": false,
+        "ProjectionExpression": "#id", "ExpressionAttributeNames": {"#id": "id"}
+    }});
+    let decoded: raiden::ops::batch_get::BatchGetOutput<serde_json::Value> =
+        serde_json::from_value(keys.clone()).unwrap();
+    assert_eq!(serde_json::to_value(decoded).unwrap(), keys);
+    let delete = json!({"consumed_capacity": null,
+        "unprocessed_items": [{"Key": {"id": {"S": "a"}}}]});
+    let decoded: raiden::ops::batch_delete::BatchDeleteOutput =
+        serde_json::from_value(delete.clone()).unwrap();
+    assert_eq!(serde_json::to_value(decoded).unwrap(), delete);
+    for metrics in [
+        json!({}),
+        json!({"ItemCollectionKey": {"id": {"S": "a"}},
+        "SizeEstimateRangeGB": [0.0, 1.0]}),
+    ] {
+        let update = json!({"consumed_capacity": null, "item": null,
+            "item_collection_metrics": metrics});
+        let decoded: raiden::ops::update::UpdateOutput<serde_json::Value> =
+            serde_json::from_value(update.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), update);
+    }
+}
+
+#[cfg(feature = "aws-sdk")]
+#[test]
+fn legacy_sdk_metadata_is_still_readable() {
+    let old = json!({"consumed_capacity": [{"table_name": "items", "capacity_units": 1.0,
+        "table": {"capacity_units": 1.0}, "local_secondary_indexes": null}],
+        "unprocessed_items": [{"item": {"id": {"S": "a"}}}]});
+    let decoded: raiden::ops::batch_put::BatchPutOutput = serde_json::from_value(old).unwrap();
+    assert_eq!(
+        serde_json::to_value(decoded).unwrap(),
+        json!({
+        "consumed_capacity": [{"TableName": "items", "CapacityUnits": 1.0,
+            "Table": {"CapacityUnits": 1.0}}],
+        "unprocessed_items": [{"Item": {"id": {"S": "a"}}}]})
+    );
 }

@@ -9,27 +9,27 @@ use crate::aws_sdk::{
 };
 
 pub fn consumed_capacity_to_value(v: &ConsumedCapacity) -> Value {
-    json!({
-        "table_name": v.table_name,
-        "capacity_units": v.capacity_units,
-        "read_capacity_units": v.read_capacity_units,
-        "write_capacity_units": v.write_capacity_units,
-        "table": v.table.as_ref().map(capacity_to_value),
-        "local_secondary_indexes": v.local_secondary_indexes.as_ref()
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "TableName": v.table_name,
+        "CapacityUnits": v.capacity_units,
+        "ReadCapacityUnits": v.read_capacity_units,
+        "WriteCapacityUnits": v.write_capacity_units,
+        "Table": v.table.as_ref().map(capacity_to_value),
+        "LocalSecondaryIndexes": v.local_secondary_indexes.as_ref()
             .map(|v| {
                 v
                     .iter()
                     .map(|(k, v)| (k.clone(), capacity_to_value(v)))
                     .collect::<HashMap<String, Value>>()
             }),
-        "global_secondary_indexes": v.global_secondary_indexes.as_ref()
+        "GlobalSecondaryIndexes": v.global_secondary_indexes.as_ref()
             .map(|v| {
                 v
                     .iter()
                     .map(|(k, v)| (k.clone(), capacity_to_value(v)))
                     .collect::<HashMap<String, Value>>()
             }),
-    })
+    }))
 }
 
 pub fn value_to_consumed_capacity(value: Value) -> Result<ConsumedCapacity, Error> {
@@ -44,7 +44,7 @@ pub fn value_to_consumed_capacity(value: Value) -> Result<ConsumedCapacity, Erro
     set_optional_value!(builder, m, read_capacity_units, f64);
     set_optional_value!(builder, m, write_capacity_units, f64);
 
-    if let Some(v) = m.get("table").filter(|v| !v.is_null()) {
+    if let Some(v) = crate::aws_sdk::serialize::metadata_value(&m, "table") {
         builder = builder.table(value_to_capacity(v.clone())?);
     }
 
@@ -84,11 +84,11 @@ pub fn value_to_consumed_capacity(value: Value) -> Result<ConsumedCapacity, Erro
 }
 
 pub fn capacity_to_value(v: &Capacity) -> Value {
-    json!({
-        "read_capacity_units": v.read_capacity_units,
-        "write_capacity_units": v.write_capacity_units,
-        "capacity_units": v.capacity_units,
-    })
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "ReadCapacityUnits": v.read_capacity_units,
+        "WriteCapacityUnits": v.write_capacity_units,
+        "CapacityUnits": v.capacity_units,
+    }))
 }
 
 pub fn value_to_capacity(value: Value) -> Result<Capacity, Error> {

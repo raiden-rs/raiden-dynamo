@@ -9,11 +9,11 @@ use crate::aws_sdk::{
 };
 
 pub fn put_request_to_value(v: &PutRequest) -> Value {
-    json!({
-        "item": v.item.iter().map(|(k, v)| {
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "Item": v.item.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
         }).collect::<HashMap<String, Value>>(),
-    })
+    }))
 }
 
 pub fn value_to_put_request(value: Value) -> Result<PutRequest, Error> {

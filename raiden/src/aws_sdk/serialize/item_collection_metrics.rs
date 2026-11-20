@@ -11,15 +11,15 @@ use crate::aws_sdk::{
 };
 
 pub fn item_collection_metrics_to_value(v: &ItemCollectionMetrics) -> Value {
-    json!({
-        "item_collection_key": v.item_collection_key.as_ref().map(|v| {
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "ItemCollectionKey": v.item_collection_key.as_ref().map(|v| {
             v
                 .iter()
                 .map(|(k, v)| (k.clone(), attribute_value_to_value(v)))
                 .collect::<HashMap<String, Value>>()
         }),
-        "size_estimate_range_gb": v.size_estimate_range_gb,
-    })
+        "SizeEstimateRangeGB": v.size_estimate_range_gb,
+    }))
 }
 
 pub fn value_to_item_collection_metrics(value: Value) -> Result<ItemCollectionMetrics, Error> {

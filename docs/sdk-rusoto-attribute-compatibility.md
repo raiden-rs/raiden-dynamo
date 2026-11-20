@@ -15,12 +15,24 @@ placeholder IDs. DynamoDB Local verifies persistence and validation separately.
 | Explicit `NULL: false` read as String, Cow, Option, Vec, or a built-in set | Reject the type | Treat it as NULL / an empty value | Reject it on both; only `NULL: true` is NULL |
 | BatchPutOutput JSON containing L/SS/NS/BS | Correct DynamoDB JSON | Extra array nesting; typed objects inside sets | Same JSON shape and successful round-trip on both |
 | BatchPutOutput JSON containing boolean NULL flags | Decode either flag | Reject both flags (decoder expected JSON null) | Preserve either flag on both |
-| BatchPutOutput capacity metadata with optional JSON null fields | Decode None | Reject null fields emitted by its own serializer | Round-trip the tested capacity metadata on both |
+| Nested output metadata (PutRequest, DeleteRequest, KeysAndAttributes, Capacity/ConsumedCapacity, ItemCollectionMetrics) | PascalCase fields; omit unset fields | snake_case fields; emit null for unset fields | Match Rusoto field names and omission; accept old SDK input aliases |
+| Capacity metadata with optional JSON null fields | Decode None | Reject null fields emitted by its own serializer | Decode None on both |
 
 The omission implementation also prevents an omitted operand of arithmetic SET
 from becoming REMOVE. Arithmetic with an omitted value sends a NULL operand and
 fails validation; it never deletes the target. This preserves the failure
 outcome of invalid arithmetic, not the old invalid payload or error text.
+
+**Output JSON migration:** AWS SDK serialized nested metadata now uses Rusoto's
+`Item`, `Key`, `Keys`, `TableName`, etc., and omits unset metadata fields. This
+changes the previous SDK output format. Consumers inspecting those JSON keys
+must update. The SDK decoder still accepts its previous snake_case metadata
+keys. Outer Raiden output fields keep their existing snake_case names.
+
+The shared `nested_output_metadata_matches_rusoto_json` test covers BatchGet
+unprocessed keys and projection settings, BatchDelete unprocessed keys, and
+Update item collection metrics (populated and absent optional metadata).
+`legacy_sdk_metadata_is_still_readable` separately checks old SDK metadata input.
 
 ## Confirmed unchanged behavior
 
@@ -59,7 +71,8 @@ The same three integration tests run with each backend:
 The original AWS SDK implementation failed the empty-list and invalid-set
 regressions. The follow-up read/output fixtures also failed before their fixes:
 NULL:false classification, both NULL flag decodes, collection JSON, and capacity
-metadata decoding.
+metadata decoding. The Rusoto run also exposed the nested metadata field-name
+difference; canonical fixtures now run unchanged on both backends.
 
 ## Remaining differences and migration requirements
 
@@ -88,7 +101,8 @@ metadata decoding.
    decoding. Keep `#[raiden(use_default)]` where historical records need a
    default; this PR fixes future writes, not stored data.
 6. **JSON compatibility is tested for the listed fixtures.** The SDK decoder
-   continues accepting legacy `{"NULL":null}` as NULL:true. This permissive
+   continues accepting legacy `{"NULL":null}` as NULL:true and previous SDK
+   snake_case metadata keys. This permissive
    legacy input is not a claim of exact Rusoto decoding equivalence. Unknown
    fields, duplicate fields, malformed attributes, every output DTO, and every
    metadata combination are not exhaustively compared here.
