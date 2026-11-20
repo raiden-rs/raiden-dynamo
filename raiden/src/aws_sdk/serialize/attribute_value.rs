@@ -31,6 +31,7 @@ pub fn attribute_value_to_value(value: &AttributeValue) -> Value {
 }
 
 pub fn value_to_attribute_value(value: Value) -> Result<AttributeValue, Error> {
+    crate::attribute_json::validate_attribute(&value)?;
     let Value::Object(value) = value else {
         return Err(de::Error::custom("value is not type of AttributeValue"));
     };
@@ -119,7 +120,6 @@ pub fn value_to_attribute_value(value: Value) -> Result<AttributeValue, Error> {
             AttributeValue::Ns(values)
         }
         ("NULL", Value::Bool(v)) => AttributeValue::Null(v),
-        ("NULL", Value::Null) => AttributeValue::Null(true),
         ("S", Value::String(s)) => AttributeValue::S(s),
         ("SS", Value::Array(vs)) => {
             let mut values = vec![];

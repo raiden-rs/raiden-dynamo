@@ -12,5 +12,9 @@ use crate::aws_sdk::types::{ConsumedCapacity, DeleteRequest};
 )]
 pub struct BatchDeleteOutput {
     pub consumed_capacity: Option<Vec<ConsumedCapacity>>,
+    #[cfg_attr(
+        any(feature = "rusoto", feature = "rusoto_rustls"),
+        serde(deserialize_with = "crate::attribute_json::delete_requests")
+    )]
     pub unprocessed_items: Vec<DeleteRequest>,
 }

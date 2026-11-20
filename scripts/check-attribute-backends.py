@@ -19,7 +19,7 @@ parser.add_argument("--seed", type=int, default=20261120)
 parser.add_argument("--cases", type=int, default=10000)
 parser.add_argument("--output-dir", type=Path)
 parser.add_argument("--include-malformed", action="store_true",
-                    help="also explore malformed raw AttributeValue JSON; known differences fail the run")
+                    help="also explore malformed raw AttributeValue JSON at the root and nested in L/M")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 directory = args.output_dir or Path(tempfile.mkdtemp(prefix="raiden-differential-"))
@@ -41,6 +41,12 @@ def binary():
 
 
 def attribute(depth=0):
+    if args.include_malformed and rng.randrange(4) == 0:
+        return rng.choice([{}, {"S": "a", "N": "1"}, {"UNKNOWN": "value"},
+                           {"NULL": None}, {"B": "!invalid"}, {"L": [None]},
+                           {"S": 1}, {"NS": [1]}, {"BOOL": "false"},
+                           {"S": "a", "UNKNOWN": "value"}, {"S": None},
+                           {"L": None}, {"M": None}])
     tag = rng.choice(["S", "N", "B", "BOOL", "NULL", "SS", "NS", "BS"] +
                      (["L", "M"] if depth < 4 else []))
     if tag == "S":
@@ -76,10 +82,6 @@ def fixture():
             metadata[key] = rng.choice([None, capacity() if key == "Table" else {text(): capacity()}])
     consumed = rng.choice([None, [], [metadata]])
     raw = attribute()
-    if args.include_malformed and rng.randrange(4) == 0:
-        raw = rng.choice([{}, {"S": "a", "N": "1"}, {"UNKNOWN": "value"},
-                          {"NULL": None}, {"B": "!invalid"}, {"L": [None]},
-                          {"S": 1}, {"NS": [1]}, {"BOOL": "false"}])
     return {"consumed_capacity": consumed,
             "unprocessed_items": [{"Item": {"raw": raw}}]}
 

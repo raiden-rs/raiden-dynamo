@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Validate raw DynamoDB attribute JSON at Raiden's output/token decode boundaries on both backends. Missing, unknown or multiple type tags and invalid payload types (including `NULL:null`) now fail decoding, including nested L/M values. This tightens previous Rusoto acceptance and removes the SDK's implicit `NULL:null` to `NULL:true` conversion. See README for affected APIs and migration details; direct native backend serde is unchanged.
+
 - Restore the safe-builder based `put_item_builder()` of 0.0.94 and earlier, and re-export safe-builder's derive as `raiden::Builder` again. 0.0.95 to 0.0.97 generated put builders with bon, which broke downstream code in three ways: setting an `Option` field conditionally (`if let Some(v) = opt { builder = builder.field(v) }`) no longer type-checked because every bon setter changes the builder type, the `Default<Struct>PutItemInputBuilder` type aliases disappeared, and `#[derive(raiden::Builder)]` with safe-builder style attributes such as `#[builder(setter(into))]` failed with `Unknown field: setter`. All three work again. bon stays available as `raiden::bon` and its derive as `raiden::BonBuilder`; see "Migrating from 0.0.95 - 0.0.97" in the README for code written against those releases.
 
 ### Added

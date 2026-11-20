@@ -14,6 +14,10 @@ pub struct ScanOutput<T> {
     pub consumed_capacity: Option<ConsumedCapacity>,
     pub items: Vec<T>,
     pub count: Option<i64>,
+    #[cfg_attr(
+        any(feature = "rusoto", feature = "rusoto_rustls"),
+        serde(default, deserialize_with = "crate::attribute_json::optional_map")
+    )]
     pub last_evaluated_key: Option<::std::collections::HashMap<String, AttributeValue>>,
     pub scanned_count: Option<i64>,
 }

@@ -208,3 +208,105 @@ fn document_rejects_false_null_at_every_depth() {
     }
     assert!(Document::<serde_json::Value>::from_attr(Some(null(true))).is_ok());
 }
+
+fn check_raw_json_boundaries(attribute: serde_json::Value, accepted: bool) {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+    let map = json!({"raw": attribute});
+    macro_rules! check {
+        ($ty:ty, $fixture:expr) => {
+            assert_eq!(
+                serde_json::from_value::<$ty>($fixture).is_ok(),
+                accepted,
+                "{}: {map}",
+                stringify!($ty)
+            );
+        };
+    }
+    check!(
+        raiden::ops::batch_put::BatchPutOutput,
+        json!({"consumed_capacity": null, "unprocessed_items": [{"Item": map}]})
+    );
+    check!(
+        raiden::ops::batch_delete::BatchDeleteOutput,
+        json!({"consumed_capacity": null, "unprocessed_items": [{"Key": map}]})
+    );
+    check!(
+        raiden::ops::batch_get::BatchGetOutput<serde_json::Value>,
+        json!({"consumed_capacity": null, "items": [], "unprocessed_keys": {"Keys": [map]}})
+    );
+    check!(
+        raiden::ops::update::UpdateOutput<serde_json::Value>,
+        json!({"consumed_capacity": null, "item": null,
+            "item_collection_metrics": {"ItemCollectionKey": map}})
+    );
+    check!(
+        raiden::ops::scan::ScanOutput<serde_json::Value>,
+        json!({"consumed_capacity": null, "items": [], "count": null,
+            "scanned_count": null, "last_evaluated_key": map})
+    );
+    assert_eq!(
+        NextToken::new(STANDARD.encode(map.to_string()))
+            .into_attr_values()
+            .is_ok(),
+        accepted,
+        "NextToken: {map}"
+    );
+}
+
+#[test]
+fn malformed_raw_attributes_are_rejected_at_every_json_boundary() {
+    let mut invalid = vec![
+        json!({}),
+        json!({"UNKNOWN": "value"}),
+        json!({"S": "a", "N": "1"}),
+        json!({"NULL": null}),
+        json!({"S": "a", "UNKNOWN": "value"}),
+        json!({"B": "!invalid"}),
+        json!({"S": 1}),
+        json!({"NS": [1]}),
+        json!({"BOOL": "false"}),
+    ];
+    for tag in ["B", "BOOL", "BS", "L", "M", "N", "NS", "S", "SS"] {
+        invalid.push(json!({tag: null}));
+    }
+    for value in invalid {
+        for nested in [
+            value.clone(),
+            json!({"L": [value]}),
+            json!({"M": {"child": value}}),
+            json!({"L": [{"M": {"child": value}}]}),
+        ] {
+            check_raw_json_boundaries(nested, false);
+        }
+    }
+}
+
+#[test]
+fn raw_json_validation_preserves_explicit_empty_values_and_null_flags() {
+    for value in [
+        json!({"L": []}),
+        json!({"M": {}}),
+        json!({"SS": []}),
+        json!({"NS": []}),
+        json!({"BS": []}),
+        json!({"S": ""}),
+        json!({"B": ""}),
+        json!({"NULL": true}),
+        json!({"NULL": false}),
+        json!({"BOOL": false}),
+        json!({"N": "not-a-number"}),
+    ] {
+        check_raw_json_boundaries(value.clone(), true);
+        check_raw_json_boundaries(json!({"L": [{"M": {"child": value}}]}), true);
+    }
+    // User model JSON is not DynamoDB AttributeValue JSON.
+    let output: raiden::ops::update::UpdateOutput<serde_json::Value> =
+        serde_json::from_value(json!({"consumed_capacity": null,
+            "item": {"NULL": null, "S": "a", "N": "1"},
+            "item_collection_metrics": null}))
+        .unwrap();
+    assert_eq!(
+        output.item.unwrap(),
+        json!({"NULL": null, "S": "a", "N": "1"})
+    );
+}

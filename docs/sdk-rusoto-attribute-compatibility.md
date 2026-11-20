@@ -85,7 +85,9 @@ difference; canonical fixtures now run unchanged on both backends.
    zero or several type fields; the AWS SDK uses a tagged enum. The SDK cannot
    represent Rusoto's `AttributeValue::default()` omission sentinel. Custom
    converters must use `into_attr_option` to express omission. SDK Unknown
-   variants and malformed multi-type Rusoto values are outside this contract.
+   variants and direct native serde calls remain backend-specific. Raiden's
+   raw JSON entry points reject malformed zero/multi-type attributes on both
+   backends; this intentionally tightens previous Rusoto acceptance.
 2. **Omission is contextual, not recursive.** Nested Vec/map elements, condition
    and filter operands, key values, and arithmetic's added operand use
    `into_attr`, not `into_attr_option`. A nested built-in empty string set is
@@ -105,12 +107,23 @@ difference; canonical fixtures now run unchanged on both backends.
 5. **Old omitted data is not repaired.** Missing Document fields can still fail
    decoding. Keep `#[raiden(use_default)]` where historical records need a
    default; this PR fixes future writes, not stored data.
-6. **JSON compatibility is tested for the listed fixtures.** The SDK decoder
-   continues accepting legacy `{"NULL":null}` as NULL:true and previous SDK
-   snake_case metadata keys. This permissive
-   legacy input is not a claim of exact Rusoto decoding equivalence. Unknown
-   fields, duplicate fields, malformed attributes, every output DTO, and every
-   metadata combination are not exhaustively compared here.
+6. **Raw JSON validation intentionally tightens both decoders.** At Raiden's
+   output/token JSON boundaries, `{}`, unknown tags, multiple tags, null
+   payloads (including `{"NULL":null}`), and wrong payload types now fail on
+   both backends, including nested L/M values. The SDK no longer coerces
+   NULL:null to true. Previously Rusoto accepted zero/multi-type attributes
+   and ignored unknown fields; those malformed inputs must be repaired before
+   replay. The six entry points are BatchPut unprocessed items, BatchDelete
+   unprocessed keys, BatchGet unprocessed keys, Update item collection metrics,
+   Scan last evaluated keys, and NextToken decoding. Token failures are
+   NextTokenDecodeError; output failures are serde errors. Shared tests
+   `malformed_raw_attributes_are_rejected_at_every_json_boundary` and
+   `raw_json_validation_preserves_explicit_empty_values_and_null_flags` cover
+   all six. The latter also verifies that ordinary model JSON is unaffected.
+   Valid metadata still accepts old SDK snake_case aliases. Duplicate JSON
+   object keys, every output DTO, and every metadata combination are not
+   exhaustively compared. Direct native Rusoto serde remains permissive;
+   Raiden does not replace the backend's exposed AttributeValue type.
 7. **SDK operational behavior is outside this audit.** Credentials/region
    resolution, retries, timeouts, HTTP/TLS behavior, pagination under concurrent
    writes, throttling, IAM and real AWS service failures have not been proven
@@ -145,21 +158,26 @@ can panic on both. The probe records panic separately from ordinary conversion
 errors; matching panics do not demonstrate correct handling. This PR preserves
 that existing behavior instead of changing Rusoto's numeric conversion contract.
 
-Use `--include-malformed` to separately explore missing/multiple/unknown type
-tags, wrong payload types, invalid base64 and legacy NULL:null. Known raw JSON
-acceptance differences described above can make that exploratory run fail;
-they are not silently allowlisted. Every corpus, both observation files and
-`differences.json` are retained in the reported artifact directory.
+Use `--include-malformed` to explore missing/multiple/unknown type tags,
+wrong payload types, invalid base64 and NULL:null, at the root and nested in
+L/M. These are not allowlisted: any difference fails the run. The initial
+2,000-input root-only malformed corpus found 208 differences across four
+patterns; the common boundary validator fixes them by rejecting the malformed
+attributes on both backends, rather than coercing them to valid values.
+This changes prior Rusoto acceptance and prior SDK NULL:null acceptance.
+Replaying the exact original 2,000 inputs after the fix produces zero
+mismatches; all 208 original counterexamples now fail decoding on both backends.
+Every corpus, both observation files and `differences.json` are retained in
+the reported artifact directory.
 
 ```sh
 python3 scripts/check-attribute-backends.py --seed 20261120 --cases 10000
-# Exploratory run, may report known malformed-input differences:
-python3 scripts/check-attribute-backends.py --cases 2000 --include-malformed
+python3 scripts/check-attribute-backends.py --cases 10000 --include-malformed
 ```
 
-CI runs the 10,000-input single-tag corpus. Successful exploration of that corpus
-must not be generalized to malformed inputs, every Rust type/expression, request
-transport behavior, arbitrary nesting, or AWS operational behavior.
+CI runs both 10,000-input corpora. Successful finite exploration must not be
+generalized to every Rust type/expression, arbitrary JSON or nesting, duplicate
+JSON object keys, request transport behavior, or AWS operational behavior.
 
 ## Reproduce
 

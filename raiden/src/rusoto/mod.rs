@@ -366,10 +366,10 @@ pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
 
 #[allow(clippy::result_large_err)]
 pub(crate) fn deserialize_attr_value(s: &str) -> Result<AttributeValues, RaidenError> {
-    match serde_json::from_str(s) {
-        Ok(deserialized) => Ok(deserialized),
-        Err(_) => Err(super::RaidenError::NextTokenDecodeError),
-    }
+    let value: serde_json::Value =
+        serde_json::from_str(s).map_err(|_| RaidenError::NextTokenDecodeError)?;
+    crate::attribute_json::validate_map(&value).map_err(|_| RaidenError::NextTokenDecodeError)?;
+    serde_json::from_value(value).map_err(|_| RaidenError::NextTokenDecodeError)
 }
 
 pub(crate) fn serialize_attr_values(value: &AttributeValues) -> String {

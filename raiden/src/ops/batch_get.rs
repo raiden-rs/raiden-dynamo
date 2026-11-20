@@ -13,6 +13,13 @@ use crate::aws_sdk::types::{ConsumedCapacity, KeysAndAttributes};
 pub struct BatchGetOutput<T> {
     pub consumed_capacity: Option<Vec<ConsumedCapacity>>,
     pub items: Vec<T>,
+    #[cfg_attr(
+        any(feature = "rusoto", feature = "rusoto_rustls"),
+        serde(
+            default,
+            deserialize_with = "crate::attribute_json::keys_and_attributes"
+        )
+    )]
     pub unprocessed_keys: Option<KeysAndAttributes>,
 }
 

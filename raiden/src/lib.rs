@@ -14,6 +14,7 @@ compile_error!(
 #[macro_use]
 extern crate serde_derive;
 
+mod attribute_json;
 pub mod condition;
 mod document;
 pub mod errors;

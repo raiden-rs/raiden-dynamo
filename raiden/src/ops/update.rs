@@ -13,5 +13,12 @@ use crate::aws_sdk::types::{ConsumedCapacity, ItemCollectionMetrics};
 pub struct UpdateOutput<T> {
     pub consumed_capacity: Option<ConsumedCapacity>,
     pub item: Option<T>,
+    #[cfg_attr(
+        any(feature = "rusoto", feature = "rusoto_rustls"),
+        serde(
+            default,
+            deserialize_with = "crate::attribute_json::item_collection_metrics"
+        )
+    )]
     pub item_collection_metrics: Option<ItemCollectionMetrics>,
 }
