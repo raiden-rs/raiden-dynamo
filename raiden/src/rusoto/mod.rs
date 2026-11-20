@@ -126,6 +126,16 @@ macro_rules! default_attr_for_num {
 pub(crate) use default_attr_for_num;
 
 impl<T: IntoAttribute> IntoAttribute for Option<T> {
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        match self {
+            Some(value) => value.into_attr_option(),
+            None => Some(AttributeValue {
+                null: Some(true),
+                ..Default::default()
+            }),
+        }
+    }
+
     fn into_attr(self) -> AttributeValue {
         if let Some(value) = self {
             value.into_attr()
@@ -356,10 +366,10 @@ pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
 
 #[allow(clippy::result_large_err)]
 pub(crate) fn deserialize_attr_value(s: &str) -> Result<AttributeValues, RaidenError> {
-    match serde_json::from_str(s) {
-        Ok(deserialized) => Ok(deserialized),
-        Err(_) => Err(super::RaidenError::NextTokenDecodeError),
-    }
+    let value: serde_json::Value =
+        serde_json::from_str(s).map_err(|_| RaidenError::NextTokenDecodeError)?;
+    crate::attribute_json::validate_map(&value).map_err(|_| RaidenError::NextTokenDecodeError)?;
+    serde_json::from_value(value).map_err(|_| RaidenError::NextTokenDecodeError)
 }
 
 pub(crate) fn serialize_attr_values(value: &AttributeValues) -> String {

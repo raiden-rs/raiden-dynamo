@@ -12,15 +12,15 @@ use crate::{
 };
 
 pub fn keys_and_attributes_to_value(v: &KeysAndAttributes) -> Value {
-    json!({
-        "keys": v.keys.iter().map(|v| v.iter().map(|(k, v)| {
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "Keys": v.keys.iter().map(|v| v.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
         }).collect::<HashMap<String, Value>>()).collect::<Vec<_>>(),
-        "attributes_to_get": v.attributes_to_get,
-        "consistent_read": v.consistent_read,
-        "projection_expression": v.projection_expression,
-        "expression_attribute_names": v.expression_attribute_names,
-    })
+        "AttributesToGet": v.attributes_to_get,
+        "ConsistentRead": v.consistent_read,
+        "ProjectionExpression": v.projection_expression,
+        "ExpressionAttributeNames": v.expression_attribute_names,
+    }))
 }
 
 pub fn value_to_keys_and_attributes(value: Value) -> Result<KeysAndAttributes, Error> {

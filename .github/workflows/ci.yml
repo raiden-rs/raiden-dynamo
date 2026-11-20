@@ -63,3 +63,7 @@ jobs:
           fi
       - name: test
         run: make test
+      - name: Differential attribute exploration
+        run: |
+          python3 scripts/check-attribute-backends.py --cases 10000
+          python3 scripts/check-attribute-backends.py --cases 10000 --include-malformed

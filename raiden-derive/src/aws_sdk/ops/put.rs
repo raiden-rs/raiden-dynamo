@@ -69,8 +69,7 @@ pub(crate) fn expand_put_item(
                 }
             } else {
                 quote! {
-                    let value = item.#ident.clone().into_attr();
-                    if !::raiden::is_attr_value_empty(&value) {
+                    if let Some(value) = item.#ident.clone().into_attr_option() {
                         input_item.insert(
                             #attr_key.to_string(),
                             value,

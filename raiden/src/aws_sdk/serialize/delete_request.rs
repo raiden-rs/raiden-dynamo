@@ -9,11 +9,11 @@ use crate::aws_sdk::{
 };
 
 pub fn delete_request_to_value(v: &DeleteRequest) -> Value {
-    json!({
-        "key": v.key.iter().map(|(k, v)| {
+    crate::aws_sdk::serialize::compact_metadata(json!({
+        "Key": v.key.iter().map(|(k, v)| {
             (k.clone(), attribute_value_to_value(v))
         }).collect::<HashMap<String, Value>>(),
-    })
+    }))
 }
 
 pub fn value_to_delete_request(value: Value) -> Result<DeleteRequest, Error> {

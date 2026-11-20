@@ -11,5 +11,9 @@ use crate::aws_sdk::types::{ConsumedCapacity, PutRequest};
 )]
 pub struct BatchPutOutput {
     pub consumed_capacity: Option<Vec<ConsumedCapacity>>,
+    #[cfg_attr(
+        any(feature = "rusoto", feature = "rusoto_rustls"),
+        serde(deserialize_with = "crate::attribute_json::put_requests")
+    )]
     pub unprocessed_items: Vec<PutRequest>,
 }

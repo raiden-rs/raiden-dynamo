@@ -92,6 +92,87 @@ async fn main() {
 }
 ```
 
+#### Empty values and custom attribute omission
+
+Both backends preserve explicit DynamoDB values returned by custom
+`IntoAttribute` implementations. An empty list (`L: []`, including
+`Document<Vec<T>>`) is stored, and an empty map is stored. Explicit empty
+`SS`, `NS`, and `BS` values are sent to DynamoDB and rejected as invalid.
+Built-in empty `HashSet` and `BTreeSet` fields are still omitted (or removed
+by a SET update); an empty `Vec` still writes `NULL`.
+
+For a custom type that deliberately omits a field, override
+`IntoAttribute::into_attr_option` to return `None`. This also applies when
+wrapped in `Some(...)`. Wrappers that delegate conversion to a built-in set
+should also delegate `into_attr_option` to retain empty-set omission.
+`Option::None` itself continues to write `NULL`.
+The override is used by Put, BatchPut, transactional Put, and update
+expressions; nested document values and condition values use `into_attr`.
+
+When migrating custom Rusoto converters that return
+`AttributeValue::default()`, use this explicit omission method on the SDK
+backend. The previous SDK workaround of returning `L: []` now stores an
+empty list. This change does not recover attributes already omitted from
+stored items: keep `#[raiden(use_default)]` where reading older missing
+attributes requires a default.
+
+#### Backend compatibility and migration differences
+
+The backends share the tested attribute conversion contract, but migrating
+backends does not guarantee identical behavior for every input or operation.
+
+| Area | Behavior and migration action |
+| --- | --- |
+| Explicit empty lists/maps | Both backends preserve them. Previous SDK versions silently omitted some empty values; this release stores them. Existing omitted data is not repaired; retain `#[raiden(use_default)]` where needed. |
+| Deliberate omission | Rusoto's native `AttributeValue::default()` has no SDK enum equivalent. On the SDK backend, implement `into_attr_option()` returning `None`; wrappers must delegate this method too. Do not substitute an empty list for omission. |
+| Nested empty built-in sets | Omission applies to supported field/update contexts, not recursively. Nested empty sets and direct key/condition/filter/arithmetic operands can still encode as `{}` with Rusoto versus `SS: []` / `NS: []` with SDK. Both payloads are invalid, but request bodies and error messages differ. Transactional `.delete(attribute, value)` also uses this direct conversion. |
+| Persisted output JSON | SDK nested request/capacity/metrics metadata now uses Rusoto's PascalCase keys and omits unset fields. Older SDK snake_case metadata keys remain accepted as input; new output uses the canonical keys. Outer Raiden output field names stay snake_case. |
+| Malformed attribute JSON | Raiden's JSON entry points now reject missing/multiple/unknown type tags and null or wrongly typed payloads on **both** backends. In particular, `{"NULL":null}` is rejected instead of becoming SDK `NULL:true`. This intentionally tightens the previous Rusoto decoder too; see the examples and affected APIs below. |
+| Numeric reads | Both backends can still panic when an integer scalar is read from a fractional, out-of-range, or malformed number, due to the existing `parse().unwrap()` conversion. Matching behavior does not mean these inputs are handled safely. |
+| Runtime behavior | Retry defaults differ (see below). Credentials, region resolution, timeouts, HTTP/TLS, throttling, IAM, and real AWS failure handling have not been proven equivalent by the attribute tests. |
+
+**Raw JSON validation is a compatibility change for both backends.** Each raw
+attribute must be an object with exactly one recognized DynamoDB type field.
+For example, all of the following now fail decoding on both backends, including
+when nested inside `L` or `M`:
+
+```json
+{}
+{"UNKNOWN":"value"}
+{"S":"a","N":"1"}
+{"NULL":null}
+```
+
+These are four independent examples. Rusoto previously accepted all four;
+the SDK previously accepted the last as a true NULL. They are now rejected,
+not coerced to NULL, discarded, or resolved by choosing one of multiple tags.
+The rule applies when deserializing `BatchPutOutput.unprocessed_items`,
+`BatchDeleteOutput.unprocessed_items`, `BatchGetOutput.unprocessed_keys`,
+`UpdateOutput.item_collection_metrics`, `ScanOutput.last_evaluated_key`, and
+when decoding attributes with `NextToken::into_attr_values()`.
+Malformed tokens return `RaidenError::NextTokenDecodeError`; malformed output
+JSON returns a serde decode error. Regenerate malformed pagination tokens and
+repair persisted malformed output from its original source before replaying it;
+there is no automatic migration that can infer the intended attribute type.
+
+Explicit `L: []`, `M: {}`, empty set payloads, and both boolean `NULL` flags are
+preserved at this JSON boundary. This validates representation, not every
+DynamoDB service constraint: empty sets are still invalid writes, and
+`NULL:false` still fails nullable Rust reads. Ordinary user model JSON is not
+interpreted as raw DynamoDB JSON by these checks.
+
+Native backend types remain exposed. Directly calling serde on Rusoto's own
+`AttributeValue`/request types, or constructing SDK requests outside Raiden,
+bypasses these Raiden boundary checks and retains backend-specific behavior.
+
+Regression tests cover these six entry points with root and nested malformed
+attributes, as well as accepted empty values. CI also compares seeded random
+corpora both with and without malformed attributes; it fails on differences
+rather than excluding known malformed cases. This is finite differential
+exploration, not proof of equivalence or coverage-guided fuzzing.
+See the [attribute compatibility audit](docs/sdk-rusoto-attribute-compatibility.md)
+for the complete tested matrix, reproduction commands, and limitations.
+
 #### Set prefix/suffix to the table name
 
 ```rust

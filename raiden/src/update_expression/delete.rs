@@ -6,7 +6,7 @@ pub struct Delete<T: super::IntoAttrName> {
 
 pub struct DeleteExpressionFilled<T: super::IntoAttrName> {
     target: T,
-    value: (super::Placeholder, super::AttributeValue),
+    value: (super::Placeholder, Option<super::AttributeValue>),
 }
 
 impl<T: super::IntoAttrName> Delete<T> {
@@ -16,7 +16,7 @@ impl<T: super::IntoAttrName> Delete<T> {
 
     pub fn value(self, value: impl super::IntoAttribute) -> DeleteExpressionFilled<T> {
         let placeholder = format!(":value{}", super::generate_value_id());
-        let value = (placeholder, value.into_attr());
+        let value = (placeholder, value.into_attr_option());
         let Delete { target } = self;
         DeleteExpressionFilled::<T> { target, value }
     }
@@ -30,6 +30,9 @@ impl<T: super::IntoAttrName> UpdateDeleteExpressionBuilder for DeleteExpressionF
         let mut names: super::AttributeNames = std::collections::HashMap::new();
         let mut values: super::AttributeValues = std::collections::HashMap::new();
         let (placeholder, value) = self.value;
+        let Some(value) = value else {
+            return (String::new(), names, values);
+        };
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58

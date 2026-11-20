@@ -28,7 +28,7 @@ impl IntoAttribute for String {
 impl FromAttribute for String {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
-            Some(v) if v.is_null() => Ok("".to_owned()),
+            Some(AttributeValue::Null(true)) => Ok("".to_owned()),
             Some(AttributeValue::S(s)) => Ok(s),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -63,7 +63,7 @@ impl<'a> IntoAttribute for std::borrow::Cow<'a, str> {
 impl<'a> FromAttribute for std::borrow::Cow<'a, str> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
-            Some(v) if v.is_null() => Ok(std::borrow::Cow::Owned("".to_owned())),
+            Some(AttributeValue::Null(true)) => Ok(std::borrow::Cow::Owned("".to_owned())),
             Some(AttributeValue::S(s)) => Ok(std::borrow::Cow::Owned(s)),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -93,6 +93,13 @@ macro_rules! default_attr_for_num {
 pub(crate) use default_attr_for_num;
 
 impl<T: IntoAttribute> IntoAttribute for Option<T> {
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        match self {
+            Some(value) => value.into_attr_option(),
+            None => Some(AttributeValue::Null(true)),
+        }
+    }
+
     fn into_attr(self) -> AttributeValue {
         if let Some(value) = self {
             value.into_attr()
@@ -106,7 +113,7 @@ impl<T: FromAttribute> FromAttribute for Option<T> {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         match value {
             None => Ok(None),
-            Some(v) if v.is_null() => Ok(None),
+            Some(AttributeValue::Null(true)) => Ok(None),
             _ => Ok(Some(FromAttribute::from_attr(value)?)),
         }
     }
@@ -146,7 +153,7 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
                 v.into_iter().map(|item| A::from_attr(Some(item))).collect()
             }
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(vec![]),
+            Some(AttributeValue::Null(true)) => Ok(vec![]),
             None => Ok(vec![]),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -156,6 +163,14 @@ impl<A: FromAttribute> FromAttribute for Vec<A> {
 macro_rules! default_number_hash_set_convertor {
     ($to: ty) => {
         impl IntoAttribute for std::collections::HashSet<$to> {
+            fn into_attr_option(self) -> Option<AttributeValue> {
+                if self.is_empty() {
+                    None
+                } else {
+                    Some(self.into_attr())
+                }
+            }
+
             fn into_attr(self) -> AttributeValue {
                 if self.is_empty() {
                     // See. https://github.com/raiden-rs/raiden/issues/57
@@ -179,7 +194,7 @@ macro_rules! default_number_hash_set_convertor {
                         results.drain(..).collect()
                     }
                     // See. https://github.com/raiden-rs/raiden/issues/57
-                    Some(v) if v.is_null() => Ok(std::collections::HashSet::new()),
+                    Some(AttributeValue::Null(true)) => Ok(std::collections::HashSet::new()),
                     None => Ok(std::collections::HashSet::new()),
                     _ => Err(ConversionError::ValueIsNone),
                 }
@@ -193,6 +208,14 @@ pub(crate) use default_number_hash_set_convertor;
 macro_rules! default_number_btree_set_convertor {
     ($to: ty) => {
         impl IntoAttribute for std::collections::BTreeSet<$to> {
+            fn into_attr_option(self) -> Option<AttributeValue> {
+                if self.is_empty() {
+                    None
+                } else {
+                    Some(self.into_attr())
+                }
+            }
+
             fn into_attr(self) -> AttributeValue {
                 if self.is_empty() {
                     // See. https://github.com/raiden-rs/raiden/issues/57
@@ -216,7 +239,7 @@ macro_rules! default_number_btree_set_convertor {
                         results.drain(..).collect()
                     }
                     // See. https://github.com/raiden-rs/raiden/issues/57
-                    Some(v) if v.is_null() => Ok(std::collections::BTreeSet::new()),
+                    Some(AttributeValue::Null(true)) => Ok(std::collections::BTreeSet::new()),
                     None => Ok(std::collections::BTreeSet::new()),
                     _ => Err(ConversionError::ValueIsNone),
                 }
@@ -228,6 +251,14 @@ macro_rules! default_number_btree_set_convertor {
 pub(crate) use default_number_btree_set_convertor;
 
 impl<A: std::hash::Hash + IntoStringSetItem> IntoAttribute for HashSet<A> {
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.into_attr())
+        }
+    }
+
     fn into_attr(self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
@@ -244,7 +275,7 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute for Ha
         match value {
             Some(AttributeValue::Ss(mut ss)) => ss.drain(..).map(A::from_ss_item).collect(),
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(HashSet::new()),
+            Some(AttributeValue::Null(true)) => Ok(HashSet::new()),
             None => Ok(HashSet::new()),
             _ => Err(ConversionError::ValueIsNone),
         }
@@ -252,6 +283,14 @@ impl<A: std::hash::Hash + std::cmp::Eq + FromStringSetItem> FromAttribute for Ha
 }
 
 impl<A: std::cmp::Ord + IntoStringSetItem> IntoAttribute for BTreeSet<A> {
+    fn into_attr_option(self) -> Option<AttributeValue> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.into_attr())
+        }
+    }
+
     fn into_attr(self) -> AttributeValue {
         if self.is_empty() {
             // See. https://github.com/raiden-rs/raiden/issues/57
@@ -268,27 +307,17 @@ impl<A: std::cmp::Ord + FromStringSetItem> FromAttribute for BTreeSet<A> {
         match value {
             Some(AttributeValue::Ss(mut ss)) => ss.drain(..).map(A::from_ss_item).collect(),
             // See. https://github.com/raiden-rs/raiden/issues/57
-            Some(v) if v.is_null() => Ok(BTreeSet::new()),
+            Some(AttributeValue::Null(true)) => Ok(BTreeSet::new()),
             None => Ok(BTreeSet::new()),
             _ => Err(ConversionError::ValueIsNone),
         }
     }
 }
 
-pub fn is_attr_value_empty(a: &AttributeValue) -> bool {
-    match &a {
-        &AttributeValue::B(_)
-        | &AttributeValue::Bool(_)
-        | &AttributeValue::M(_)
-        | &AttributeValue::N(_)
-        | &AttributeValue::Null(_)
-        | &AttributeValue::S(_) => false,
-        &AttributeValue::Bs(v) => v.is_empty(),
-        &AttributeValue::L(v) => v.is_empty(),
-        &AttributeValue::Ns(v) => v.is_empty(),
-        &AttributeValue::Ss(v) => v.is_empty(),
-        _ => true,
-    }
+/// Concrete SDK attribute values never represent an omitted field.
+/// Use [`IntoAttribute::into_attr_option`] to request omission explicitly.
+pub fn is_attr_value_empty(_a: &AttributeValue) -> bool {
+    false
 }
 
 #[allow(clippy::result_large_err)]

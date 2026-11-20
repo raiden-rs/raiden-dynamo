@@ -217,7 +217,7 @@ pub(crate) fn attribute_value_to_json_value(
     value: AttributeValue,
 ) -> Result<Value, ConversionError> {
     match value {
-        AttributeValue::Null(_) => Ok(Value::Null),
+        AttributeValue::Null(true) => Ok(Value::Null),
         AttributeValue::Bool(value) => Ok(Value::Bool(value)),
         AttributeValue::N(value) => number_string_to_json(value),
         AttributeValue::S(value) => Ok(Value::String(value)),
