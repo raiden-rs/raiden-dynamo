@@ -152,7 +152,7 @@ mod tests {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionScanSource);
         let builder = client.scan().test_gsi();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .input
@@ -207,7 +207,7 @@ mod tests {
             .test_gsi()
             .project::<TypedGsiProjectionScanItem>();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .inner
@@ -259,7 +259,7 @@ mod tests {
         let client = crate::all::create_client_from_struct!(User);
         let builder = client.scan().user_index().project::<UserIndexItem>();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .inner
@@ -450,7 +450,7 @@ mod tests {
         #[allow(deprecated)]
         let builder = client.scan().index("testGSI");
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let names = builder
                 .input

@@ -16,7 +16,7 @@ jobs:
       - uses: actions-rs/toolchain@b2417cde72dcf67f306c0ae8e0828a81bf0b189f # v1.0.6
         with:
           profile: minimal
-          toolchain: 1.88.0
+          toolchain: 1.91.1
           override: true
       - name: Install deps
         run: sudo apt-get install libssl-dev
@@ -51,14 +51,16 @@ jobs:
         run: |
           cargo check -p raiden --all-targets --no-default-features --features rusoto
           cargo check -p raiden --all-targets --no-default-features --features rusoto_native_tls
-          cargo check -p raiden --all-targets --no-default-features --features rustls
           cargo check -p raiden --all-targets --no-default-features --features aws-sdk
-      - name: Check a downstream crate that selects Rusoto rustls
+      - name: Check known vulnerable dependencies
+        run: python3 scripts/check-security-dependencies.py
+      - name: Check downstream clients and builders on both backends
         run: |
-          cargo check --locked --manifest-path raiden/tests/downstream-rustls/Cargo.toml
-          cargo tree --locked --manifest-path raiden/tests/downstream-rustls/Cargo.toml -e normal --prefix none > downstream-rustls-deps.txt
-          if grep -E '^(native-tls|hyper-tls|openssl-sys) ' downstream-rustls-deps.txt; then
-            echo "native-tls must not be enabled when raiden's rustls feature is selected"
+          cargo check --locked --manifest-path raiden/tests/downstream-backends/Cargo.toml
+          cargo check --locked --manifest-path raiden/tests/downstream-backends/Cargo.toml --no-default-features --features aws-sdk
+          cargo tree --locked --manifest-path raiden/tests/downstream-backends/Cargo.toml --no-default-features --features aws-sdk -e normal --prefix none > downstream-aws-sdk-deps.txt
+          if grep -E '^(native-tls|hyper-tls|openssl-sys) ' downstream-aws-sdk-deps.txt; then
+            echo "the AWS SDK rustls backend must not enable native-tls"
             exit 1
           fi
       - name: test

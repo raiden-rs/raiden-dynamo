@@ -12,7 +12,7 @@ pub struct User {
     pub name: String,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let dispatcher =
         raiden::request::HttpClient::new().expect("failed to create request dispatcher");

@@ -36,7 +36,7 @@ impl<T: super::IntoAttrName> UpdateAddExpressionBuilder for AddExpressionFilled<
 
         // See. https://github.com/raiden-rs/raiden/issues/57
         //      https://github.com/raiden-rs/raiden/issues/58
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let is_null = value.null.is_some();
         #[cfg(feature = "aws-sdk")]
         let is_null = value.is_null();

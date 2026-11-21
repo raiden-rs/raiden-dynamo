@@ -11,7 +11,7 @@ fn encode(attribute: AttributeValue) -> Value {
         .set_item(Some(item))
         .build()
         .unwrap();
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     let request = PutRequest { item };
     let output = raiden::ops::batch_put::BatchPutOutput {
         consumed_capacity: None,

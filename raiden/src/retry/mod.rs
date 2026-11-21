@@ -107,7 +107,7 @@ pub struct DefaultRetryStrategy;
 
 impl RetryStrategy for DefaultRetryStrategy {
     fn should_retry(&self, error: &RaidenError) -> bool {
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         return matches!(
             error,
             RaidenError::InternalServerError(_)

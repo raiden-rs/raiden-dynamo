@@ -94,7 +94,7 @@ print(f"seed={args.seed} cases={args.cases} artifacts={directory}", flush=True)
 for backend in ["rusoto", "aws-sdk"]:
     env = dict(os.environ, RAIDEN_FUZZ_CORPUS=str(corpus),
                RAIDEN_FUZZ_OUTPUT=str(directory / f"{backend}.jsonl"))
-    subprocess.run([env.get("CARGO", "cargo"), "+1.88.0", "test", "-p", "raiden",
+    subprocess.run([env.get("CARGO", "cargo"), "+1.91.1", "test", "-p", "raiden",
                     "--no-default-features", "--features", backend,
                     "--test", "attribute_differential_fuzz", "--", "--ignored"],
                    cwd=root, env=env, check=True)

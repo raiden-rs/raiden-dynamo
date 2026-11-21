@@ -116,7 +116,7 @@ mod tests {
         let filter =
             QueryMapPathTest::filter_expression(QueryMapPathTest::metadata().key("score")).eq(42);
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.query().key_condition(cond).filter(filter).input;
         #[cfg(feature = "aws-sdk")]
         let input = client
@@ -133,7 +133,7 @@ mod tests {
         expected_names.insert("#metadata".to_owned(), "metadata".to_owned());
         expected_names.insert("#score".to_owned(), "score".to_owned());
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             assert!(input
                 .filter_expression
@@ -161,7 +161,7 @@ mod tests {
         )
         .eq(3);
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.query().key_condition(cond).filter(filter).input;
         #[cfg(feature = "aws-sdk")]
         let input = client
@@ -178,7 +178,7 @@ mod tests {
         expected_names.insert("#metadata".to_owned(), "metadata".to_owned());
         expected_names.insert("#level".to_owned(), "level".to_owned());
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             assert!(input
                 .filter_expression
@@ -470,7 +470,7 @@ mod tests {
             .consistent()
             .key_condition(LocalIndexProjection::created_index_key_condition().eq("org1"));
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             assert_eq!(
                 builder.inner.input.index_name.as_deref(),
@@ -658,7 +658,7 @@ mod tests {
         let client = crate::all::create_client_from_struct!(TypedGsiProjectionSource);
         let builder = client.query().test_gsi();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .input
@@ -713,7 +713,7 @@ mod tests {
             .test_gsi()
             .project::<TypedGsiProjectionItem>();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .inner
@@ -765,7 +765,7 @@ mod tests {
         let client = crate::all::create_client_from_struct!(User);
         let builder = client.query().user_index().project::<UserIndexItem>();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let projection = builder
                 .inner
@@ -969,7 +969,7 @@ mod tests {
         #[allow(deprecated)]
         let builder = client.query().index("testGSI");
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         {
             let names = builder
                 .input

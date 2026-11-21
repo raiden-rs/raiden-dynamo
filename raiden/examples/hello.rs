@@ -13,7 +13,7 @@ pub struct Hello {
     pub year: usize,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Hello::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),
