@@ -1,4 +1,4 @@
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 use crate::{ConsumedCapacity, KeysAndAttributes};
 
 #[cfg(feature = "aws-sdk")]
@@ -6,15 +6,12 @@ use crate::aws_sdk::types::{ConsumedCapacity, KeysAndAttributes};
 
 // See. https://github.com/rusoto/rusoto/blob/69e7c9150d98916ef8fc814f5cd17eb0e4dee3d3/rusoto/services/dynamodb/src/generated.rs#L356
 #[derive(Default, Debug, Clone, PartialEq)]
-#[cfg_attr(
-    any(feature = "rusoto", feature = "rusoto_rustls"),
-    derive(serde::Deserialize, serde::Serialize)
-)]
+#[cfg_attr(feature = "rusoto", derive(serde::Deserialize, serde::Serialize))]
 pub struct BatchGetOutput<T> {
     pub consumed_capacity: Option<Vec<ConsumedCapacity>>,
     pub items: Vec<T>,
     #[cfg_attr(
-        any(feature = "rusoto", feature = "rusoto_rustls"),
+        feature = "rusoto",
         serde(
             default,
             deserialize_with = "crate::attribute_json::keys_and_attributes"
@@ -44,7 +41,7 @@ pub trait BatchGetKey {
     fn key_repr(&self) -> Option<Self::Repr>;
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 impl BatchGetKey for crate::AttributeValue {
     type Repr = KeyRepr;
 
@@ -122,7 +119,7 @@ mod tests {
     use super::dedupe_keys;
     use crate::AttributeValue;
 
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     mod attr {
         use crate::AttributeValue;
 

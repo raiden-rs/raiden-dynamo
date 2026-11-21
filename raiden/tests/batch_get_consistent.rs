@@ -95,7 +95,7 @@ fn serve_batches(
     (endpoint, server)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn sdk_client(endpoint: String) -> (Client, Region) {
     let region = Region::Custom {
         endpoint,
@@ -123,7 +123,7 @@ fn sdk_client(endpoint: String) -> Client {
 
 macro_rules! batch_client {
     ($model:ident, $endpoint:expr) => {{
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let client = {
             let (client, region) = sdk_client($endpoint);
             $model::client_with(client, region)

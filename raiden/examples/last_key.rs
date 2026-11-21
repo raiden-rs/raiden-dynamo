@@ -17,7 +17,7 @@ pub struct Test {
 #[derive(Clone, PartialEq)]
 pub struct LongText(String);
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 impl IntoAttribute for LongText {
     fn into_attr(self) -> AttributeValue {
         AttributeValue {
@@ -27,7 +27,7 @@ impl IntoAttribute for LongText {
     }
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 impl FromAttribute for LongText {
     fn from_attr(value: Option<AttributeValue>) -> Result<Self, ConversionError> {
         Ok(Self(value.unwrap().s.unwrap()))
@@ -58,7 +58,7 @@ impl std::fmt::Debug for LongText {
     }
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Test::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),

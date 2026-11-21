@@ -373,12 +373,12 @@ mod tests {
             profile: Document::new(profile.clone()),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.put(input_item).input;
         #[cfg(feature = "aws-sdk")]
         let input = client.put(input_item).builder.build().unwrap();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let item = input.item;
         #[cfg(feature = "aws-sdk")]
         let item = input.item.unwrap();
@@ -406,12 +406,12 @@ mod tests {
             profile: Document::new(profile.clone()),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.put(input_item).input;
         #[cfg(feature = "aws-sdk")]
         let input = client.put(input_item).builder.build().unwrap();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let item = input.item;
         #[cfg(feature = "aws-sdk")]
         let item = input.item.unwrap();
@@ -447,12 +447,12 @@ mod tests {
             profiles: profiles.clone(),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.put(input_item).input;
         #[cfg(feature = "aws-sdk")]
         let input = client.put(input_item).builder.build().unwrap();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let item = input.item;
         #[cfg(feature = "aws-sdk")]
         let item = input.item.unwrap();
@@ -472,12 +472,12 @@ mod tests {
             message: message.clone(),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.put(input_item).input;
         #[cfg(feature = "aws-sdk")]
         let input = client.put(input_item).builder.build().unwrap();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let item = input.item;
         #[cfg(feature = "aws-sdk")]
         let item = input.item.unwrap();

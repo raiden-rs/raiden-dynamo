@@ -7,7 +7,7 @@ use std::collections::{BTreeSet, HashSet};
 fn null(value: bool) -> AttributeValue {
     #[cfg(feature = "aws-sdk")]
     return AttributeValue::Null(value);
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     return AttributeValue {
         null: Some(value),
         ..Default::default()

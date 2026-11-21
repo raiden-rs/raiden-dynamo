@@ -77,7 +77,7 @@ async fn document_list_survives_zero_one_zero_and_all_write_paths() {
         Vec::<String>::new()
     );
 
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     let tx = || {
         WriteTx::new(Region::Custom {
             endpoint: "http://127.0.0.1:8000".into(),
@@ -146,7 +146,7 @@ pub enum EmptySet {
 
 impl IntoAttribute for EmptySet {
     fn into_attr(self) -> AttributeValue {
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         return match self {
             Self::Strings => AttributeValue {
                 ss: Some(vec![]),
@@ -189,7 +189,7 @@ pub struct SourceIps {
 #[tokio::test]
 async fn custom_empty_sets_are_rejected_instead_of_silently_omitted() {
     let client = crate::all::create_client_from_struct!(SourceIps);
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     let tx = || {
         WriteTx::new(Region::Custom {
             endpoint: "http://127.0.0.1:8000".into(),

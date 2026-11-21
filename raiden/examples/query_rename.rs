@@ -15,7 +15,7 @@ pub struct Project {
     pub updated_at: String,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Project::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),

@@ -249,7 +249,7 @@ impl super::IntoAttrValues for ConditionFunctionExpression {
 
         let mut m: super::AttributeValues = std::collections::HashMap::new();
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         match self {
             Self::AttributeType(_path, t) => {
                 m.insert(

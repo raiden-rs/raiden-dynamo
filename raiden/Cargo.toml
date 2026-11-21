@@ -10,9 +10,9 @@ version.workspace = true
 
 [dependencies]
 again = { version = "0.1", default-features = false }
-aws-config = { version = "^1", optional = true }
-aws-sdk-dynamodb = { version = "^1", default-features = false, features = ["default-https-client", "rt-tokio"], optional = true }
-aws-smithy-runtime-api = { version = "^1", optional = true }
+aws-config = { version = "1.8.18", optional = true }
+aws-sdk-dynamodb = { version = "1.114.0", default-features = false, features = ["default-https-client", "rt-tokio"], optional = true }
+aws-smithy-runtime-api = { version = "1.12.3", optional = true }
 base64 = "^0.22"
 md-5 = "^0.10"
 paste = { version = "1.0.15", optional = true }
@@ -35,7 +35,7 @@ wasm-timer = "0.2"
 
 [dev-dependencies]
 aws-credential-types = { version = "^1" }
-aws-smithy-http-client = { version = "=1.1.5", features = ["rustls-aws-lc"] }
+aws-smithy-http-client = { version = "1.1.13", features = ["rustls-aws-lc"] }
 pretty_assertions = "1.4.0"
 proptest = "1.7.0"
 raiden = { path = "./", features = ["tracing"], default-features = false }
@@ -62,15 +62,6 @@ rusoto = [
 ]
 # Explicit name for the native-tls Rusoto backend.
 rusoto_native_tls = ["rusoto"]
-# Rusoto with rustls. Rusoto 0.48 pins rustls 0.20 / ring 0.16, which have
-# open advisories; use `aws-sdk` if you need a patched rustls stack.
-rusoto_rustls = [
-    "rusoto_core/rustls",
-    "rusoto_credential",
-    "rusoto_dynamodb/rustls",
-    "raiden-derive/rusoto",
-]
-rustls = ["rusoto_rustls"]
 tracing = ["dep:tracing", "raiden-derive/tracing"]
 
 [package.metadata.cargo-machete]

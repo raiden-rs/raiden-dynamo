@@ -19,7 +19,6 @@ test:
 lint:
 	cargo clippy --all-targets --no-default-features --features aws-sdk -- -D warnings
 	cargo clippy --all-targets --no-default-features --features rusoto -- -D warnings
-	cargo clippy --all-targets --no-default-features --features rusoto_rustls -- -D warnings
 	cargo clippy --all-targets --features tracing -- -D warnings
 
 .PHONY: check-deps
@@ -27,7 +26,6 @@ check-deps:
 	cargo machete
 	cargo +nightly udeps --all-targets --no-default-features --features aws-sdk
 	cargo +nightly udeps --all-targets --no-default-features --features rusoto
-	cargo +nightly udeps --all-targets --no-default-features --features rusoto_rustls
 	cargo +nightly udeps --all-targets --features tracing
 
 .PHONY: licenses

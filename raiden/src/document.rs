@@ -100,7 +100,7 @@ fn attr_null() -> AttributeValue {
     AttributeValue::Null(true)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_null() -> AttributeValue {
     AttributeValue {
         null: Some(true),
@@ -113,7 +113,7 @@ fn attr_bool(value: bool) -> AttributeValue {
     AttributeValue::Bool(value)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_bool(value: bool) -> AttributeValue {
     AttributeValue {
         bool: Some(value),
@@ -126,7 +126,7 @@ fn attr_number(value: String) -> AttributeValue {
     AttributeValue::N(value)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_number(value: String) -> AttributeValue {
     AttributeValue {
         n: Some(value),
@@ -139,7 +139,7 @@ fn attr_string(value: String) -> AttributeValue {
     AttributeValue::S(value)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_string(value: String) -> AttributeValue {
     AttributeValue {
         s: Some(value),
@@ -152,7 +152,7 @@ fn attr_list(value: Vec<AttributeValue>) -> AttributeValue {
     AttributeValue::L(value)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_list(value: Vec<AttributeValue>) -> AttributeValue {
     AttributeValue {
         l: Some(value),
@@ -165,7 +165,7 @@ fn attr_map(value: HashMap<String, AttributeValue>) -> AttributeValue {
     AttributeValue::M(value)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn attr_map(value: HashMap<String, AttributeValue>) -> AttributeValue {
     AttributeValue {
         m: Some(value),
@@ -256,7 +256,7 @@ pub fn deserialize_document_item<T: DeserializeOwned>(
     deserialize_document(Some(attr_map(item)))
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 pub(crate) fn attribute_value_to_json_value(
     value: AttributeValue,
 ) -> Result<Value, ConversionError> {
@@ -312,7 +312,7 @@ impl<T: FromAttribute> FromAttribute for HashMap<String, T> {
             _ => return Err(ConversionError::ValueIsNone),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let values = match value {
             Some(AttributeValue {
                 m: Some(values), ..
@@ -346,7 +346,7 @@ impl<T: FromAttribute> FromAttribute for BTreeMap<String, T> {
             _ => return Err(ConversionError::ValueIsNone),
         };
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let values = match value {
             Some(AttributeValue {
                 m: Some(values), ..

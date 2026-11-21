@@ -101,7 +101,7 @@ fn mock_response_with(response: Value) -> (String, std::thread::JoinHandle<Value
     (endpoint, server)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn sdk_client(endpoint: String) -> (Client, Region) {
     (
         Client::new_with(
@@ -134,7 +134,7 @@ macro_rules! client {
         client!(AttributeWriteCompat, $endpoint)
     };
     ($model:ident, $endpoint:expr) => {{
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let client = {
             let (client, region) = sdk_client($endpoint);
             $model::client_with(client, region)
@@ -147,7 +147,7 @@ macro_rules! client {
 
 macro_rules! tx {
     ($endpoint:expr) => {{
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let tx = {
             let (client, region) = sdk_client($endpoint);
             WriteTx::new_with_client(client, region)
@@ -160,7 +160,7 @@ macro_rules! tx {
 
 macro_rules! attr {
     ($variant:ident, $field:ident, $value:expr) => {{
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let value = AttributeValue {
             $field: Some($value),
             ..Default::default()
@@ -560,7 +560,7 @@ fn nested_builtin_empty_sets_retain_the_documented_backend_difference() {
     let value = vec![HashSet::<String>::new()].into_attr();
     #[cfg(feature = "aws-sdk")]
     assert_eq!(value, attr!(L, l, vec![attr!(Ss, ss, vec![])]));
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     assert_eq!(value, attr!(L, l, vec![AttributeValue::default()]));
 }
 

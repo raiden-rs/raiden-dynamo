@@ -33,7 +33,7 @@ pub(crate) fn validate_map(value: &Value) -> Result<(), Error> {
         .try_for_each(validate_attribute)
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 mod rusoto {
     use super::*;
     use serde::{de::DeserializeOwned, Deserialize, Deserializer};
@@ -123,5 +123,5 @@ mod rusoto {
     }
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 pub(crate) use rusoto::*;
