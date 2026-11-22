@@ -181,13 +181,13 @@ JSON object keys, request transport behavior, or AWS operational behavior.
 
 ## Reproduce
 
-Use Rust 1.88.0 (the CI toolchain). For each of `rusoto` and `aws-sdk`:
+Use Rust 1.91.1 (the CI toolchain). For each of `rusoto` and `aws-sdk`:
 
 ```sh
-cargo +1.88.0 test -p raiden --no-default-features --features aws-sdk \
+cargo +1.91.1 test -p raiden --no-default-features --features aws-sdk \
   --test attribute_read_compat --test attribute_write_compat
 # Requires the repository's DynamoDB Local fixture setup on localhost:8000:
-cargo +1.88.0 test -p raiden --no-default-features --features aws-sdk \
+cargo +1.91.1 test -p raiden --no-default-features --features aws-sdk \
   --test mod attribute_compat
 ```
 

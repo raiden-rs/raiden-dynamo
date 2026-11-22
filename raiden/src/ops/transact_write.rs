@@ -1,4 +1,4 @@
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 use crate::{ConditionCheck, Delete, Put, Update};
 
 #[cfg(feature = "aws-sdk")]

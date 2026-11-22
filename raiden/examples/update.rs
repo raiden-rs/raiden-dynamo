@@ -14,7 +14,7 @@ pub struct Example {
     age: u8,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Example::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),

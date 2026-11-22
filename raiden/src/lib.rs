@@ -1,15 +1,5 @@
-#[cfg(all(feature = "rusoto", feature = "rusoto_rustls"))]
-compile_error!(
-    "feature \"rusoto\" (native-tls, also enabled by \"rusoto_native_tls\") and \"rusoto_rustls\" (\"rustls\") cannot be enabled at the same time. Disable default features when you select \"rustls\"."
-);
-
-#[cfg(any(
-    all(feature = "aws-sdk", feature = "rusoto"),
-    all(feature = "aws-sdk", feature = "rusoto_rustls")
-))]
-compile_error!(
-    "feature \"aws-sdk\" and \"rusoto\" or \"rusoto_rustls\" cannot be enabled at the same time."
-);
+#[cfg(all(feature = "aws-sdk", feature = "rusoto"))]
+compile_error!("feature \"aws-sdk\" and \"rusoto\" cannot be enabled at the same time.");
 
 #[macro_use]
 extern crate serde_derive;
@@ -29,10 +19,10 @@ pub mod types;
 pub mod update_expression;
 pub mod value_id;
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 mod rusoto;
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 pub use self::rusoto::*;
 
 #[cfg(feature = "aws-sdk")]
@@ -159,7 +149,7 @@ pub trait IntoNumberAttribute: Sized {
 /// Derive macros call this helper from generated code so the null check is
 /// resolved inside the `raiden` crate. This avoids depending on feature flags
 /// in the downstream crate where the macro is expanded.
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 pub fn is_null_attribute_value(value: &AttributeValue) -> bool {
     Some(true) == value.null
 }

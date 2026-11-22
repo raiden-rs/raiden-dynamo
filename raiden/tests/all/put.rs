@@ -35,7 +35,7 @@ mod tests {
         };
         let cond = User::condition().attr_not_exists(User::name());
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let input = client.put(user).condition(cond).input;
         #[cfg(feature = "aws-sdk")]
         let input = client.put(user).condition(cond).builder.build().unwrap();
@@ -53,7 +53,7 @@ mod tests {
 
         attribute_names.insert("#name".to_owned(), "name".to_owned());
 
-        #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+        #[cfg(feature = "rusoto")]
         let expected = ::raiden::PutItemInput {
             condition_expression: Some("attribute_not_exists(#name)".to_owned()),
             expression_attribute_names: Some(attribute_names),

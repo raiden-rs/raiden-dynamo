@@ -13,7 +13,7 @@ impl From<String> for CustomId {
     }
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 impl raiden::IntoAttribute for CustomId {
     fn into_attr(self) -> raiden::AttributeValue {
         raiden::AttributeValue {
@@ -23,7 +23,7 @@ impl raiden::IntoAttribute for CustomId {
     }
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 impl raiden::FromAttribute for CustomId {
     fn from_attr(value: Option<raiden::AttributeValue>) -> Result<Self, ConversionError> {
         Ok(CustomId(value.unwrap().s.unwrap()))
@@ -58,7 +58,7 @@ pub struct User {
     pub name: String,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = User::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),

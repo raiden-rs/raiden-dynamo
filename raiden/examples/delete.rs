@@ -15,7 +15,7 @@ pub struct Test {
     year: usize,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Test::client(raiden::Region::Custom {
         endpoint: "http://localhost:8000".into(),

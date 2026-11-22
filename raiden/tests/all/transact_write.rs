@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     async fn create_client() -> ::raiden::WriteTx {
         ::raiden::WriteTx::new(Region::Custom {
             endpoint: "http://127.0.0.1:8000".into(),

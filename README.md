@@ -18,6 +18,9 @@ You can see more examples [here](https://github.com/raiden-rs/raiden-dynamo/tree
 
 #### With aws-sdk-dynamodb (`aws-sdk` is enabled)
 
+Rust 1.91.1 or newer is required. The AWS SDK minimum versions include the
+`aws-smithy-json` recursion-limit fix (GHSA-8ffr-xgwf-xj56).
+
 ```rust
 use raiden::*;
 
@@ -49,25 +52,11 @@ async fn main() {
 }
 ```
 
-#### With rusoto_dynamodb ( `rusoto`, `rusoto_native_tls`, `rusoto_rustls` or `rustls` is enabled)
+#### With rusoto_dynamodb (`rusoto` or `rusoto_native_tls` is enabled)
 
-The Rusoto backend comes in two TLS flavors. Enable exactly one of them.
-
-| feature | TLS backend | notes |
-| --- | --- | --- |
-| `rusoto` (default), `rusoto_native_tls` | `native-tls` (OpenSSL on Linux) | `rusoto_native_tls` is an explicit alias of `rusoto`. |
-| `rusoto_rustls`, `rustls` | `rustls` | Disable default features, e.g. `default-features = false, features = ["rustls"]`. |
-
-When you choose `rustls`, enable the `rustls` feature (and disable default
-features) on every `rusoto_*` crate you depend on as well. Mixing `native-tls`
-and `rustls` in one build makes `rusoto_core` fail to compile (E0252 on `tls`).
-
-NOTE: Rusoto 0.48's rustls backend depends on rustls 0.20 and ring 0.16, which
-have open security advisories that cannot be fixed within Rusoto. They only
-affect builds that select `rusoto_rustls` / `rustls`. Use `aws-sdk` if you need
-a maintained rustls stack. (0.0.96 and 0.0.97 routed `rustls` to native-tls to
-silence these advisories; 0.0.98 restores rustls because that broke musl
-builds and crates that enable rustls on their own `rusoto_*` dependencies.)
+The default `rusoto` backend uses `native-tls` (OpenSSL on Linux).
+`rusoto_native_tls` is an explicit alias. For a maintained rustls stack, use
+`default-features = false, features = ["aws-sdk"]` instead.
 
 ```rust
 use raiden::*;
@@ -199,10 +188,10 @@ async fn main() {
 
 #### Configure retry strategy
 
-NOTE: Default retry strategy differs between `aws-sdk` and `rusoto` ( or `rusoto_rustls` )
+NOTE: Default retry strategy differs between `aws-sdk` and `rusoto`
 
 - `aws-sdk` ... Not retry in raiden by default. Because you can configure retry strategy using `aws_config`. Or you can configure your own strategy like next example.
-- `rusoto` or `rusoto_rustls` ... Enabled retrying in raiden by default. See detail [here](https://github.com/mythrnr/raiden-dynamo/blob/master/raiden/src/retry/mod.rs).
+- `rusoto` ... Enabled retrying in raiden by default. See detail [here](https://github.com/mythrnr/raiden-dynamo/blob/master/raiden/src/retry/mod.rs).
 
 The `again` based error retry policies use fixed or exponential delays without
 jitter. Batch write retries still apply jitter to unprocessed items.
@@ -305,6 +294,62 @@ if let Some(nickname) = nickname {
 let input = builder.build();
 ```
 
+#### Migrating from the removed Rusoto rustls features
+
+**Breaking change:** `rustls` and `rusoto_rustls` have been removed.
+Update existing lockfiles with `cargo update` after changing dependencies. Rusoto 0.48
+pins rustls 0.20 / ring 0.16, and their security fixes cannot be selected by a
+compatible dependency update. Both supported backends now avoid those versions.
+
+For rustls, switch to the AWS SDK backend and remove direct `rusoto_*`
+dependencies from the migrated code:
+
+```toml
+[dependencies]
+raiden = { version = "*", default-features = false, features = ["aws-sdk"] }
+aws-config = "1.8.18"
+aws-sdk-dynamodb = { version = "1.114.0", default-features = false, features = ["default-https-client", "rt-tokio"] }
+```
+
+Replace Rusoto's `Region`, `Client`, and `HttpClient` construction with AWS SDK
+configuration. Load credentials and region through `aws_config`; pass the SDK
+client as the single argument to `User::client_with`:
+
+```rust,ignore
+let config = aws_config::defaults(aws_config::BehaviorVersion::latest())
+    .region(aws_sdk_dynamodb::config::Region::new("ap-northeast-1"))
+    // For local DynamoDB, also set .endpoint_url("http://localhost:8000").
+    .load()
+    .await;
+let client = User::client_with(aws_sdk_dynamodb::Client::new(&config));
+```
+
+The SDK's default HTTPS client uses modern rustls. For an explicit HTTP client,
+add `aws-smithy-http-client = { version = "1.1.13", features = ["rustls-aws-lc"] }`
+and set the HTTP client before `.load()`:
+
+```rust,ignore
+.http_client(
+    aws_smithy_http_client::Builder::new()
+        .tls_provider(aws_smithy_http_client::tls::Provider::Rustls(
+            aws_smithy_http_client::tls::rustls_provider::CryptoMode::AwsLc,
+        ))
+        .build_https(),
+)
+```
+
+Update backend-specific types and operations using the AWS SDK examples and the
+backend differences documented above. The downstream fixture
+in `raiden/tests/downstream-backends` compiles this client construction and the
+public put builders together.
+
+To retain the Rusoto API, switch Raiden to `features = ["rusoto_native_tls"]`
+(with default features disabled), and change every direct `rusoto_core` /
+`rusoto_dynamodb` dependency to `default-features = false, features = ["native-tls"]`.
+`rusoto_core::HttpClient::new()` then uses native TLS. This option requires
+OpenSSL on Linux; use the AWS SDK option above for rustls or musl builds that
+must avoid OpenSSL.
+
 #### Migrating from 0.0.95 - 0.0.97
 
 0.0.95 to 0.0.97 generated put item builders with [bon](https://bon-rs.com) and
@@ -319,9 +364,6 @@ unchanged. Code written for 0.0.95 - 0.0.97 may need these changes:
   are gone. Use `nickname_with_option(opt)`.
 - Types written as `UserPutItemInputBuilder<S>` with a bon state parameter
   become `DefaultUserPutItemInputBuilder` for the initial builder.
-- If you enabled `rustls` / `rusoto_rustls` while it was routed to
-  native-tls and want to keep native-tls, switch to `rusoto` or
-  `rusoto_native_tls`.
 
 #### store maps and nested documents
 

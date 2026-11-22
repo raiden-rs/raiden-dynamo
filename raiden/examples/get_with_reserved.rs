@@ -12,7 +12,7 @@ pub struct Reserved {
     pub r#type: String,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let client = Reserved::client(Region::Custom {
         endpoint: "http://localhost:8000".into(),

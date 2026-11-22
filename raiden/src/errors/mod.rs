@@ -37,24 +37,24 @@ pub enum RaidenError {
     //
     // Following errors are returned only using rusoto.
     //
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("blocking error")]
     Blocking,
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("`{0}`")]
     Credentials(crate::CredentialsError),
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("`{0}`")]
     HttpDispatch(crate::HttpDispatchError),
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("`{0}`")]
     ParseError(String),
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("`transaction canceled error {reasons}`")]
     TransactionCanceled {
         reasons: RaidenTransactionCancellationReasons,
     },
-    #[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+    #[cfg(feature = "rusoto")]
     #[error("unknown error")]
     Unknown(crate::request::BufferedHttpResponse),
     //

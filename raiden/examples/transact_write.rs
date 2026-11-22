@@ -12,7 +12,7 @@ pub struct User {
     pub name: String,
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 async fn example() {
     let tx = ::raiden::WriteTx::new(Region::Custom {
         endpoint: "http://localhost:8000".into(),

@@ -17,7 +17,7 @@ mod transact_get;
 mod transact_write;
 mod update;
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 macro_rules! create_client {
     ($ty: ty) => {
         <$ty>::new(raiden::Region::Custom {
@@ -27,7 +27,7 @@ macro_rules! create_client {
     };
 }
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 macro_rules! create_client_from_struct {
     ($ty: ty) => {
         <$ty>::client(raiden::Region::Custom {
@@ -71,7 +71,7 @@ macro_rules! create_client_from_struct {
 
 use {create_client, create_client_from_struct};
 
-#[cfg(any(feature = "rusoto", feature = "rusoto_rustls"))]
+#[cfg(feature = "rusoto")]
 fn default_key_and_attributes() -> raiden::KeysAndAttributes {
     raiden::KeysAndAttributes {
         attributes_to_get: None,
