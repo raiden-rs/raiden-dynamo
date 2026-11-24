@@ -184,6 +184,9 @@ pub(crate) fn expand_scan(
                         }, condition).await?
                     };
 
+                    // DynamoDB signals the final page with an absent or empty key.
+                    let last_evaluated_key = res.last_evaluated_key.filter(|key| !key.is_empty());
+
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
                             items.push(I::from_item(res_item)?)
@@ -197,16 +200,16 @@ pub(crate) fn expand_scan(
                         has_next = l - scanned > 0;
                         limit = Some(l - scanned);
                     }
-                    if res.last_evaluated_key.is_none() || !has_next {
+                    if last_evaluated_key.is_none() || !has_next {
                         return Ok(::raiden::scan::ScanOutput {
                             consumed_capacity: res.consumed_capacity,
                             count: res.count,
                             items,
-                            last_evaluated_key: res.last_evaluated_key,
+                            last_evaluated_key,
                             scanned_count: res.scanned_count,
                         })
                     }
-                    input.exclusive_start_key = res.last_evaluated_key;
+                    input.exclusive_start_key = last_evaluated_key;
                 }
             }
 

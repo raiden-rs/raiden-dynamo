@@ -124,8 +124,11 @@ difference; canonical fixtures now run unchanged on both backends.
    object keys, every output DTO, and every metadata combination are not
    exhaustively compared. Direct native Rusoto serde remains permissive;
    Raiden does not replace the backend's exposed AttributeValue type.
-7. **SDK operational behavior is outside this audit.** Credentials/region
-   resolution, retries, timeouts, HTTP/TLS behavior, pagination under concurrent
+7. **SDK operational behavior is outside this attribute audit.** A separate
+   [operational audit](sdk-rusoto-operational-compatibility.md) covers scripted
+   pagination, explicit retry policies and transaction cancellation reasons.
+   Credentials/region resolution, default retries, timeouts, HTTP/TLS behavior,
+   pagination under concurrent
    writes, throttling, IAM and real AWS service failures have not been proven
    equivalent. Error classification is checked for the listed Local validation
    failures; exact SDK/service error messages are not promised to match.
