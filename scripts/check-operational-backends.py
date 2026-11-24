@@ -107,11 +107,26 @@ for backend in ["rusoto", "aws-sdk"]:
 observations = [(directory / f"{backend}.jsonl").read_text().splitlines()
                 for backend in ["rusoto", "aws-sdk"]]
 assert all(len(rows) == len(cases) for rows in observations)
+# Preserve raw observations; exclude only the documented SDK idempotency token
+# from payload equality, and validate its presence/shape rather than masking bugs.
+def comparable(case, observation, backend):
+    if case["operation"] == "transact_write":
+        for request in observation["requests"]:
+            if backend == "aws-sdk":
+                token = request.pop("ClientRequestToken")
+                assert isinstance(token, str) and 1 <= len(token) <= 36
+            else:
+                assert "ClientRequestToken" not in request
+    return observation
+
+
 differences = [{"case": index, "input": case, "rusoto": json.loads(left),
                 "aws-sdk": json.loads(right)}
                for index, (case, left, right) in enumerate(zip(cases, *observations))
-               if json.loads(left) != json.loads(right)]
+               if comparable(case, json.loads(left), "rusoto") !=
+               comparable(case, json.loads(right), "aws-sdk")]
 (directory / "differences.json").write_text(json.dumps(differences, ensure_ascii=True, indent=2))
+print("Intentional SDK-only difference: WriteTx ClientRequestToken (raw values retained).")
 print(f"Compared {len(cases)} inputs: {len(differences)} differences. Artifacts: {directory}")
 for difference in differences[:3]:
     print(json.dumps(difference, ensure_ascii=True))

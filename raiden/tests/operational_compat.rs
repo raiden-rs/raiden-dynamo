@@ -176,7 +176,13 @@ async fn service_error_messages_and_new_sdk_errors_keep_the_rusoto_contract() {
                 );
                 let requests = observed["requests"].as_array().unwrap();
                 assert_eq!(requests.len(), 1);
+                #[cfg(feature = "rusoto")]
                 assert!(requests[0].get("ClientRequestToken").is_none());
+                #[cfg(feature = "aws-sdk")]
+                assert_eq!(
+                    requests[0].get("ClientRequestToken").is_some(),
+                    operation == "transact_write"
+                );
             }
         }
     }
@@ -553,7 +559,7 @@ async fn condition_failure_is_not_retried_even_with_an_explicit_retry_policy() {
 }
 
 #[tokio::test]
-async fn transaction_retries_preserve_the_rusoto_request_without_an_implicit_token() {
+async fn transaction_retries_preserve_payload_and_backend_token_contract() {
     let (endpoint, server) = serve(vec![
         (500, service_error("InternalServerError")),
         (500, service_error("InternalServerError")),
@@ -572,11 +578,70 @@ async fn transaction_retries_preserve_the_rusoto_request_without_an_implicit_tok
         .unwrap();
     let requests = server.join().unwrap();
     assert_eq!(requests.len(), 3);
+    #[cfg(feature = "aws-sdk")]
+    let mut requests = requests;
+    #[cfg(feature = "aws-sdk")]
+    {
+        let token = requests[0]["ClientRequestToken"]
+            .as_str()
+            .unwrap()
+            .to_owned();
+        uuid::Uuid::parse_str(&token).unwrap();
+        assert!(requests
+            .iter()
+            .all(|request| request["ClientRequestToken"] == token));
+        for request in &mut requests {
+            request
+                .as_object_mut()
+                .unwrap()
+                .remove("ClientRequestToken");
+        }
+        // A separate logical transaction must receive a fresh token.
+        let (endpoint, server) = serve(vec![(200, json!({}))]);
+        tx!(endpoint)
+            .put(OperationalCompat::put(OperationalCompatPutItemInput {
+                id: "a".into(),
+            }))
+            .run()
+            .await
+            .unwrap();
+        assert_ne!(server.join().unwrap()[0]["ClientRequestToken"], token);
+    }
     let expected = json!({"TransactItems": [
         {"Put": {"Item": {"id": {"S": "a"}}, "TableName": "OperationalCompat"}},
         {"Put": {"Item": {"id": {"S": "b"}}, "TableName": "OperationalCompat"}},
     ]});
     assert!(requests.iter().all(|request| request == &expected));
+}
+
+#[tokio::test]
+#[cfg(feature = "aws-sdk")]
+async fn transaction_token_is_stable_across_nested_sdk_and_raiden_retries() {
+    let mut responses = vec![(500, service_error("InternalServerError")); 5];
+    responses.push((200, json!({})));
+    let (endpoint, server) = serve(responses);
+    let config = sdk_client(endpoint)
+        .config()
+        .to_builder()
+        .retry_config(
+            aws_sdk::config::retry::RetryConfig::standard()
+                .with_max_attempts(2)
+                .with_initial_backoff(Duration::from_millis(1)),
+        )
+        .build();
+    WriteTx::new_with_client(Client::from_conf(config))
+        .with_retries(Box::new(RetryTwice))
+        .put(OperationalCompat::put(OperationalCompatPutItemInput {
+            id: "a".into(),
+        }))
+        .run()
+        .await
+        .unwrap();
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 6);
+    let token = requests[0]["ClientRequestToken"].as_str().unwrap();
+    uuid::Uuid::parse_str(token).unwrap();
+    assert!(requests.iter().all(|request| request == &requests[0]));
 }
 
 #[tokio::test]

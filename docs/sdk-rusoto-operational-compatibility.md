@@ -55,7 +55,8 @@ The HTTP differential probe compares generated request JSON, serialized read
 outputs, error variants/messages, normalized cancellation reasons and the shared
 retry policy's decision. Unknown raw error payload/debug types and headers are
 backend-specific and are not compared. JSON object ordering is ignored; request
-tokens are **not** masked.
+tokens are retained in raw evidence. The documented SDK-only ClientRequestToken
+is validated and excluded only from cross-backend payload equality.
 
 - SDK modeled-error Display text included the exception name; Rusoto exposes the
   bare message. InvalidEndpointException was incorrectly mapped to InternalServerError,
@@ -67,11 +68,14 @@ tokens are **not** masked.
   aliases and invalid message types return Unknown. Invalid SDK cancellation
   details no longer erase a Rusoto-readable TransactionCanceled classification.
   Raw SDK reasons remain available when its structured decoder succeeds.
-- SDK inserted a random ClientRequestToken for WriteTx. Rusoto sends none.
-  WriteTx now removes the implicit token before signing, including explicit retries.
-  **This removes the SDK's implicit AWS idempotency protection.** A retry after a
-  lost response can execute a transaction twice, matching Rusoto. A regression
-  asserts all three retry requests equal the complete expected token-free JSON.
+- **Intentional safety difference:** SDK WriteTx sends ClientRequestToken;
+  Rusoto sends none. Keep this AWS idempotency protection rather than matching
+  Rusoto's omission. Generate one UUID per WriteTx::run and reuse it across SDK
+  middleware and explicit Raiden retries; separate runs receive fresh tokens.
+  Regression tests check complete payload equality after removing only this field,
+  token presence/format, stability across three explicit attempts and six nested
+  SDK/Raiden attempts, and distinct tokens for distinct runs. This does not make
+  separate run calls idempotent; DynamoDB's token validity window also applies.
 - SDK Query/Scan synthesize zero for missing/null Count and ScannedCount, whereas
   Rusoto returns None. An interceptor records their presence from the buffered
   response. An operation-local interceptor retains the original client's
@@ -86,11 +90,12 @@ tokens are **not** masked.
 Exploration reproduced 1,620 differing observations in an initial 3,300-case
 error matrix (300 also differed in transaction request JSON). An additional
 2,000 seeded malformed/alternative error-body cases revealed 470 remaining
-differences. After the fixes, the combined 5,300 cases had zero differences.
+differences. After the fixes, the combined 5,300 cases had zero unexpected differences
+(the SDK-only idempotency token is the explicit exception described above).
 The initial successful-read matrix found 216 differences in 333 cases, all due
 to optional counters; after fixing them, an expanded 373-case matrix has zero
 observed differences. An independent seed (20261125) with 10,000 exploratory
-cases plus the 3,300-case baseline also has zero differences (13,300 total).
+cases plus the 3,300-case baseline also has zero unexpected differences (13,300 total, with the same token exception).
 These are finite structured explorations, not arbitrary
 byte fuzzing. Some fixtures intentionally describe service-invalid combinations
 so decoding behavior can be compared independently of AWS validation.
@@ -100,6 +105,7 @@ so decoding behavior can be compared independently of AWS validation.
 - **Default retries remain backend-specific.** Rusoto uses Raiden's retry
   policy; the SDK normally uses its own retry middleware. These tests disable
   SDK middleware retries to isolate the explicitly configured Raiden policy.
+  A separate SDK regression checks stable transaction tokens with nested SDK/Raiden retries.
   They do not compare default attempt counts, jitter, retry delays, timeout or
   credential failures, or nested SDK/custom retry budgets. Batch retries are
   outside this new fixture suite; existing batch tests cover unprocessed keys
