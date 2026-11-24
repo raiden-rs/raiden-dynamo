@@ -20,7 +20,7 @@ parser.add_argument("--seed", type=int, default=20261124)
 parser.add_argument("--responses", action="store_true", help="explore successful read-response decoding")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
-directory = args.output_dir or Path(tempfile.mkdtemp(prefix="raiden-http-errors-"))
+directory = (args.output_dir or Path(tempfile.mkdtemp(prefix="raiden-http-errors-"))).resolve()
 directory.mkdir(parents=True, exist_ok=True)
 operations = ["get", "batch_get", "transact_get", "query", "scan", "put",
               "batch_put", "batch_delete", "delete", "update", "transact_write"]
