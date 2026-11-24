@@ -170,6 +170,9 @@ attributes on both backends, rather than coercing them to valid values.
 This changes prior Rusoto acceptance and prior SDK NULL:null acceptance.
 Replaying the exact original 2,000 inputs after the fix produces zero
 mismatches; all 208 original counterexamples now fail decoding on both backends.
+An independent 10,000-input run with malformed attributes (seed 20261126)
+also found zero mismatches and recorded a read-conversion panic on 692 inputs
+on each backend.
 Every corpus, both observation files and `differences.json` are retained in
 the reported artifact directory.
 

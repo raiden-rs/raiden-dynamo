@@ -14,9 +14,16 @@ pub struct OperationalCompat {
 }
 
 #[derive(Raiden, Debug, PartialEq, serde::Serialize)]
+#[raiden(gsi(name = "note-index", partition_key = "note"))]
 pub struct OperationalCompatWrite {
     #[raiden(partition_key)]
     pub id: String,
+    pub note: Option<String>,
+}
+
+#[derive(RaidenIndex, Debug, PartialEq)]
+#[raiden(source = "OperationalCompatWrite", gsi = "note-index")]
+pub struct OperationalCompatNote {
     pub note: Option<String>,
 }
 
@@ -578,6 +585,28 @@ async fn explicit_retry_policy_retries_transient_errors_and_preserves_the_final_
             assert!(requests.windows(2).all(|pair| pair[0] == pair[1]));
         }
     }
+}
+
+#[tokio::test]
+async fn typed_index_scan_uses_the_explicit_retry_policy() {
+    let item = json!({"note": {"S": "found"}});
+    let (endpoint, server) = serve(vec![
+        (500, service_error("InternalServerError")),
+        (200, page(vec![item], 1, None)),
+    ]);
+    let client = client!(OperationalCompatWrite, endpoint).with_retries(Box::new(RetryTwice));
+    let result = OperationalCompatNote::scan(&client).run().await.unwrap();
+    assert_eq!(
+        result.items,
+        vec![OperationalCompatNote {
+            note: Some("found".into()),
+        }]
+    );
+
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 2);
+    assert_eq!(requests[0], requests[1]);
+    assert_eq!(requests[0]["IndexName"], "note-index");
 }
 
 #[tokio::test]

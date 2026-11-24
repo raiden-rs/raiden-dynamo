@@ -124,6 +124,12 @@ backends does not guarantee identical behavior for every input or operation.
 | Transaction request tokens (intentional difference) | SDK WriteTx retains AWS idempotency protection with one ClientRequestToken per run, shared across SDK and explicit Raiden retries. Separate runs use fresh tokens. Rusoto sends no token. This safety difference is preserved; only this field is excluded from cross-backend request equality and its actual value remains in exploration artifacts. |
 | Runtime behavior | Explicit retry policies and canonical transaction cancellation reasons have shared HTTP regression tests; see the [operational compatibility audit](docs/sdk-rusoto-operational-compatibility.md) for coverage and remaining risks. Retry defaults differ (see below). Credentials, region resolution, timeouts, HTTP/TLS, throttling, IAM, and real AWS failure handling have not been proven equivalent by the attribute tests. |
 
+The SDK token prevents a transaction from applying twice if DynamoDB commits
+the first request and only its response is lost. DynamoDB deduplicates identical
+requests with the same token for 10 minutes after the initial request completes.
+Calling `run()` again starts a separate execution with a fresh token.
+[DynamoDB TransactWriteItems API](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html#DDB-TransactWriteItems-request-ClientRequestToken)
+
 **Raw JSON validation is a compatibility change for both backends.** Each raw
 attribute must be an object with exactly one recognized DynamoDB type field.
 For example, all of the following now fail decoding on both backends, including

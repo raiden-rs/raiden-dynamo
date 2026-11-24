@@ -300,20 +300,7 @@ fn expand_projection_item_support(
                 pub fn scan<'a>(
                     client: &'a #source_client_ident,
                 ) -> #source_projected_scan_builder_ident<'a, Self> {
-                    let builder = <#source_client_ident as #source_scan_trait_ident>::scan(client);
-                    let #source_scan_builder_ident {
-                        client,
-                        builder,
-                        next_token,
-                        limit,
-                    } = builder;
-                    #source_scan_builder_ident {
-                        client,
-                        builder: builder.index_name(#gsi_name),
-                        next_token,
-                        limit,
-                    }
-                    .project::<Self>()
+                    <#source_client_ident as #source_scan_trait_ident>::scan(client).project::<Self>()
                 }
             }
         }
