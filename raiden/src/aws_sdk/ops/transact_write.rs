@@ -77,7 +77,9 @@ impl WriteTx {
         let req = self
             .client
             .transact_write_items()
-            .set_transact_items(Some(self.items));
+            .set_transact_items(Some(self.items))
+            // One token per logical transaction, shared by SDK and Raiden retries.
+            .client_request_token(uuid::Uuid::new_v4().to_string());
 
         policy
             .retry_if(

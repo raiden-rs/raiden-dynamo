@@ -442,6 +442,9 @@ pub(crate) fn expand_query(
                         async { #call_inner_run }
                     }, self.condition).await?;
 
+                    // DynamoDB signals the final page with an absent or empty key.
+                    let last_evaluated_key = res.last_evaluated_key.filter(|key| !key.is_empty());
+
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
                             items.push(I::from_item(res_item)?)
@@ -456,9 +459,9 @@ pub(crate) fn expand_query(
                         self.limit = Some(limit - scanned);
                     }
 
-                    if res.last_evaluated_key.is_none() || !has_next {
-                        let next_token = if res.last_evaluated_key.is_some() {
-                            Some(::raiden::NextToken::from_attr(&res.last_evaluated_key.unwrap()))
+                    if last_evaluated_key.is_none() || !has_next {
+                        let next_token = if last_evaluated_key.is_some() {
+                            Some(::raiden::NextToken::from_attr(&last_evaluated_key.unwrap()))
                         } else {
                             None
                         };
@@ -470,7 +473,7 @@ pub(crate) fn expand_query(
                             scanned_count: res.scanned_count,
                         })
                     }
-                    self.input.exclusive_start_key = res.last_evaluated_key;
+                    self.input.exclusive_start_key = last_evaluated_key;
                 }
             }
 

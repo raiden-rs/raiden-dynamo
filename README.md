@@ -118,7 +118,17 @@ backends does not guarantee identical behavior for every input or operation.
 | Persisted output JSON | SDK nested request/capacity/metrics metadata now uses Rusoto's PascalCase keys and omits unset fields. Older SDK snake_case metadata keys remain accepted as input; new output uses the canonical keys. Outer Raiden output field names stay snake_case. |
 | Malformed attribute JSON | Raiden's JSON entry points now reject missing/multiple/unknown type tags and null or wrongly typed payloads on **both** backends. In particular, `{"NULL":null}` is rejected instead of becoming SDK `NULL:true`. This intentionally tightens the previous Rusoto decoder too; see the examples and affected APIs below. |
 | Numeric reads | Both backends can still panic when an integer scalar is read from a fractional, out-of-range, or malformed number, due to the existing `parse().unwrap()` conversion. Matching behavior does not mean these inputs are handled safely. |
-| Runtime behavior | Retry defaults differ (see below). Credentials, region resolution, timeouts, HTTP/TLS, throttling, IAM, and real AWS failure handling have not been proven equivalent by the attribute tests. |
+| Pagination | Query/Scan now stop on either an absent or empty `LastEvaluatedKey`; previously both backends could request another page or expose an empty continuation token. Shared scripted tests cover page/limit boundaries. |
+| HTTP error compatibility | SDK errors now use Rusoto's per-operation classification, message text and strict `__type`/`message` decoding, including malformed error details. Exploration compares retry eligibility as well as variants. Raw transport/error payload types remain backend-specific. |
+| Optional page counters | SDK Query/Scan preserve absent or `null` Count/ScannedCount as `None`, instead of synthesizing `Some(0)`. Explicit zero stays `Some(0)`; counters still describe the final page. |
+| Transaction request tokens (intentional difference) | SDK WriteTx retains AWS idempotency protection with one ClientRequestToken per run, shared across SDK and explicit Raiden retries. Separate runs use fresh tokens. Rusoto sends no token. This safety difference is preserved; only this field is excluded from cross-backend request equality and its actual value remains in exploration artifacts. |
+| Runtime behavior | Explicit retry policies and canonical transaction cancellation reasons have shared HTTP regression tests; see the [operational compatibility audit](docs/sdk-rusoto-operational-compatibility.md) for coverage and remaining risks. Retry defaults differ (see below). Credentials, region resolution, timeouts, HTTP/TLS, throttling, IAM, and real AWS failure handling have not been proven equivalent by the attribute tests. |
+
+The SDK token prevents a transaction from applying twice if DynamoDB commits
+the first request and only its response is lost. DynamoDB deduplicates identical
+requests with the same token for 10 minutes after the initial request completes.
+Calling `run()` again starts a separate execution with a fresh token.
+[DynamoDB TransactWriteItems API](https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_TransactWriteItems.html#DDB-TransactWriteItems-request-ClientRequestToken)
 
 **Raw JSON validation is a compatibility change for both backends.** Each raw
 attribute must be an object with exactly one recognized DynamoDB type field.
@@ -195,6 +205,11 @@ NOTE: Default retry strategy differs between `aws-sdk` and `rusoto`
 
 The `again` based error retry policies use fixed or exponential delays without
 jitter. Batch write retries still apply jitter to unprocessed items.
+An explicit `.with_retries()` policy applies to each service request in both
+backends, including Scan pages, Delete, and BatchGet, BatchPut, and BatchDelete
+requests. A batch response with unprocessed items or keys follows the batch
+retry rules. If that follow-up request receives a retryable error, the
+configured error policy applies to the follow-up payload.
 
 ```rust
 use raiden::*;

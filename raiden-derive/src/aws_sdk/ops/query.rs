@@ -238,7 +238,13 @@ pub(crate) fn expand_query(
         }
     });
 
-    let api_call_token = super::api_call_token!("query");
+    let api_call_token = super::api_call_token!(
+        "table_name",
+        "client",
+        "query",
+        "builder",
+        Some(format_ident!("counters"))
+    );
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
             quote! {
@@ -466,6 +472,9 @@ pub(crate) fn expand_query(
                         async { #call_inner_run }
                     }, self.condition).await?;
 
+                    // DynamoDB signals the final page with an absent or empty key.
+                    let last_evaluated_key = res.last_evaluated_key.filter(|key| !key.is_empty());
+
                     if let Some(res_items) = res.items {
                         for res_item in res_items.into_iter() {
                             items.push(I::from_item(res_item)?)
@@ -480,9 +489,9 @@ pub(crate) fn expand_query(
                         self.limit = Some(limit - scanned);
                     }
 
-                    if res.last_evaluated_key.is_none() || !has_next {
-                        let next_token = if res.last_evaluated_key.is_some() {
-                            Some(::raiden::NextToken::from_attr(&res.last_evaluated_key.unwrap()))
+                    if last_evaluated_key.is_none() || !has_next {
+                        let next_token = if last_evaluated_key.is_some() {
+                            Some(::raiden::NextToken::from_attr(&last_evaluated_key.unwrap()))
                         } else {
                             None
                         };
@@ -496,7 +505,7 @@ pub(crate) fn expand_query(
                     }
 
                     self.builder = self.builder
-                        .set_exclusive_start_key(res.last_evaluated_key);
+                        .set_exclusive_start_key(last_evaluated_key);
                 }
             }
 
@@ -505,13 +514,15 @@ pub(crate) fn expand_query(
                 client: ::raiden::Client,
                 builder: ::raiden::aws_sdk::operation::query::builders::QueryInputBuilder,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
+                let counters = ::raiden::aws_sdk::ResponseCounters::default();
                 let res = #api_call_token?;
+                let (count, scanned_count) = counters.get();
                 Ok(#query_output_item {
                     consumed_capacity: res.consumed_capacity,
-                    count: Some(res.count as i64),
+                    count,
                     items: res.items,
                     last_evaluated_key: res.last_evaluated_key,
-                    scanned_count: Some(res.scanned_count as i64),
+                    scanned_count,
                 })
             }
         }

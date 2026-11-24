@@ -1964,6 +1964,7 @@ dependencies = [
  "aws-sdk-dynamodb",
  "aws-smithy-http-client",
  "aws-smithy-runtime-api",
+ "aws-smithy-types",
  "base64 0.22.1",
  "bon",
  "md-5 0.10.6",

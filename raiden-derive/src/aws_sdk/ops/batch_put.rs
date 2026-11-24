@@ -40,12 +40,12 @@ pub(crate) fn expand_batch_put(
     let api_call_token = super::api_call_token!("batch_write_item");
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&table_name, &client, builder).await },
+            quote! { #builder_name::inner_run(&table_name, client, builder.clone()) },
             quote! { table_name: &str, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&client, builder).await },
+            quote! { #builder_name::inner_run(client, builder.clone()) },
             quote! {},
         )
     };
@@ -79,6 +79,8 @@ pub(crate) fn expand_batch_put(
 
                 #builder_name {
                     client: &self.client,
+                    policy: self.retry_condition.strategy.policy(),
+                    retry_condition: &self.retry_condition,
                     write_requests,
                     table_name: self.table_name(),
                 }
@@ -87,6 +89,8 @@ pub(crate) fn expand_batch_put(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
+            pub policy: ::raiden::Policy,
+            pub retry_condition: &'a ::raiden::retry::RetryCondition,
             pub write_requests: ::std::vec::Vec<::raiden::aws_sdk::types::WriteRequest>,
             pub table_name: String,
         }
@@ -96,6 +100,8 @@ pub(crate) fn expand_batch_put(
                 const RETRY: usize = 5;
                 const MAX_ITEMS_PER_REQUEST: usize = 25;
 
+                let policy: ::raiden::RetryPolicy = self.policy.into();
+                let retry_condition = self.retry_condition;
                 let mut exhausted = std::vec::Vec::new();
                 while !self.write_requests.is_empty() {
                     let len = self.write_requests.len();
@@ -107,14 +113,16 @@ pub(crate) fn expand_batch_put(
                         std::time::Duration::from_millis(50),
                         |requests| {
                             let table_name = self.table_name.clone();
-                            let client = self.client.clone();
+                            let client = self.client;
+                            let policy = &policy;
                             async move {
                                 let request_items = vec![(table_name.clone(), requests)]
                                     .into_iter()
                                     .collect::<std::collections::HashMap<_, _>>();
                                 let builder = ::raiden::aws_sdk::operation::batch_write_item::BatchWriteItemInput::builder()
                                     .set_request_items(Some(request_items));
-                                let result = #call_inner_run.map_err(std::boxed::Box::new)?;
+                                let result = policy.retry_if(|| { #call_inner_run }, retry_condition)
+                                    .await.map_err(std::boxed::Box::new)?;
                                 Ok::<_, std::boxed::Box<::raiden::RaidenError>>(result.unprocessed_items
                                     .and_then(|mut items| items.remove(&table_name))
                                     .unwrap_or_default())

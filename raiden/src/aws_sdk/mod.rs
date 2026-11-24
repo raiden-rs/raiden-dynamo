@@ -1,3 +1,6 @@
+mod response_counters;
+#[doc(hidden)]
+pub use response_counters::ResponseCounters;
 mod errors;
 mod ops;
 pub(crate) mod serialize;
