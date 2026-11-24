@@ -22,7 +22,7 @@ The direct regression failed on both backends before the fix.
 
 ## Shared HTTP regression coverage
 
-Eleven ordinary tests cover (two additional corpus probes run explicitly):
+Shared tests cover (two additional corpus probes run explicitly):
 
 - Empty intermediate pages with a nonempty key: continue, preserve returned
   items, and reduce Limit by ScannedCount rather than the number of items.
@@ -38,6 +38,11 @@ Eleven ordinary tests cover (two additional corpus probes run explicitly):
   RequestLimitExceeded with an explicit two-retry Raiden policy: three identical
   requests, either eventual success or the expected final RaidenError variant.
 - ConditionalCheckFailedException: no retry even with that explicit policy.
+- Scan and Delete, BatchGet, BatchPut, and BatchDelete: the SDK builders now
+  honor the client's explicit Raiden policy, as Rusoto already did. Scan
+  retains its cursor when a later page is retried. Each batch initially retries
+  the full request after a transient error. After a partial success, a
+  transient error retries only the remaining keys or write requests.
 - TransactGet/TransactWrite cancellation: preserve all six recognized reason
   codes, None and an unknown future code in order; all six business-rule helper
   predicates remain true for their corresponding reason. The fixture has one
@@ -51,7 +56,7 @@ of every generated query or error scenario.
 
 ## Additional differences found and fixed
 
-The HTTP differential probe compares generated request JSON, serialized read
+The HTTP differential probe compares generated request JSON, serialized
 outputs, error variants/messages, normalized cancellation reasons and the shared
 retry policy's decision. Unknown raw error payload/debug types and headers are
 backend-specific and are not compared. JSON object ordering is ignored; request
@@ -96,6 +101,11 @@ The initial successful-read matrix found 216 differences in 333 cases, all due
 to optional counters; after fixing them, an expanded 373-case matrix has zero
 observed differences. An independent seed (20261125) with 10,000 exploratory
 cases plus the 3,300-case baseline also has zero unexpected differences (13,300 total, with the same token exception).
+Adding 108 HTTP 200 fixtures across Put, Update, Delete, BatchPut,
+BatchDelete, and TransactWrite brings the success corpus to 481 cases across
+all eleven operations. It checks request JSON and the public results,
+including Update's ALL_OLD and ALL_NEW attributes, capacity and item collection
+metrics, and empty batch results. The same transaction token exception applies.
 These are finite structured explorations, not arbitrary
 byte fuzzing. Some fixtures intentionally describe service-invalid combinations
 so decoding behavior can be compared independently of AWS validation.

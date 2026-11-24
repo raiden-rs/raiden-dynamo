@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare real HTTP error decoding in separate Rusoto/AWS SDK feature builds.
+"""Compare DynamoDB HTTP responses in separate Rusoto/AWS SDK feature builds.
 
 Keeps every input, observation and mismatch. No AWS credentials/server needed.
 This is a finite cross-product exploration, not coverage-guided fuzzing.
@@ -17,7 +17,7 @@ parser.add_argument("--output-dir", type=Path)
 parser.add_argument("--toolchain", default="1.91.1")
 parser.add_argument("--exploratory-cases", type=int, default=2000)
 parser.add_argument("--seed", type=int, default=20261124)
-parser.add_argument("--responses", action="store_true", help="explore successful read-response decoding")
+parser.add_argument("--responses", action="store_true", help="explore successful response decoding")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[1]
 directory = (args.output_dir or Path(tempfile.mkdtemp(prefix="raiden-http-errors-"))).resolve()
@@ -93,6 +93,37 @@ if args.responses:
                               "GlobalSecondaryIndexes": {"gsi": {"ReadCapacityUnits": 0.25}}}]:
                 cases.append({"operation": operation,
                               "body": {**items, "ConsumedCapacity": capacity}})
+    metrics = {"ItemCollectionKey": {"id": {"S": "id"}},
+               "SizeEstimateRangeGB": [0.25, 0.5]}
+    for operation in ["put", "delete", "update", "batch_put", "batch_delete", "transact_write"]:
+        table = "OperationalCompatWrite" if operation == "update" else "OperationalCompat"
+        capacity = {"TableName": table, "CapacityUnits": 0.5,
+                    "Table": {"WriteCapacityUnits": 0.5}}
+        multiple_items = operation in ["batch_put", "batch_delete", "transact_write"]
+        capacity_cases = [
+            {}, {"ConsumedCapacity": None},
+            {"ConsumedCapacity": [capacity] if multiple_items else capacity},
+        ]
+        metrics_cases = [
+            {}, {"ItemCollectionMetrics": None},
+            {"ItemCollectionMetrics": {table: [metrics]} if multiple_items else metrics},
+        ]
+        for capacity_fields in capacity_cases:
+            for metrics_fields in metrics_cases:
+                body = {**capacity_fields, **metrics_fields}
+                if operation in ["batch_put", "batch_delete"]:
+                    for pending in [{}, {"UnprocessedItems": None},
+                                    {"UnprocessedItems": {"OperationalCompat": []}}]:
+                        cases.append({"operation": operation, "body": {**body, **pending}})
+                elif operation == "update":
+                    cases.append({"operation": operation, "body": body})
+                    for values, note in [("ALL_OLD", "old"), ("ALL_NEW", "new")]:
+                        cases.append({"operation": operation, "return_values": values,
+                                      "body": {**body, "Attributes": {
+                                          "id": {"S": "id"}, "note": {"S": note},
+                                      }}})
+                else:
+                    cases.append({"operation": operation, "body": body})
 corpus = directory / "corpus.jsonl"
 corpus.write_text("".join(json.dumps(case, ensure_ascii=True) + "\n" for case in cases))
 print(f"seed={args.seed} cases={len(cases)} artifacts={directory}", flush=True)

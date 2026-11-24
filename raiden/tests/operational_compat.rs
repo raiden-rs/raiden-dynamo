@@ -13,6 +13,13 @@ pub struct OperationalCompat {
     pub id: String,
 }
 
+#[derive(Raiden, Debug, PartialEq, serde::Serialize)]
+pub struct OperationalCompatWrite {
+    #[raiden(partition_key)]
+    pub id: String,
+    pub note: Option<String>,
+}
+
 // Script exactly N responses. A surprise request fails promptly, including
 // accidental pagination after an empty key. Every expected request has a deadline.
 fn serve(responses: Vec<(u16, Value)>) -> (String, std::thread::JoinHandle<Vec<Value>>) {
@@ -344,7 +351,7 @@ async fn differential_service_error_corpus() {
     }
 }
 
-fn read_observation<T: serde::Serialize>(result: Result<T, RaidenError>) -> Value {
+fn result_observation<T: serde::Serialize>(result: Result<T, RaidenError>) -> Value {
     match result {
         Ok(output) => json!({"ok": output}),
         Err(error) => json!({"error": error_observation(&error)}),
@@ -359,12 +366,13 @@ async fn differential_success_response_corpus() {
     for line in corpus.lines() {
         let case: Value = serde_json::from_str(line).unwrap();
         let (endpoint, server) = serve(vec![(200, case["body"].clone())]);
-        let client = client!(endpoint).with_retries(Box::new(NopRetryStrategy));
+        let client = client!(endpoint.clone()).with_retries(Box::new(NopRetryStrategy));
+        let input = || OperationalCompatPutItemInput { id: "id".into() };
         let observed = match case["operation"].as_str().unwrap() {
-            "get" => read_observation(client.get("id").run().await),
-            "batch_get" => read_observation(client.batch_get(vec!["id"]).run().await),
-            "transact_get" => read_observation(client.transact_get(vec!["id"]).run().await),
-            "query" => read_observation(
+            "get" => result_observation(client.get("id").run().await),
+            "batch_get" => result_observation(client.batch_get(vec!["id"]).run().await),
+            "transact_get" => result_observation(client.transact_get(vec!["id"]).run().await),
+            "query" => result_observation(
                 client
                     .query()
                     .key_condition(
@@ -373,8 +381,40 @@ async fn differential_success_response_corpus() {
                     .run()
                     .await,
             ),
-            "scan" => read_observation(client.scan().run().await),
-            operation => panic!("unknown read operation: {operation}"),
+            "scan" => result_observation(client.scan().run().await),
+            "put" => result_observation(client.put(input()).run().await.map(|output| {
+                raiden::put::PutOutput {
+                    consumed_capacity: output.consumed_capacity,
+                    item: OperationalCompat { id: output.item.id },
+                }
+            })),
+            "delete" => result_observation(client.delete("id").run().await),
+            "batch_put" => result_observation(client.batch_put(vec![input()]).run().await),
+            "batch_delete" => result_observation(client.batch_delete(vec!["id"]).run().await),
+            "transact_write" => result_observation(
+                tx!(endpoint)
+                    .with_retries(Box::new(NopRetryStrategy))
+                    .put(OperationalCompat::put(input()))
+                    .run()
+                    .await,
+            ),
+            "update" => {
+                let client = client!(OperationalCompatWrite, endpoint)
+                    .with_retries(Box::new(NopRetryStrategy));
+                let builder = client.update("id").set(
+                    OperationalCompatWrite::update_expression()
+                        .set(OperationalCompatWrite::note())
+                        .value(Some("new".to_owned())),
+                );
+                let builder = match case["return_values"].as_str() {
+                    Some("ALL_OLD") => builder.return_all_old(),
+                    Some("ALL_NEW") => builder.return_all_new(),
+                    None => builder,
+                    Some(value) => panic!("unknown ReturnValues: {value}"),
+                };
+                result_observation(builder.run().await)
+            }
+            operation => panic!("unknown operation: {operation}"),
         };
         writeln!(
             output,
