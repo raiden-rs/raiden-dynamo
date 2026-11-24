@@ -38,14 +38,14 @@ pub(crate) fn expand_scan(
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
             quote! {
-                let table_name = self.builder.get_table_name().clone().expect("table name should be set");
-                #builder_name::inner_run(&table_name, &self.client, self.builder.clone()).await?
+                let table_name = self.builder.get_table_name().as_deref().expect("table name should be set");
+                #builder_name::inner_run(table_name, self.client, self.builder.clone())
             },
             quote! { table_name: &str, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, self.builder.clone()).await? },
+            quote! { #builder_name::inner_run(self.client, self.builder.clone()) },
             quote! {},
         )
     };
@@ -64,6 +64,8 @@ pub(crate) fn expand_scan(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
+            pub policy: ::raiden::Policy,
+            pub retry_condition: &'a ::raiden::retry::RetryCondition,
             pub builder: ::raiden::aws_sdk::operation::scan::builders::ScanInputBuilder,
             pub next_token: Option<::raiden::NextToken>,
             pub limit: Option<i64>
@@ -88,6 +90,8 @@ pub(crate) fn expand_scan(
 
                 #builder_name {
                     client: &self.client,
+                    policy: self.retry_condition.strategy.policy(),
+                    retry_condition: &self.retry_condition,
                     builder,
                     next_token: None,
                     limit: None
@@ -188,6 +192,7 @@ pub(crate) fn expand_scan(
                         .set_exclusive_start_key(Some(token.into_attr_values()?));
                 }
 
+                let policy: ::raiden::RetryPolicy = self.policy.into();
                 let mut items: Vec<I> = vec![];
 
                 loop {
@@ -195,7 +200,7 @@ pub(crate) fn expand_scan(
                         self.builder = self.builder.limit(limit as i32);
                     }
 
-                    let res = { #call_inner_run };
+                    let res = policy.retry_if(|| { #call_inner_run }, self.retry_condition).await?;
 
                     // DynamoDB signals the final page with an absent or empty key.
                     let last_evaluated_key = res.last_evaluated_key.filter(|key| !key.is_empty());

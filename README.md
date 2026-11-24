@@ -199,6 +199,11 @@ NOTE: Default retry strategy differs between `aws-sdk` and `rusoto`
 
 The `again` based error retry policies use fixed or exponential delays without
 jitter. Batch write retries still apply jitter to unprocessed items.
+An explicit `.with_retries()` policy applies to each service request in both
+backends, including Scan pages, Delete, and BatchGet, BatchPut, and BatchDelete
+requests. A batch response with unprocessed items or keys follows the batch
+retry rules. If that follow-up request receives a retryable error, the
+configured error policy applies to the follow-up payload.
 
 ```rust
 use raiden::*;

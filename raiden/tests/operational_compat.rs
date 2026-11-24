@@ -541,6 +541,94 @@ async fn explicit_retry_policy_retries_transient_errors_and_preserves_the_final_
 }
 
 #[tokio::test]
+async fn explicit_retry_policy_applies_to_scan_delete_and_batch_requests() {
+    let put = |id: &str| OperationalCompatPutItemInput { id: id.into() };
+    let put_request = json!({"PutRequest": {"Item": key("pending")}});
+    let delete_request = json!({"DeleteRequest": {"Key": key("pending")}});
+    let pending_get = json!({"Keys": [key("pending")]});
+    for (operation, first, follow_up, pending) in [
+        (
+            "scan",
+            json!({"Items": [key("found")], "Count": 1, "ScannedCount": 1,
+                   "LastEvaluatedKey": key("found")}),
+            Some(json!({"Items": [key("next")], "Count": 1, "ScannedCount": 1})),
+            Some(key("found")),
+        ),
+        ("delete", json!({}), None, None),
+        (
+            "batch_get",
+            json!({"Responses": {"OperationalCompat": [key("found")]},
+                   "UnprocessedKeys": {"OperationalCompat": pending_get}}),
+            Some(json!({"Responses": {"OperationalCompat": [key("pending")]}})),
+            Some(json!([key("pending")])),
+        ),
+        (
+            "batch_put",
+            json!({"UnprocessedItems": {"OperationalCompat": [put_request]}}),
+            Some(json!({})),
+            Some(json!([put_request])),
+        ),
+        (
+            "batch_delete",
+            json!({"UnprocessedItems": {"OperationalCompat": [delete_request]}}),
+            Some(json!({})),
+            Some(json!([delete_request])),
+        ),
+    ] {
+        let transient = (500, service_error("InternalServerError"));
+        let mut responses = vec![transient.clone(), (200, first)];
+        if let Some(follow_up) = follow_up {
+            responses.extend([transient, (200, follow_up)]);
+        }
+        let (endpoint, server) = serve(responses);
+        let client = client!(endpoint).with_retries(Box::new(RetryTwice));
+        let result = match operation {
+            "scan" => client.scan().run().await.map(|output| {
+                let ids: Vec<_> = output.items.into_iter().map(|item| item.id).collect();
+                assert_eq!(ids, ["found", "next"]);
+            }),
+            "delete" => client.delete("found").run().await,
+            "batch_get" => client
+                .batch_get(vec!["found", "pending"])
+                .run()
+                .await
+                .map(|output| {
+                    let ids: Vec<_> = output.items.into_iter().map(|item| item.id).collect();
+                    assert_eq!(ids, ["found", "pending"]);
+                }),
+            "batch_put" => client
+                .batch_put(vec![put("found"), put("pending")])
+                .run()
+                .await
+                .map(|output| {
+                    assert!(output.unprocessed_items.is_empty());
+                }),
+            "batch_delete" => client
+                .batch_delete(vec!["found", "pending"])
+                .run()
+                .await
+                .map(|output| {
+                    assert!(output.unprocessed_items.is_empty());
+                }),
+            _ => unreachable!(),
+        };
+        result.unwrap_or_else(|error| panic!("{operation}: {error:?}"));
+        let requests = server.join().unwrap();
+        assert_eq!(requests[0], requests[1], "{operation}");
+        if let Some(pending) = pending {
+            assert_eq!(requests[2], requests[3], "{operation}");
+            let request_items = &requests[2]["RequestItems"]["OperationalCompat"];
+            let actual = match operation {
+                "scan" => &requests[2]["ExclusiveStartKey"],
+                "batch_get" => &request_items["Keys"],
+                _ => request_items,
+            };
+            assert_eq!(actual, &pending, "{operation}");
+        }
+    }
+}
+
+#[tokio::test]
 async fn condition_failure_is_not_retried_even_with_an_explicit_retry_policy() {
     let (endpoint, server) = serve(vec![(
         400,

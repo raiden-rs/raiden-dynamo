@@ -65,6 +65,8 @@ pub(crate) fn expand_batch_get(
 
         #builder_name {
             client: &self.client,
+            policy: self.retry_condition.strategy.policy(),
+            retry_condition: &self.retry_condition,
             table_name: self.table_name(),
             keys: key_attrs,
             consistent_read: None,
@@ -145,12 +147,12 @@ pub(crate) fn expand_batch_get(
     };
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
-            quote! { #builder_name::inner_run(&self.table_name, &self.client, builder).await? },
+            quote! { #builder_name::inner_run(&self.table_name, self.client, builder.clone()) },
             quote! { table_name: &str, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, builder).await? },
+            quote! { #builder_name::inner_run(self.client, builder.clone()) },
             quote! {},
         )
     };
@@ -160,6 +162,8 @@ pub(crate) fn expand_batch_get(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
+            pub policy: ::raiden::Policy,
+            pub retry_condition: &'a ::raiden::retry::RetryCondition,
             pub table_name: String,
             pub keys: #builder_keys_type,
             pub consistent_read: Option<bool>,
@@ -180,6 +184,7 @@ pub(crate) fn expand_batch_get(
             pub async fn run(mut self) -> Result<::raiden::batch_get::BatchGetOutput<#struct_name>, ::raiden::RaidenError> {
                 use ::std::iter::FromIterator;
 
+                let policy: ::raiden::RetryPolicy = self.policy.into();
                 let mut items: std::vec::Vec<#struct_name> = vec![];
                 let mut unprocessed_keys = ::raiden::aws_sdk::types::KeysAndAttributes::builder()
                     .set_keys(Some(vec![]))
@@ -216,7 +221,7 @@ pub(crate) fn expand_batch_get(
                             item_builder.build().expect("should be built"),
                         );
 
-                    let res = #call_inner_run;
+                    let res = policy.retry_if(|| { #call_inner_run }, self.retry_condition).await?;
 
                     if self.keys.is_empty() {
                         unprocessed_retry -= 1;

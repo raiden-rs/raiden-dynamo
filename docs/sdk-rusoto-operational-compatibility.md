@@ -106,10 +106,12 @@ so decoding behavior can be compared independently of AWS validation.
   policy; the SDK normally uses its own retry middleware. These tests disable
   SDK middleware retries to isolate the explicitly configured Raiden policy.
   A separate SDK regression checks stable transaction tokens with nested SDK/Raiden retries.
-  They do not compare default attempt counts, jitter, retry delays, timeout or
-  credential failures, or nested SDK/custom retry budgets. Batch retries are
-  outside this new fixture suite; existing batch tests cover unprocessed keys
-  and bounded write retries separately.
+  The fixture verifies explicit error retries for Scan, Delete, BatchGet,
+  BatchPut, and BatchDelete. For batch operations it injects errors before and
+  after a partial response and checks that only the unprocessed payload is
+  resent after that response. Default attempt counts, jitter, retry delays,
+  timeout or credential failures, and nested SDK/custom retry budgets remain
+  outside this comparison.
 - **Cancellation predicates still depend on canonical message text on both
   backends.** The SDK additionally exposes raw structured reasons; normalized
   reasons currently parse the message, like Rusoto. An absent or changed message

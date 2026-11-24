@@ -38,6 +38,8 @@ pub(crate) fn expand_delete_item(
 
                     #builder_name {
                         client: &self.client,
+                        policy: self.retry_condition.strategy.policy(),
+                        retry_condition: &self.retry_condition,
                         builder,
                     }
                 }
@@ -65,6 +67,8 @@ pub(crate) fn expand_delete_item(
 
                     #builder_name {
                         client: &self.client,
+                        policy: self.retry_condition.strategy.policy(),
+                        retry_condition: &self.retry_condition,
                         builder,
                     }
                 }
@@ -79,16 +83,16 @@ pub(crate) fn expand_delete_item(
                 let table_name = self
                     .builder
                     .get_table_name()
-                    .clone()
+                    .as_deref()
                     .expect("table name should be set");
 
-                #builder_name::inner_run(&table_name, &self.client, self.builder).await?
+                #builder_name::inner_run(table_name, self.client, self.builder.clone())
             },
             quote! { table_name: &str, },
         )
     } else {
         (
-            quote! { #builder_name::inner_run(&self.client, self.builder).await? },
+            quote! { #builder_name::inner_run(self.client, self.builder.clone()) },
             quote! {},
         )
     };
@@ -98,6 +102,8 @@ pub(crate) fn expand_delete_item(
 
         pub struct #builder_name<'a> {
             pub client: &'a ::raiden::Client,
+            pub policy: ::raiden::Policy,
+            pub retry_condition: &'a ::raiden::retry::RetryCondition,
             pub builder: ::raiden::aws_sdk::operation::delete_item::builders::DeleteItemInputBuilder,
         }
 
@@ -125,7 +131,8 @@ pub(crate) fn expand_delete_item(
             }
 
             pub async fn run(self) -> Result<(), ::raiden::RaidenError> {
-                #call_inner_run;
+                let policy: ::raiden::RetryPolicy = self.policy.into();
+                policy.retry_if(|| { #call_inner_run }, self.retry_condition).await?;
                 Ok(())
             }
 
