@@ -1,6 +1,6 @@
 use crate::{
     aws_sdk::{
-        error::{ProvideErrorMetadata, SdkError},
+        error::SdkError,
         operation::{
             batch_get_item::BatchGetItemError, batch_write_item::BatchWriteItemError,
             delete_item::DeleteItemError, get_item::GetItemError, put_item::PutItemError,
@@ -11,366 +11,224 @@ use crate::{
     RaidenError, RaidenTransactionCancellationReasons,
 };
 
-fn into_raiden_error<E>(error: SdkError<E>) -> RaidenError
-where
-    E: std::fmt::Debug + ProvideErrorMetadata,
-{
-    let (code, message) = (
-        error.meta().code().map(|v| v.to_owned()),
-        error.meta().message().map(|v| v.to_owned()),
-    );
+// Match rusoto_core::proto::json::Error::parse, including its strict optional
+// string fields, Message alias, last-# type suffix, and empty default message.
+// Decode the HTTP body rather than SDK metadata: the SDK also accepts code/Code,
+// prefers them to __type, and tolerates some malformed messages. Those choices
+// otherwise change Raiden variants and application retry decisions on migration.
+#[derive(serde::Deserialize)]
+struct LegacyErrorBody {
+    #[serde(rename = "__type", default)]
+    typ: Option<String>,
+    #[serde(alias = "Message", default)]
+    message: Option<String>,
+}
 
+fn service_response(
+    response: aws_smithy_runtime_api::client::orchestrator::HttpResponse,
+    supported: &[&str],
+    raw_reasons: Vec<crate::aws_sdk::types::CancellationReason>,
+) -> RaidenError {
+    let parsed = response
+        .body()
+        .bytes()
+        .and_then(|body| serde_json::from_slice::<LegacyErrorBody>(body).ok());
+    let Some(parsed) = parsed else {
+        return RaidenError::Unknown(response);
+    };
+    let code = parsed
+        .typ
+        .as_deref()
+        .unwrap_or("Unknown")
+        .rsplit('#')
+        .next()
+        .unwrap_or("Unknown");
+    // ValidationException is handled by every Rusoto DynamoDB operation.
+    if code != "ValidationException" && !supported.contains(&code) {
+        return RaidenError::Unknown(response);
+    }
+    let message = parsed.message.unwrap_or_default();
+    match code {
+        "ConditionalCheckFailedException" => RaidenError::ConditionalCheckFailed(message),
+        "IdempotentParameterMismatchException" => RaidenError::IdempotentParameterMismatch(message),
+        "InternalServerError" => RaidenError::InternalServerError(message),
+        "ItemCollectionSizeLimitExceededException" => {
+            RaidenError::ItemCollectionSizeLimitExceeded(message)
+        }
+        "ProvisionedThroughputExceededException" => {
+            RaidenError::ProvisionedThroughputExceeded(message)
+        }
+        "RequestLimitExceeded" => RaidenError::RequestLimitExceeded(message),
+        "ResourceNotFoundException" => RaidenError::ResourceNotFound(message),
+        "TransactionConflictException" => RaidenError::TransactionConflict(message),
+        "TransactionInProgressException" => RaidenError::TransactionInProgress(message),
+        "ValidationException" => RaidenError::Validation(message),
+        "TransactionCanceledException" => RaidenError::TransactionCanceled {
+            reasons: RaidenTransactionCancellationReasons::from_str(&message),
+            raw_reasons,
+        },
+        _ => RaidenError::Unknown(response),
+    }
+}
+
+fn into_raiden_error<E>(
+    error: SdkError<E>,
+    supported: &[&str],
+    cancellation_reasons: impl FnOnce(&E) -> Vec<crate::aws_sdk::types::CancellationReason>,
+) -> RaidenError {
     match error {
         SdkError::ConstructionFailure(err) => RaidenError::Construction(err),
         SdkError::TimeoutError(err) => RaidenError::Timeout(err),
         SdkError::DispatchFailure(err) => RaidenError::HttpDispatch(err),
-        SdkError::ResponseError(err) => RaidenError::Unknown(err.into_raw()),
-        // This pattern is only for handling ServiceError::Unhandled.
-        // Other patterns should be handled in each ServiceError.
+        // Invalid structured error details may make the SDK decoder fail even
+        // though Rusoto can classify __type/message. Preserve that classification.
+        SdkError::ResponseError(err) => service_response(err.into_raw(), supported, vec![]),
         SdkError::ServiceError(err) => {
-            let Some(code) = code else {
-                return RaidenError::Unknown(err.into_raw());
-            };
+            let reasons = cancellation_reasons(err.err());
+            service_response(err.into_raw(), supported, reasons)
+        }
+        _ => unreachable!("Unexpected variant of SdkError detected"),
+    }
+}
 
-            // https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Programming.Errors.html
-            match code.as_str() {
-                "ValidationException" => RaidenError::Validation(if let Some(message) = message {
-                    message
-                } else {
-                    format!("{err:?}")
-                }),
-                _ => RaidenError::Unknown(err.into_raw()),
+macro_rules! impl_service_error {
+    ($error:ty, [$($code:literal),* $(,)?], $reasons:expr) => {
+        impl From<SdkError<$error>> for RaidenError {
+            fn from(error: SdkError<$error>) -> Self {
+                into_raiden_error(error, &[$($code),*], $reasons)
             }
         }
-        _ => unreachable!(
-            "Unexpected variant of SdkError detected. Raiden must be handle this variant."
-        ),
-    }
+    };
 }
 
-impl From<SdkError<BatchGetItemError>> for RaidenError {
-    fn from(error: SdkError<BatchGetItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                BatchGetItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                BatchGetItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                BatchGetItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                BatchGetItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                BatchGetItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
+impl_service_error!(
+    BatchGetItemError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    BatchWriteItemError,
+    [
+        "InternalServerError",
+        "ItemCollectionSizeLimitExceededException",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    GetItemError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    QueryError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    ScanError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    PutItemError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+        "ConditionalCheckFailedException",
+        "ItemCollectionSizeLimitExceededException",
+        "TransactionConflictException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    UpdateItemError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+        "ConditionalCheckFailedException",
+        "ItemCollectionSizeLimitExceededException",
+        "TransactionConflictException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    DeleteItemError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+        "ConditionalCheckFailedException",
+        "ItemCollectionSizeLimitExceededException",
+        "TransactionConflictException",
+    ],
+    |_| vec![]
+);
+
+impl_service_error!(
+    TransactWriteItemsError,
+    [
+        "IdempotentParameterMismatchException",
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+        "TransactionCanceledException",
+        "TransactionInProgressException",
+    ],
+    |error| match error {
+        TransactWriteItemsError::TransactionCanceledException(error) =>
+            error.cancellation_reasons.clone().unwrap_or_default(),
+        _ => vec![],
     }
-}
+);
 
-impl From<SdkError<BatchWriteItemError>> for RaidenError {
-    fn from(error: SdkError<BatchWriteItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                BatchWriteItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                BatchWriteItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                BatchWriteItemError::ItemCollectionSizeLimitExceededException(err) => {
-                    RaidenError::ItemCollectionSizeLimitExceeded(err.to_string())
-                }
-                BatchWriteItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                BatchWriteItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                BatchWriteItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
+impl_service_error!(
+    TransactGetItemsError,
+    [
+        "InternalServerError",
+        "ProvisionedThroughputExceededException",
+        "RequestLimitExceeded",
+        "ResourceNotFoundException",
+        "TransactionCanceledException",
+    ],
+    |error| match error {
+        TransactGetItemsError::TransactionCanceledException(error) =>
+            error.cancellation_reasons.clone().unwrap_or_default(),
+        _ => vec![],
     }
-}
-
-impl From<SdkError<DeleteItemError>> for RaidenError {
-    fn from(error: SdkError<DeleteItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                DeleteItemError::ConditionalCheckFailedException(err) => {
-                    RaidenError::ConditionalCheckFailed(err.to_string())
-                }
-                DeleteItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                DeleteItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                DeleteItemError::ItemCollectionSizeLimitExceededException(err) => {
-                    RaidenError::ItemCollectionSizeLimitExceeded(err.to_string())
-                }
-                DeleteItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                DeleteItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                DeleteItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                DeleteItemError::TransactionConflictException(err) => {
-                    RaidenError::TransactionConflict(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<GetItemError>> for RaidenError {
-    fn from(error: SdkError<GetItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                GetItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                GetItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                GetItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                GetItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                GetItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<PutItemError>> for RaidenError {
-    fn from(error: SdkError<PutItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                PutItemError::ConditionalCheckFailedException(err) => {
-                    RaidenError::ConditionalCheckFailed(err.to_string())
-                }
-                PutItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                PutItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                PutItemError::ItemCollectionSizeLimitExceededException(err) => {
-                    RaidenError::ItemCollectionSizeLimitExceeded(err.to_string())
-                }
-                PutItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                PutItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                PutItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                PutItemError::TransactionConflictException(err) => {
-                    RaidenError::TransactionConflict(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<QueryError>> for RaidenError {
-    fn from(error: SdkError<QueryError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                QueryError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                QueryError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                QueryError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                QueryError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                QueryError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<ScanError>> for RaidenError {
-    fn from(error: SdkError<ScanError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                ScanError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                ScanError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                ScanError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                ScanError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                ScanError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<TransactWriteItemsError>> for RaidenError {
-    fn from(error: SdkError<TransactWriteItemsError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                TransactWriteItemsError::IdempotentParameterMismatchException(err) => {
-                    RaidenError::IdempotentParameterMismatch(err.to_string())
-                }
-                TransactWriteItemsError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                TransactWriteItemsError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                TransactWriteItemsError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                TransactWriteItemsError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                TransactWriteItemsError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                TransactWriteItemsError::TransactionCanceledException(err) => {
-                    let reasons = RaidenTransactionCancellationReasons::from_str(
-                        err.message
-                            .clone()
-                            .unwrap_or_else(|| "transaction canceled".to_owned())
-                            .as_str(),
-                    );
-                    let raw_reasons = err.cancellation_reasons.clone().unwrap_or_default();
-
-                    RaidenError::TransactionCanceled {
-                        reasons,
-                        raw_reasons,
-                    }
-                }
-                TransactWriteItemsError::TransactionInProgressException(err) => {
-                    RaidenError::TransactionInProgress(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<TransactGetItemsError>> for RaidenError {
-    fn from(error: SdkError<TransactGetItemsError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                TransactGetItemsError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                TransactGetItemsError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                TransactGetItemsError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                TransactGetItemsError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                TransactGetItemsError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                TransactGetItemsError::ThrottlingException(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                TransactGetItemsError::TransactionCanceledException(err) => {
-                    let reasons = RaidenTransactionCancellationReasons::from_str(
-                        err.message
-                            .clone()
-                            .unwrap_or_else(|| "transaction canceled".to_owned())
-                            .as_str(),
-                    );
-                    let raw_reasons = err.cancellation_reasons.clone().unwrap_or_default();
-
-                    RaidenError::TransactionCanceled {
-                        reasons,
-                        raw_reasons,
-                    }
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
-
-impl From<SdkError<UpdateItemError>> for RaidenError {
-    fn from(error: SdkError<UpdateItemError>) -> Self {
-        match &error {
-            SdkError::ServiceError(err) => match err.err() {
-                UpdateItemError::ConditionalCheckFailedException(err) => {
-                    RaidenError::ConditionalCheckFailed(err.to_string())
-                }
-                UpdateItemError::InternalServerError(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                UpdateItemError::InvalidEndpointException(err) => {
-                    RaidenError::InternalServerError(err.to_string())
-                }
-                UpdateItemError::ItemCollectionSizeLimitExceededException(err) => {
-                    RaidenError::ItemCollectionSizeLimitExceeded(err.to_string())
-                }
-                UpdateItemError::ProvisionedThroughputExceededException(err) => {
-                    RaidenError::ProvisionedThroughputExceeded(err.to_string())
-                }
-                UpdateItemError::RequestLimitExceeded(err) => {
-                    RaidenError::RequestLimitExceeded(err.to_string())
-                }
-                UpdateItemError::ResourceNotFoundException(err) => {
-                    RaidenError::ResourceNotFound(err.to_string())
-                }
-                UpdateItemError::TransactionConflictException(err) => {
-                    RaidenError::TransactionConflict(err.to_string())
-                }
-                _ => into_raiden_error(error),
-            },
-            _ => into_raiden_error(error),
-        }
-    }
-}
+);

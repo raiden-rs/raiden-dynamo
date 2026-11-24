@@ -508,13 +508,16 @@ pub(crate) fn expand_query(
                 client: ::raiden::Client,
                 builder: ::raiden::aws_sdk::operation::query::builders::QueryInputBuilder,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
+                let counters = ::raiden::aws_sdk::ResponseCounters::default();
+                let client = counters.client(&client);
                 let res = #api_call_token?;
+                let (count, scanned_count) = counters.get();
                 Ok(#query_output_item {
                     consumed_capacity: res.consumed_capacity,
-                    count: Some(res.count as i64),
+                    count,
                     items: res.items,
                     last_evaluated_key: res.last_evaluated_key,
-                    scanned_count: Some(res.scanned_count as i64),
+                    scanned_count,
                 })
             }
         }

@@ -7,7 +7,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpListener;
 use std::time::{Duration, Instant};
 
-#[derive(Raiden, Debug, PartialEq)]
+#[derive(Raiden, Debug, PartialEq, serde::Serialize)]
 pub struct OperationalCompat {
     #[raiden(partition_key)]
     pub id: String,
@@ -127,6 +127,256 @@ fn page(items: Vec<Value>, scanned: u32, key: Option<Value>) -> Value {
 }
 fn key(id: &str) -> Value {
     json!({"id": {"S": id}})
+}
+
+const ERROR_OPERATIONS: [&str; 11] = [
+    "get",
+    "batch_get",
+    "transact_get",
+    "query",
+    "scan",
+    "put",
+    "batch_put",
+    "batch_delete",
+    "delete",
+    "update",
+    "transact_write",
+];
+
+#[tokio::test]
+async fn service_error_messages_and_new_sdk_errors_keep_the_rusoto_contract() {
+    for operation in ERROR_OPERATIONS {
+        for message in [Some("detail あ\n😀"), Some(""), None] {
+            for code in [
+                "InternalServerError",
+                "ValidationException",
+                "InvalidEndpointException",
+                "ThrottlingException",
+            ] {
+                let mut body = json!({"__type": code});
+                if let Some(message) = message {
+                    body["message"] = json!(message);
+                }
+                let observed = observe_error(operation, 400, body).await;
+                let (kind, retryable, expected_message) = match code {
+                    "InternalServerError" => (
+                        "InternalServerError",
+                        true,
+                        json!(message.unwrap_or_default()),
+                    ),
+                    "ValidationException" => {
+                        ("Validation", false, json!(message.unwrap_or_default()))
+                    }
+                    _ => ("Unknown", true, Value::Null),
+                };
+                assert_eq!(
+                    observed["error"],
+                    json!({"kind": kind, "message": expected_message, "retryable": retryable}),
+                    "{operation}/{code}/{message:?}"
+                );
+                let requests = observed["requests"].as_array().unwrap();
+                assert_eq!(requests.len(), 1);
+                assert!(requests[0].get("ClientRequestToken").is_none());
+            }
+        }
+    }
+}
+
+#[tokio::test]
+async fn error_body_decoding_preserves_legacy_precedence_and_validation() {
+    for operation in ERROR_OPERATIONS {
+        for (body, kind, message, retryable) in [
+            (
+                json!({"code": "ValidationException", "message": "detail"}),
+                "Unknown",
+                Value::Null,
+                true,
+            ),
+            (
+                json!({"Code": "InternalServerError"}),
+                "Unknown",
+                Value::Null,
+                true,
+            ),
+            (
+                json!({"__type": "InternalServerError:detail"}),
+                "Unknown",
+                Value::Null,
+                true,
+            ),
+            (
+                json!({"__type": "prefix#nested#InternalServerError", "Message": "detail"}),
+                "InternalServerError",
+                json!("detail"),
+                true,
+            ),
+            (
+                json!({"__type": "InternalServerError", "code": "ValidationException", "message": "detail"}),
+                "InternalServerError",
+                json!("detail"),
+                true,
+            ),
+            (
+                json!({"__type": "ValidationException", "message": 1}),
+                "Unknown",
+                Value::Null,
+                true,
+            ),
+            (
+                json!({"__type": "ValidationException", "message": "lower", "Message": "upper"}),
+                "Unknown",
+                Value::Null,
+                true,
+            ),
+        ] {
+            let observed = observe_error(operation, 400, body.clone()).await;
+            assert_eq!(
+                observed["error"],
+                json!({"kind": kind, "message": message, "retryable": retryable}),
+                "{operation}/{body}"
+            );
+        }
+    }
+    for operation in ["transact_get", "transact_write"] {
+        let body = json!({"__type": "TransactionCanceledException",
+            "message": "Transaction cancelled, please refer cancellation reasons for specific reasons [ConditionalCheckFailed]",
+            "CancellationReasons": "invalid"});
+        let observed = observe_error(operation, 400, body).await;
+        assert_eq!(observed["error"]["kind"], "TransactionCanceled");
+        assert_eq!(observed["error"]["retryable"], false);
+        assert_eq!(
+            observed["error"]["reasons"],
+            "RaidenTransactionCancellationReasons([Some(ConditionalCheckFailed)])"
+        );
+    }
+}
+
+// Preserve the variant and application-visible message, not backend-specific
+// transport/debug types. Also observe the shared retry policy's decision.
+fn error_observation(error: &RaidenError) -> Value {
+    use RaidenError::*;
+    let (kind, message) = match error {
+        ConditionalCheckFailed(s) => ("ConditionalCheckFailed", Some(s)),
+        IdempotentParameterMismatch(s) => ("IdempotentParameterMismatch", Some(s)),
+        InternalServerError(s) => ("InternalServerError", Some(s)),
+        ItemCollectionSizeLimitExceeded(s) => ("ItemCollectionSizeLimitExceeded", Some(s)),
+        ProvisionedThroughputExceeded(s) => ("ProvisionedThroughputExceeded", Some(s)),
+        RequestLimitExceeded(s) => ("RequestLimitExceeded", Some(s)),
+        ResourceNotFound(s) => ("ResourceNotFound", Some(s)),
+        SizeLimitExceeded(s) => ("SizeLimitExceeded", Some(s)),
+        TransactionConflict(s) => ("TransactionConflict", Some(s)),
+        TransactionInProgress(s) => ("TransactionInProgress", Some(s)),
+        Validation(s) => ("Validation", Some(s)),
+        Unknown(_) => ("Unknown", None),
+        TransactionCanceled { reasons, .. } => {
+            return json!({"kind": "TransactionCanceled", "reasons": format!("{reasons:?}"),
+                "retryable": DefaultRetryStrategy.should_retry(error)});
+        }
+        _ => return json!({"other": format!("{error:?}")}),
+    };
+    json!({"kind": kind, "message": message,
+        "retryable": DefaultRetryStrategy.should_retry(error)})
+}
+
+async fn observe_error(operation: &str, status: u16, response: Value) -> Value {
+    let (endpoint, server) = serve(vec![(status, response)]);
+    let client = client!(endpoint.clone()).with_retries(Box::new(NopRetryStrategy));
+    let input = || OperationalCompatPutItemInput { id: "id".into() };
+    let error = match operation {
+        "get" => client.get("id").run().await.unwrap_err(),
+        "batch_get" => client.batch_get(vec!["id"]).run().await.unwrap_err(),
+        "transact_get" => client.transact_get(vec!["id"]).run().await.unwrap_err(),
+        "query" => client
+            .query()
+            .key_condition(OperationalCompat::key_condition(OperationalCompat::id()).eq("id"))
+            .run()
+            .await
+            .unwrap_err(),
+        "scan" => client.scan().run().await.unwrap_err(),
+        "put" => client.put(input()).run().await.unwrap_err(),
+        "batch_put" => client.batch_put(vec![input()]).run().await.unwrap_err(),
+        "batch_delete" => client.batch_delete(vec!["id"]).run().await.unwrap_err(),
+        "delete" => client.delete("id").run().await.unwrap_err(),
+        // Error-response decoding only: this fixture does not assert DynamoDB
+        // would accept a primary-key update.
+        "update" => client
+            .update("id")
+            .set(
+                OperationalCompat::update_expression()
+                    .set(OperationalCompat::id())
+                    .value("next"),
+            )
+            .run()
+            .await
+            .unwrap_err(),
+        "transact_write" => tx!(endpoint)
+            .with_retries(Box::new(NopRetryStrategy))
+            .put(OperationalCompat::put(input()))
+            .run()
+            .await
+            .unwrap_err(),
+        _ => panic!("unknown operation: {operation}"),
+    };
+    json!({"error": error_observation(&error), "requests": server.join().unwrap()})
+}
+
+/// Driven by scripts/check-operational-backends.py, in two feature builds.
+#[tokio::test]
+#[ignore = "requires the differential corpus/output environment variables"]
+async fn differential_service_error_corpus() {
+    let corpus = std::fs::read_to_string(std::env::var("RAIDEN_ERROR_CORPUS").unwrap()).unwrap();
+    let mut output = std::fs::File::create(std::env::var("RAIDEN_ERROR_OUTPUT").unwrap()).unwrap();
+    for line in corpus.lines() {
+        let case: Value = serde_json::from_str(line).unwrap();
+        let observed = observe_error(
+            case["operation"].as_str().unwrap(),
+            case["status"].as_u64().unwrap().try_into().unwrap(),
+            case["body"].clone(),
+        )
+        .await;
+        writeln!(output, "{observed}").unwrap();
+    }
+}
+
+fn read_observation<T: serde::Serialize>(result: Result<T, RaidenError>) -> Value {
+    match result {
+        Ok(output) => json!({"ok": output}),
+        Err(error) => json!({"error": error_observation(&error)}),
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires the differential corpus/output environment variables"]
+async fn differential_success_response_corpus() {
+    let corpus = std::fs::read_to_string(std::env::var("RAIDEN_ERROR_CORPUS").unwrap()).unwrap();
+    let mut output = std::fs::File::create(std::env::var("RAIDEN_ERROR_OUTPUT").unwrap()).unwrap();
+    for line in corpus.lines() {
+        let case: Value = serde_json::from_str(line).unwrap();
+        let (endpoint, server) = serve(vec![(200, case["body"].clone())]);
+        let client = client!(endpoint).with_retries(Box::new(NopRetryStrategy));
+        let observed = match case["operation"].as_str().unwrap() {
+            "get" => read_observation(client.get("id").run().await),
+            "batch_get" => read_observation(client.batch_get(vec!["id"]).run().await),
+            "transact_get" => read_observation(client.transact_get(vec!["id"]).run().await),
+            "query" => read_observation(
+                client
+                    .query()
+                    .key_condition(
+                        OperationalCompat::key_condition(OperationalCompat::id()).eq("id"),
+                    )
+                    .run()
+                    .await,
+            ),
+            "scan" => read_observation(client.scan().run().await),
+            operation => panic!("unknown read operation: {operation}"),
+        };
+        writeln!(
+            output,
+            "{}",
+            json!({"result": observed, "requests": server.join().unwrap()})
+        )
+        .unwrap();
+    }
 }
 
 #[tokio::test]
@@ -303,6 +553,33 @@ async fn condition_failure_is_not_retried_even_with_an_explicit_retry_policy() {
 }
 
 #[tokio::test]
+async fn transaction_retries_preserve_the_rusoto_request_without_an_implicit_token() {
+    let (endpoint, server) = serve(vec![
+        (500, service_error("InternalServerError")),
+        (500, service_error("InternalServerError")),
+        (200, json!({})),
+    ]);
+    tx!(endpoint)
+        .with_retries(Box::new(RetryTwice))
+        .put(OperationalCompat::put(OperationalCompatPutItemInput {
+            id: "a".into(),
+        }))
+        .put(OperationalCompat::put(OperationalCompatPutItemInput {
+            id: "b".into(),
+        }))
+        .run()
+        .await
+        .unwrap();
+    let requests = server.join().unwrap();
+    assert_eq!(requests.len(), 3);
+    let expected = json!({"TransactItems": [
+        {"Put": {"Item": {"id": {"S": "a"}}, "TableName": "OperationalCompat"}},
+        {"Put": {"Item": {"id": {"S": "b"}}, "TableName": "OperationalCompat"}},
+    ]});
+    assert!(requests.iter().all(|request| request == &expected));
+}
+
+#[tokio::test]
 async fn transaction_cancellation_retains_reason_order_for_backend_business_rules() {
     let codes = [
         "ConditionalCheckFailed",
@@ -455,4 +732,100 @@ async fn pagination_page_shapes_and_limit_boundaries_match_the_model() {
             }
         }
     }
+}
+
+#[tokio::test]
+async fn optional_page_counters_preserve_presence_and_final_page_values() {
+    for scan in [false, true] {
+        for count in [None, Some(Value::Null), Some(json!(0)), Some(json!(2))] {
+            for scanned in [None, Some(Value::Null), Some(json!(0)), Some(json!(2))] {
+                let mut last = json!({"Items": []});
+                if let Some(value) = &count {
+                    last["Count"] = value.clone();
+                }
+                if let Some(value) = &scanned {
+                    last["ScannedCount"] = value.clone();
+                }
+                // First-page values must not leak into an absent final counter.
+                let first = json!({"Items": [], "Count": 7, "ScannedCount": 8,
+                    "LastEvaluatedKey": {"id": {"S": "cursor"}}});
+                let (endpoint, server) = serve(vec![(200, first), (200, last)]);
+                let client = client!(endpoint);
+                let observed = if scan {
+                    let result = client.scan().run().await.unwrap();
+                    (result.count, result.scanned_count)
+                } else {
+                    let condition =
+                        OperationalCompat::key_condition(OperationalCompat::id()).eq("id");
+                    let result = client.query().key_condition(condition).run().await.unwrap();
+                    (result.count, result.scanned_count)
+                };
+                assert_eq!(
+                    observed,
+                    (
+                        count.as_ref().and_then(|v| v.as_i64()),
+                        scanned.and_then(|v| v.as_i64())
+                    )
+                );
+                assert_eq!(server.join().unwrap().len(), 2);
+            }
+        }
+    }
+}
+
+#[cfg(feature = "aws-sdk")]
+#[tokio::test]
+async fn page_counter_capture_retains_user_interceptors() {
+    use aws_smithy_runtime_api::{
+        box_error::BoxError,
+        client::{
+            interceptors::{context::AfterDeserializationInterceptorContextRef, Intercept},
+            runtime_components::RuntimeComponents,
+        },
+    };
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+    #[derive(Debug)]
+    struct Observe(Arc<AtomicUsize>);
+    impl Intercept for Observe {
+        fn name(&self) -> &'static str {
+            "UserResponseObserver"
+        }
+        fn read_after_deserialization(
+            &self,
+            _: &AfterDeserializationInterceptorContextRef<'_>,
+            _: &RuntimeComponents,
+            _: &mut aws_smithy_types::config_bag::ConfigBag,
+        ) -> Result<(), BoxError> {
+            self.0.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+    }
+    let (endpoint, server) = serve(vec![
+        (200, json!({})),
+        (200, json!({"Count": 0, "ScannedCount": 0})),
+    ]);
+    let calls = Arc::new(AtomicUsize::new(0));
+    let config = sdk_client(endpoint)
+        .config()
+        .to_builder()
+        .interceptor(Observe(calls.clone()))
+        .build();
+    let client = OperationalCompat::client_with(Client::from_conf(config));
+    assert_eq!(client.scan().run().await.unwrap().count, None);
+    let condition = OperationalCompat::key_condition(OperationalCompat::id()).eq("id");
+    assert_eq!(
+        client
+            .query()
+            .key_condition(condition)
+            .run()
+            .await
+            .unwrap()
+            .count,
+        Some(0)
+    );
+    assert_eq!(calls.load(Ordering::SeqCst), 2);
+    assert_eq!(server.join().unwrap().len(), 2);
 }

@@ -13,6 +13,7 @@ again = { version = "0.1", default-features = false }
 aws-config = { version = "1.8.18", optional = true }
 aws-sdk-dynamodb = { version = "1.114.0", default-features = false, features = ["default-https-client", "rt-tokio"], optional = true }
 aws-smithy-runtime-api = { version = "1.12.3", optional = true }
+aws-smithy-types = { version = "1", optional = true }
 base64 = "^0.22"
 md-5 = "^0.10"
 paste = { version = "1.0.15", optional = true }
@@ -50,6 +51,7 @@ aws-sdk = [
     "dep:aws-config",
     "dep:aws-sdk-dynamodb",
     "dep:aws-smithy-runtime-api",
+    "dep:aws-smithy-types",
     "dep:paste",
     "raiden-derive/aws-sdk",
 ]

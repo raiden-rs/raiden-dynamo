@@ -22,7 +22,7 @@ The direct regression failed on both backends before the fix.
 
 ## Shared HTTP regression coverage
 
-Seven tests cover:
+Eleven ordinary tests cover (two additional corpus probes run explicitly):
 
 - Empty intermediate pages with a nonempty key: continue, preserve returned
   items, and reduce Limit by ScannedCount rather than the number of items.
@@ -49,6 +49,49 @@ cannot silently pass by consuming an unbounded sequence of canned responses.
 Fixtures simulate service responses; they do not establish DynamoDB acceptance
 of every generated query or error scenario.
 
+## Additional differences found and fixed
+
+The HTTP differential probe compares generated request JSON, serialized read
+outputs, error variants/messages, normalized cancellation reasons and the shared
+retry policy's decision. Unknown raw error payload/debug types and headers are
+backend-specific and are not compared. JSON object ordering is ignored; request
+tokens are **not** masked.
+
+- SDK modeled-error Display text included the exception name; Rusoto exposes the
+  bare message. InvalidEndpointException was incorrectly mapped to InternalServerError,
+  and TransactGet ThrottlingException to RequestLimitExceeded; Rusoto returns
+  Unknown for both. These are now aligned per operation, including retry decisions.
+- SDK accepts code/Code, differing type precedence and malformed message fields.
+  The compatibility decoder now uses the raw HTTP error body with Rusoto's strict
+  optional string schema, Message alias and last-`#` type suffix. Duplicate message
+  aliases and invalid message types return Unknown. Invalid SDK cancellation
+  details no longer erase a Rusoto-readable TransactionCanceled classification.
+  Raw SDK reasons remain available when its structured decoder succeeds.
+- SDK inserted a random ClientRequestToken for WriteTx. Rusoto sends none.
+  WriteTx now removes the implicit token before signing, including explicit retries.
+  **This removes the SDK's implicit AWS idempotency protection.** A retry after a
+  lost response can execute a transaction twice, matching Rusoto. A regression
+  asserts all three retry requests equal the complete expected token-free JSON.
+- SDK Query/Scan synthesize zero for missing/null Count and ScannedCount, whereas
+  Rusoto returns None. An interceptor records their presence from the buffered
+  response. A request-local client configuration retains the caller's existing
+  settings and interceptors, with separate counter state for each page/request.
+  Explicit zero remains Some(0). A two-page cross-product regression checks that
+  earlier values do not leak into absent final counters. A separate SDK test
+  verifies that caller-installed response interceptors still execute.
+
+Exploration reproduced 1,620 differing observations in an initial 3,300-case
+error matrix (300 also differed in transaction request JSON). An additional
+2,000 seeded malformed/alternative error-body cases revealed 470 remaining
+differences. After the fixes, the combined 5,300 cases had zero differences.
+The initial successful-read matrix found 216 differences in 333 cases, all due
+to optional counters; after fixing them, an expanded 373-case matrix has zero
+observed differences. An independent seed (20261125) with 10,000 exploratory
+cases plus the 3,300-case baseline also has zero differences (13,300 total).
+These are finite structured explorations, not arbitrary
+byte fuzzing. Some fixtures intentionally describe service-invalid combinations
+so decoding behavior can be compared independently of AWS validation.
+
 ## Differences and unverified risks
 
 - **Default retries remain backend-specific.** Rusoto uses Raiden's retry
@@ -66,7 +109,7 @@ of every generated query or error scenario.
 - **Pagination counters retain their existing contract.** Items accumulate
   across pages; Count, ScannedCount and ConsumedCapacity reflect the final
   response rather than totals. The tests use valid nonnegative ScannedCount and
-  small positive limits; missing counters, out-of-range limits, malformed or
+  small positive limits; out-of-range limits, malformed or
   repeated nonempty cursors, and concurrent DynamoDB writes are not covered.
 - **Transport and deployment behavior is unverified here.** Credentials/region
   resolution, IAM, HTTP/TLS, real AWS throttling, deadlines and cancellation are
@@ -86,3 +129,19 @@ cargo test --locked -p raiden --no-default-features --features aws-sdk --test op
 These tests are included in the ordinary test suite, so the existing CI test
 matrix runs them with both backends. Finite enumeration and HTTP fixtures are
 regression evidence, not coverage-guided fuzzing or proof of equivalence.
+
+Run and preserve the HTTP exploration evidence with:
+
+```sh
+python3 scripts/check-operational-backends.py --output-dir /tmp/raiden-errors
+python3 scripts/check-operational-backends.py --responses --output-dir /tmp/raiden-responses
+# Broader independent seed; the 3,300-case baseline is always included.
+python3 scripts/check-operational-backends.py --seed 20261125 --exploratory-cases 10000 --output-dir /tmp/raiden-errors-seed2
+```
+
+The default toolchain is CI's 1.91.1; pass `--toolchain 1.100.0` to reproduce
+these local runs. Each directory contains every input, both observations and
+`differences.json`; any difference fails the command. CI runs both HTTP corpora
+and uploads their evidence, including on failure. Native malformed **successful**
+HTTP payloads are not validated by the separate raw-attribute JSON entrypoints;
+matching their entire decoder failure behavior remains outside this audit.

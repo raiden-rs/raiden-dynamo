@@ -7,6 +7,7 @@ pub(crate) fn expand_scan(
     _rename_all_type: crate::rename::RenameAllType,
     gsi_names: &[String],
 ) -> proc_macro2::TokenStream {
+    let output_name = format_ident!("{}ScanResponse", struct_name);
     let trait_name = format_ident!("{}Scan", struct_name);
     let client_name = format_ident!("{}Client", struct_name);
     let builder_name = format_ident!("{}ScanBuilder", struct_name);
@@ -44,6 +45,13 @@ pub(crate) fn expand_scan(
     };
 
     quote! {
+        struct #output_name {
+            consumed_capacity: Option<::raiden::aws_sdk::types::ConsumedCapacity>,
+            count: Option<i64>,
+            items: Option<Vec<::std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue>>>,
+            last_evaluated_key: Option<::std::collections::HashMap<String, ::raiden::aws_sdk::types::AttributeValue>>,
+            scanned_count: Option<i64>,
+        }
         pub trait #trait_name {
             fn scan(&self) -> #builder_name;
         }
@@ -192,7 +200,7 @@ pub(crate) fn expand_scan(
                         }
                     };
 
-                    let scanned = res.scanned_count as i64;
+                    let scanned = res.scanned_count.unwrap_or(0);
 
                     let mut has_next = true;
                     if let Some(limit) = self.limit {
@@ -202,10 +210,10 @@ pub(crate) fn expand_scan(
                     if last_evaluated_key.is_none() || !has_next {
                         return Ok(::raiden::scan::ScanOutput {
                             consumed_capacity: res.consumed_capacity,
-                            count: Some(res.count as i64),
+                            count: res.count,
                             items,
                             last_evaluated_key,
-                            scanned_count: Some(res.scanned_count as i64),
+                            scanned_count: res.scanned_count,
                         })
                     }
 
@@ -218,8 +226,18 @@ pub(crate) fn expand_scan(
                 #inner_run_args
                 client: &::raiden::Client,
                 builder: ::raiden::aws_sdk::operation::scan::builders::ScanInputBuilder,
-            ) -> Result<::raiden::aws_sdk::operation::scan::ScanOutput, ::raiden::RaidenError> {
-                Ok(#api_call_token?)
+            ) -> Result<#output_name, ::raiden::RaidenError> {
+                let counters = ::raiden::aws_sdk::ResponseCounters::default();
+                let client = counters.client(client);
+                let res = #api_call_token?;
+                let (count, scanned_count) = counters.get();
+                Ok(#output_name {
+                    consumed_capacity: res.consumed_capacity,
+                    count,
+                    items: res.items,
+                    last_evaluated_key: res.last_evaluated_key,
+                    scanned_count,
+                })
             }
         }
 

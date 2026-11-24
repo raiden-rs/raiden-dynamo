@@ -97,7 +97,29 @@ impl WriteTx {
         fields(api = "transact_write_items")
     ))]
     async fn inner_run(req: TransactWriteItemsFluentBuilder) -> Result<(), RaidenError> {
-        let _res = req.send().await?;
+        let _res = req
+            .customize()
+            .map_request(|mut request| -> Result<_, std::io::Error> {
+                // Rusoto's WriteTx omits ClientRequestToken. The SDK inserts a
+                // random token even when the fluent builder leaves it unset.
+                // Remove it before signing to preserve that request contract,
+                // including across an explicit Raiden retry.
+                let bytes = request.body().bytes().ok_or_else(|| {
+                    std::io::Error::other("transaction request body is not buffered")
+                })?;
+                let mut body: serde_json::Value = serde_json::from_slice(bytes)?;
+                if let Some(object) = body.as_object_mut() {
+                    object.remove("ClientRequestToken");
+                }
+                let bytes = serde_json::to_vec(&body)?;
+                request
+                    .headers_mut()
+                    .insert("content-length", bytes.len().to_string());
+                *request.body_mut() = bytes.into();
+                Ok(request)
+            })
+            .send()
+            .await?;
 
         // TODO: ADD Resp
         Ok(())
