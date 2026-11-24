@@ -74,11 +74,14 @@ tokens are **not** masked.
   asserts all three retry requests equal the complete expected token-free JSON.
 - SDK Query/Scan synthesize zero for missing/null Count and ScannedCount, whereas
   Rusoto returns None. An interceptor records their presence from the buffered
-  response. A request-local client configuration retains the caller's existing
-  settings and interceptors, with separate counter state for each page/request.
+  response. An operation-local interceptor retains the original client's
+  connection pool, runtime plugins, retry state and existing interceptors, with
+  separate counter state for each page/request.
   Explicit zero remains Some(0). A two-page cross-product regression checks that
   earlier values do not leak into absent final counters. A separate SDK test
-  verifies that caller-installed response interceptors still execute.
+  verifies that caller-installed response interceptors still execute; another
+  populates all 17 Query and 16 Scan SDK input fields and compares the complete
+  request JSON with the SDK's direct send_with path.
 
 Exploration reproduced 1,620 differing observations in an initial 3,300-case
 error matrix (300 also differed in transaction request JSON). An additional

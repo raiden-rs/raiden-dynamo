@@ -829,3 +829,74 @@ async fn page_counter_capture_retains_user_interceptors() {
     assert_eq!(calls.load(Ordering::SeqCst), 2);
     assert_eq!(server.join().unwrap().len(), 2);
 }
+
+// Deliberately populate every current SDK input field (including legacy ones).
+// This checks forwarding, not whether DynamoDB accepts conflicting expressions.
+#[cfg(feature = "aws-sdk")]
+#[tokio::test]
+async fn counter_interceptor_preserves_every_query_and_scan_input_field() {
+    use aws_sdk::{
+        types::{AttributeValue, ConditionalOperator, ReturnConsumedCapacity, Select},
+        ResponseCounters,
+    };
+    let (endpoint, server) = serve(vec![(200, json!({})); 4]);
+    let client = sdk_client(endpoint);
+    let names = || {
+        Some(std::collections::HashMap::from([(
+            "#id".into(),
+            "id".into(),
+        )]))
+    };
+    let values = || {
+        Some(std::collections::HashMap::from([(
+            "id".into(),
+            AttributeValue::S("id".into()),
+        )]))
+    };
+    let query = aws_sdk::operation::query::QueryInput::builder()
+        .table_name("table")
+        .index_name("index")
+        .select(Select::Count)
+        .attributes_to_get("id")
+        .limit(3)
+        .consistent_read(true)
+        .set_key_conditions(Some(Default::default()))
+        .set_query_filter(Some(Default::default()))
+        .conditional_operator(ConditionalOperator::And)
+        .scan_index_forward(false)
+        .set_exclusive_start_key(values())
+        .return_consumed_capacity(ReturnConsumedCapacity::Total)
+        .projection_expression("#id")
+        .filter_expression("filter")
+        .key_condition_expression("key")
+        .set_expression_attribute_names(names())
+        .set_expression_attribute_values(values());
+    query.clone().send_with(&client).await.unwrap();
+    ResponseCounters::query(&client, query, ResponseCounters::default())
+        .await
+        .unwrap();
+    let scan = aws_sdk::operation::scan::ScanInput::builder()
+        .table_name("table")
+        .index_name("index")
+        .select(Select::Count)
+        .attributes_to_get("id")
+        .limit(3)
+        .consistent_read(true)
+        .set_scan_filter(Some(Default::default()))
+        .conditional_operator(ConditionalOperator::And)
+        .set_exclusive_start_key(values())
+        .return_consumed_capacity(ReturnConsumedCapacity::Total)
+        .total_segments(2)
+        .segment(1)
+        .projection_expression("#id")
+        .filter_expression("filter")
+        .set_expression_attribute_names(names())
+        .set_expression_attribute_values(values());
+    scan.clone().send_with(&client).await.unwrap();
+    ResponseCounters::scan(&client, scan, ResponseCounters::default())
+        .await
+        .unwrap();
+    let requests = server.join().unwrap();
+    assert_eq!(requests[0], requests[1]);
+    assert_eq!(requests[2], requests[3]);
+}

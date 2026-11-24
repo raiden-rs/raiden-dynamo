@@ -238,7 +238,13 @@ pub(crate) fn expand_query(
         }
     });
 
-    let api_call_token = super::api_call_token!("query");
+    let api_call_token = super::api_call_token!(
+        "table_name",
+        "client",
+        "query",
+        "builder",
+        Some(format_ident!("counters"))
+    );
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
             quote! {
@@ -509,7 +515,6 @@ pub(crate) fn expand_query(
                 builder: ::raiden::aws_sdk::operation::query::builders::QueryInputBuilder,
             ) -> Result<#query_output_item, ::raiden::RaidenError> {
                 let counters = ::raiden::aws_sdk::ResponseCounters::default();
-                let client = counters.client(&client);
                 let res = #api_call_token?;
                 let (count, scanned_count) = counters.get();
                 Ok(#query_output_item {

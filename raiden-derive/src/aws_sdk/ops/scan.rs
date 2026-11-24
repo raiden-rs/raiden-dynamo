@@ -28,7 +28,13 @@ pub(crate) fn expand_scan(
             }
         }
     });
-    let api_call_token = super::api_call_token!("scan");
+    let api_call_token = super::api_call_token!(
+        "table_name",
+        "client",
+        "scan",
+        "builder",
+        Some(format_ident!("counters"))
+    );
     let (call_inner_run, inner_run_args) = if cfg!(feature = "tracing") {
         (
             quote! {
@@ -228,7 +234,6 @@ pub(crate) fn expand_scan(
                 builder: ::raiden::aws_sdk::operation::scan::builders::ScanInputBuilder,
             ) -> Result<#output_name, ::raiden::RaidenError> {
                 let counters = ::raiden::aws_sdk::ResponseCounters::default();
-                let client = counters.client(client);
                 let res = #api_call_token?;
                 let (count, scanned_count) = counters.get();
                 Ok(#output_name {

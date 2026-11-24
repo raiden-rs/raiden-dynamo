@@ -79,11 +79,21 @@ macro_rules! api_call_token {
     ($operation: literal) => {
         $crate::ops::api_call_token!("table_name", "client", $operation, "builder")
     };
-    ($table_name: literal, $client: literal, $operation: literal, $builder: literal) => {{
+    ($table_name: literal, $client: literal, $operation: literal, $builder: literal) => {
+        $crate::ops::api_call_token!($table_name, $client, $operation, $builder, None)
+    };
+    ($table_name: literal, $client: literal, $operation: literal, $builder: literal, $counters:expr) => {{
         let table_name = ::quote::format_ident!($table_name);
         let client = ::quote::format_ident!($client);
         let operation = ::quote::format_ident!($operation);
         let builder = ::quote::format_ident!($builder);
+
+        let counters: Option<::proc_macro2::Ident> = $counters;
+        let future = if let Some(counters) = counters {
+            ::quote::quote! { ::raiden::aws_sdk::ResponseCounters::#operation(&#client, #builder, #counters.clone()) }
+        } else {
+            ::quote::quote! { #builder.send_with(&#client) }
+        };
 
         let span_token = if cfg!(feature = "tracing") {
             ::quote::quote! {
@@ -99,7 +109,7 @@ macro_rules! api_call_token {
         };
 
         ::quote::quote! {{
-            let fut = #builder.send_with(&#client);
+            let fut = #future;
 
             #span_token
 
